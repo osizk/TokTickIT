@@ -11,6 +11,9 @@ export const app = express();
 
 app.use(cors());          // already wired: lets the Vite dev server call this API
 app.use(express.json());
+// Health checks must always return a fresh 200 response, not a browser cache
+// validation response such as 304 Not Modified.
+app.disable("etag");
 
 // ---------------------------------------------------------------------------
 // Issue 2 — API health check
@@ -18,6 +21,7 @@ app.use(express.json());
 // It must return HTTP 200 with JSON: { status: "ok", service: "TokTickIT API" }
 // ---------------------------------------------------------------------------
 app.get("/api/health", (_req: Request, res: Response) => {
+  res.set("Cache-Control", "no-store");
   res.status(200).json({ status: "ok", service: "TokTickIT API" });
 });
 
