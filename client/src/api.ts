@@ -10,6 +10,32 @@ export interface SystemStatus {
   categories: Category[];
 }
 
+export interface HealthStatus {
+  status: "ok";
+  service: string;
+}
+
+export async function checkHealth(): Promise<HealthStatus> {
+  let response: Response;
+
+  try {
+    response = await fetch(`${API_URL}/api/health`);
+  } catch {
+    throw new Error("Unable to connect to TokTickIT API.");
+  }
+
+  if (!response.ok) {
+    throw new Error("Unable to connect to TokTickIT API.");
+  }
+
+  const health = (await response.json()) as Partial<HealthStatus>;
+  if (health.status !== "ok" || typeof health.service !== "string") {
+    throw new Error("TokTickIT API returned an invalid health response.");
+  }
+
+  return { status: health.status, service: health.service };
+}
+
 // Issue 2 + Issue 4 — call the backend.
 // Steps: fetch `${API_URL}/api/health`; if not ok, throw.
 //        then fetch `${API_URL}/api/categories`; if not ok, throw.
