@@ -1,21 +1,24 @@
 import { useState } from "react";
-import { checkHealth } from "./api.js";
+import { checkSystem, Category } from "./api.js";
 
 type UiState = "idle" | "loading" | "success" | "error";
 
 export default function App() {
   const [state, setState] = useState<UiState>("idle");
   const [service, setService] = useState<string | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   async function handleCheck() {
     setState("loading");
     setService(null);
+    setCategories([]);
     setErrorMessage(null);
 
     try {
-      const health = await checkHealth();
-      setService(health.service);
+      const system = await checkSystem();
+      setService(system.service);
+      setCategories(system.categories);
       setState("success");
     } catch (error) {
       setErrorMessage(
@@ -45,6 +48,12 @@ export default function App() {
         <div className="mt-4" role="status">
           <p>System Status: Online</p>
           <p>Service: {service}</p>
+          <h2 className="h5 mt-4">Supported Request Categories</h2>
+          <ul aria-label="Supported Request Categories">
+            {categories.map((category) => (
+              <li key={category.id}>{category.name}</li>
+            ))}
+          </ul>
         </div>
       )}
 

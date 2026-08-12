@@ -9,16 +9,19 @@ afterEach(() => {
 });
 
 describe("App", () => {
-  // WORKED EXAMPLE — provided for you.
   it("renders the TokTickIT heading", () => {
     render(<App />);
     expect(screen.getByText(/TokTickIT/i)).toBeInTheDocument();
   });
 
-  it("shows Online after a successful health check", async () => {
-    vi.spyOn(api, "checkHealth").mockResolvedValue({
-      status: "ok",
+  it("shows categories returned by the API", async () => {
+    vi.spyOn(api, "checkSystem").mockResolvedValue({
+      online: true,
       service: "TokTickIT API",
+      categories: [
+        { id: 11, name: "Database-backed category" },
+        { id: 12, name: "Another API category" },
+      ],
     });
     const user = userEvent.setup();
 
@@ -26,13 +29,35 @@ describe("App", () => {
     await user.click(screen.getByRole("button", { name: "Check System" }));
 
     expect(await screen.findByText("System Status: Online")).toBeInTheDocument();
-    expect(screen.getByText("Service: TokTickIT API")).toBeInTheDocument();
-    expect(api.checkHealth).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("Database-backed category")).toBeInTheDocument();
+    expect(screen.getByText("Another API category")).toBeInTheDocument();
   });
 
-  it("shows Offline with a useful message when the backend is unavailable", async () => {
-    vi.spyOn(api, "checkHealth").mockRejectedValue(
-      new Error("Unable to connect to TokTickIT API.")
+  it("shows a loading state while categories are being requested", async () => {
+    let resolveSystem!: (value: api.SystemStatus) => void;
+    vi.spyOn(api, "checkSystem").mockReturnValue(
+      new Promise((resolve) => {
+        resolveSystem = resolve;
+      })
+    );
+    const user = userEvent.setup();
+
+    render(<App />);
+    await user.click(screen.getByRole("button", { name: "Check System" }));
+
+    expect(screen.getByRole("status")).toHaveTextContent("Loading...");
+
+    resolveSystem({
+      online: true,
+      service: "TokTickIT API",
+      categories: [{ id: 21, name: "Loaded after request" }],
+    });
+    expect(await screen.findByText("Loaded after request")).toBeInTheDocument();
+  });
+
+  it("shows an Offline error when the API is unavailable", async () => {
+    vi.spyOn(api, "checkSystem").mockRejectedValue(
+      new Error("Unable to load request categories.")
     );
     const user = userEvent.setup();
 
@@ -41,12 +66,6 @@ describe("App", () => {
 
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("System Status: Offline");
-    expect(alert).toHaveTextContent("Unable to connect to TokTickIT API.");
+    expect(alert).toHaveTextContent("Unable to load request categories.");
   });
-
-  // Issue 4 — write these yourself. Hint: mock the api module with
-  // vi.spyOn(api, "checkSystem").mockResolvedValue(...) / .mockRejectedValue(...)
-  // then click the button and assert the Online list / Offline message.
-  it.todo("shows Online and the seeded categories on success");
-  it.todo("shows an Offline error message when the API is unavailable");
 });

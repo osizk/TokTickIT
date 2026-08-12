@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 
 // Lazy singleton: the client is created on first use, not at import time.
