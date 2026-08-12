@@ -23,4 +23,17 @@ GitHub shows that all four pull requests were authored by `@osizk`, reviewed by 
 
 ## Pull Requests I reviewed for my partner
 
-GitHub search found no pull requests authored by `@HolyThiccDaddy` in `osizk/TokTickIT`. Therefore, I cannot fill in a review comment or partner response for a partner-authored PR.
+Partner repository: [HolyThiccDaddy/toktickit](https://github.com/HolyThiccDaddy/toktickit/tree/lab1-staging)
+
+| PR | Branch | Base and result | My review comment | Partner response |
+|----|--------|-----------------|-------------------|------------------|
+| [#5](https://github.com/HolyThiccDaddy/toktickit/pull/5) | `feature/1-project-foundation` | `lab1-staging`; merged as `6c85940` | "Everything looks great." | No separate response was recorded. |
+| [#6](https://github.com/HolyThiccDaddy/toktickit/pull/6) | `feature/2-health-check` | `main`; closed without merging | I confirmed the health endpoint matched Issue 2 and suggested removing unused catch variables. I also identified that the PR targeted the wrong branch. | The partner replied, "Thanks for the help. Ashira." |
+| [#7](https://github.com/HolyThiccDaddy/toktickit/pull/7) | `feature/3-category-seed` | `main`; closed without merging | I noted that the PR targeted the wrong branch. | No separate response was recorded. |
+| [#8](https://github.com/HolyThiccDaddy/toktickit/pull/8) | `feature/2-health-check` | `lab1-staging`; merged as `640f439` | I confirmed the health endpoint matched Issue 2 and left small cleanup comments. | The partner explained that the unused variable might be kept for future use and replied, "Thanks." |
+| [#9](https://github.com/HolyThiccDaddy/toktickit/pull/9) | `feature/3-category-seed` | `lab1-staging`; merged as `0d38d35` | I asked for Issue 4 changes to be separated from the Issue 3 PR. After the update, I confirmed that the Issue 4 implementation was removed and the Issue 3 Prisma, migration, and seed work looked good. | The partner said they would make the requested change and ask for another review. |
+| [#10](https://github.com/HolyThiccDaddy/toktickit/pull/10) | `feature/4-category-list` | `lab1-staging`; merged as `7d6dc9d` | "Everything looks good, you can merge now." | No separate response was recorded. |
+
+**My review comment:** I found two wrong-base PRs (#6 and #7) and asked for Issue 4 work to be separated from Issue 3 in #9. The partner corrected the branch/base and scope problems in the later PRs.
+
+**Partner's response:** The partner acknowledged the feedback, corrected the branch and scope issues, and submitted the corrected PRs (#8, #9, and #10).
