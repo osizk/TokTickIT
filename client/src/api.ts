@@ -7,6 +7,7 @@ export interface Category {
 
 export interface SystemStatus {
   online: boolean;
+  service: string;
   categories: Category[];
 }
 
@@ -42,6 +43,37 @@ export async function checkHealth(): Promise<HealthStatus> {
 //        return { online: true, categories }.
 // Throwing on failure lets the UI show a single Offline/error state.
 export async function checkSystem(): Promise<SystemStatus> {
-  // TODO(Issue 2 & 4): implement the two fetch calls described above.
-  throw new Error("checkSystem not implemented yet");
+  const health = await checkHealth();
+  let response: Response;
+
+  try {
+    response = await fetch(`${API_URL}/api/categories`);
+  } catch {
+    throw new Error("Unable to load request categories.");
+  }
+
+  if (!response.ok) {
+    throw new Error("Unable to load request categories.");
+  }
+
+  try {
+    const categories = (await response.json()) as unknown;
+    if (
+      !Array.isArray(categories) ||
+      !categories.every((category): category is Category => {
+        if (typeof category !== "object" || category === null) {
+          return false;
+        }
+
+        const candidate = category as Record<string, unknown>;
+        return typeof candidate.id === "number" && typeof candidate.name === "string";
+      })
+    ) {
+      throw new Error("Invalid category response.");
+    }
+
+    return { online: true, service: health.service, categories };
+  } catch {
+    throw new Error("Unable to load request categories.");
+  }
 }

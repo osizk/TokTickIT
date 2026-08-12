@@ -31,7 +31,19 @@ app.get("/api/health", (_req: Request, res: Response) => {
 //   -> read categories from PostgreSQL via getPrisma().category.findMany(...)
 //   -> return each { id, name } in a predictable (id) order
 //   -> on failure, respond 500 with a safe message (no internal details)
-// TODO(Issue 4): implement the route here.
+app.get("/api/categories", async (_req: Request, res: Response) => {
+  try {
+    const categories = await getPrisma().category.findMany({
+      select: { id: true, name: true },
+      orderBy: { id: "asc" },
+    });
+
+    res.set("Cache-Control", "no-store");
+    res.status(200).json(categories);
+  } catch {
+    res.status(500).json({ error: "Unable to load request categories." });
+  }
+});
 // ---------------------------------------------------------------------------
 
 export default app;
