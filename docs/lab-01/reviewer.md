@@ -1,8 +1,8 @@
 # Lab 1 - Peer Review Record
 
-**Author:** Cannot fill: the student's full name and student ID are not shown in GitHub. GitHub: [@osizk](https://github.com/osizk)
+**Author:** Name: Ashira Sansoda and student ID: 67070503445 GitHub: [@osizk](https://github.com/osizk)
 
-**Peer reviewer:** Cannot fill: the reviewer's full name and student ID are not shown in GitHub. GitHub: [@HolyThiccDaddy](https://github.com/HolyThiccDaddy)
+**Peer reviewer:** Name: Thira Rungruangkaset and student ID: 67070503419 GitHub: [@HolyThiccDaddy](https://github.com/HolyThiccDaddy)
 
 ## Pull Requests I authored (reviewed by my partner)
 
