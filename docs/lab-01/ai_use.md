@@ -19,4 +19,18 @@ The prompts below are concise summaries of prompts used during this work.
 
 ## Reflection
 
-Prompts were better when I included the exact acceptance criteria, named the files and constraints, and asked the agent to run tests and verify the result instead of only asking it to "do issue x". I had to correct the first loading-state test because `getByText("Loading...")` matched both the button and the status paragraph, so I changed it to target the element with `role="status"`. This showed me that AI can implement quickly, but I still need to inspect the rendered UI and understand the test failures myself.
+1. **Lab sheet summary and plan:** Asking the agent to read the actual lab sheet made the answer more accurate because it could organize the work around the four Issues and their acceptance criteria. This gave me a clear order for the implementation instead of starting the code without understanding the full lab.
+
+2. **Issue 2 health check:** Including every acceptance criterion made the prompt better because the agent knew it needed to implement the backend endpoint, frontend API call, error message, and Supertest coverage. I still checked the endpoint and UI myself to confirm that the result matched what the lab required.
+
+3. **HTTP 304 problem:** Giving the exact status code and explaining when it appeared helped the agent focus on browser caching instead of changing unrelated API code. The fix also added a regression test, which taught me that a bug fix should include a test that prevents the same problem from returning.
+
+4. **Issue 3 Prisma category model:** Naming the required fields, category values, migration, and idempotent seed made the prompt specific enough to produce the correct database changes. I learned that using `upsert` allows the seed to run multiple times without creating duplicate categories.
+
+5. **Prisma and PostgreSQL errors:** Copying the full error messages into the prompt was important because authentication failure, a missing database, and a missing `DATABASE_URL` are different problems. I had to work through the local PostgreSQL permissions and credentials rather than accepting every first suggestion from the agent.
+
+6. **Issue 4 category API and UI:** Supplying both backend and frontend acceptance criteria helped the agent connect the Prisma query, Express route, React states, and automated tests. I corrected the loading-state test when a general text query matched `Loading...` in two places and changed it to check the status region specifically.
+
+7. **Category loading error:** Sharing the exact error response and describing that it happened in the running application helped identify the difference between code that passes tests and a server process using the wrong environment. Restarting the backend after adding runtime `.env` loading was necessary before the fix could be verified.
+
+8. **Verification, cleanup, and commits:** Asking the agent to check tests, builds, Git status, generated files, and credentials made the final verification more reliable. I learned to inspect the staged files before committing so generated JavaScript and secret `.env` values are not accidentally included.

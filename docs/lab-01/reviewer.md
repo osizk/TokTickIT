@@ -17,23 +17,64 @@ GitHub shows that all four pull requests were authored by `@osizk`, reviewed by 
 
 > Note: GitHub uses the spelling `feature/3-catogory-seed`; the lab sheet spells the branch `feature/3-category-seed`.
 
-**Reviewer comment received:** The comments and verdicts are recorded in the table above. The reviewer approved each PR, with the final Issue 4 comment explicitly giving it a pass.
+PR [#5](https://github.com/osizk/TokTickIT/pull/5) - Branch: `feature/1-project-foundation-`
 
-**How I responded:** No separate author response is visible in the GitHub PR timelines. The reviewed pull requests were merged after the reviewer comments.
+**Reviewer comment received:** "You are doing good lil bro. Pass."
+
+**How I responded:** I merged the PR after it passed review.
+
+PR [#6](https://github.com/osizk/TokTickIT/pull/6) - Branch: `feature/2-health-check`
+
+**Reviewer comment received:** "I've seen the code you did. Great job. Now you can merge it."
+
+**How I responded:** I merged the PR after it passed review.
+
+PR [#7](https://github.com/osizk/TokTickIT/pull/7) - Branch: `feature/3-catogory-seed`
+
+**Reviewer comment received:** "Good job so far. Nicely done!"
+
+**How I responded:** I merged the PR after the positive review.
+
+PR [#8](https://github.com/osizk/TokTickIT/pull/8) - Branch: `feature/4-category-list`
+
+**Reviewer comment received:** "Looks good already. The issue #4 flow is complete. Prisma is well done. And the UI is pretty good. You can merge it now I give it a pass."
+
+**How I responded:** No response recorded on GitHub. I merged the PR after it passed review.
 
 ## Pull Requests I reviewed for my partner
 
-Partner repository: [HolyThiccDaddy/toktickit](https://github.com/HolyThiccDaddy/toktickit/tree/lab1-staging)
+PR [#5](https://github.com/HolyThiccDaddy/toktickit/pull/5) - Branch: `feature/1-project-foundation`
 
-| PR | Branch | Base and result | My review comment | Partner response |
-|----|--------|-----------------|-------------------|------------------|
-| [#5](https://github.com/HolyThiccDaddy/toktickit/pull/5) | `feature/1-project-foundation` | `lab1-staging`; merged as `6c85940` | "Everything looks great." | No separate response was recorded. |
-| [#6](https://github.com/HolyThiccDaddy/toktickit/pull/6) | `feature/2-health-check` | `main`; closed without merging | I confirmed the health endpoint matched Issue 2 and suggested removing unused catch variables. I also identified that the PR targeted the wrong branch. | The partner replied, "Thanks for the help. Ashira." |
-| [#7](https://github.com/HolyThiccDaddy/toktickit/pull/7) | `feature/3-category-seed` | `main`; closed without merging | I noted that the PR targeted the wrong branch. | No separate response was recorded. |
-| [#8](https://github.com/HolyThiccDaddy/toktickit/pull/8) | `feature/2-health-check` | `lab1-staging`; merged as `640f439` | I confirmed the health endpoint matched Issue 2 and left small cleanup comments. | The partner explained that the unused variable might be kept for future use and replied, "Thanks." |
-| [#9](https://github.com/HolyThiccDaddy/toktickit/pull/9) | `feature/3-category-seed` | `lab1-staging`; merged as `0d38d35` | I asked for Issue 4 changes to be separated from the Issue 3 PR. After the update, I confirmed that the Issue 4 implementation was removed and the Issue 3 Prisma, migration, and seed work looked good. | The partner said they would make the requested change and ask for another review. |
-| [#10](https://github.com/HolyThiccDaddy/toktickit/pull/10) | `feature/4-category-list` | `lab1-staging`; merged as `7d6dc9d` | "Everything looks good, you can merge now." | No separate response was recorded. |
+**My review comment:** "Everything looks great."
 
-**My review comment:** I found two wrong-base PRs (#6 and #7) and asked for Issue 4 work to be separated from Issue 3 in #9. The partner corrected the branch/base and scope problems in the later PRs.
+**Partner's response:** No response recorded on GitHub.
 
-**Partner's response:** The partner acknowledged the feedback, corrected the branch and scope issues, and submitted the corrected PRs (#8, #9, and #10).
+PR [#6](https://github.com/HolyThiccDaddy/toktickit/pull/6) - Branch: `feature/2-health-check`
+
+**My review comment:** "Everything look good, the health endpoint matches the Issue #2 requirement and the UI flow is easy to follow. I left a couple of small cleanup comments." I also commented, "bro I just realized you merge wrong branch."
+
+**Partner's response:** "Thanks for the help. Ashira."
+
+PR [#7](https://github.com/HolyThiccDaddy/toktickit/pull/7) - Branch: `feature/3-category-seed`
+
+**My review comment:** "This PR merge wrong branch too."
+
+**Partner's response:** No response recorded on GitHub.
+
+PR [#8](https://github.com/HolyThiccDaddy/toktickit/pull/8) - Branch: `feature/2-health-check`
+
+**My review comment:** "Everything look good, the health endpoint matches the Issue 2 requirement. I left a couple of small cleanup comments."
+
+**Partner's response:** "I will just leave it. In case it will be used in future." The partner also replied, "Thanks."
+
+PR [#9](https://github.com/HolyThiccDaddy/toktickit/pull/9) - Branch: `feature/3-category-seed`
+
+**My review comment:** "Issue #3 itself looks good but this PR also includes a lot of Issue #4 work. I would prefer keeping Issue #4 changes in its own PR so each issue stays easy to review and revert." After the correction, I commented that the Issue 4 implementation had been removed and the Issue 3 Prisma, migration, and seed work looked good.
+
+**Partner's response:** "Thanks for the review! I will give a change later please re-review."
+
+PR [#10](https://github.com/HolyThiccDaddy/toktickit/pull/10) - Branch: `feature/4-category-list`
+
+**My review comment:** "Everything looks good, you can merge now."
+
+**Partner's response:** No response recorded on GitHub.
