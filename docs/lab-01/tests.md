@@ -1,37 +1,30 @@
-# Lab 1 - Test Plan and Evidence
+# Lab 1 — Test Plan and Evidence  (fill this in)
 
-All automated test files are under `server/tests/lab-01/` and `client/tests/lab-01/`.
+All test files live under server/tests/lab-01/ and client/tests/lab-01/.
 
 | # | Tool | Test | Result |
 |---|------|------|--------|
-| 1 | Supertest | `server/tests/lab-01/health.test.ts`: `GET /api/health` returns HTTP 200 with `status: "ok"` and `service: "TokTickIT API"`. | Passed |
-| 2 | Supertest | `server/tests/lab-01/health.test.ts`: a conditional health request still returns HTTP 200 and uses `Cache-Control: no-store`. | Passed |
-| 3 | Supertest | `server/tests/lab-01/categories.test.ts`: `GET /api/categories` returns the four seeded categories in ascending ID order. | Passed |
-| 4 | Vitest | `client/tests/lab-01/App.test.tsx`: the heading renders and the success state displays the API-returned categories. | Passed |
-| 5 | Vitest | `client/tests/lab-01/App.test.tsx`: the loading state is shown and an unavailable backend displays Offline with a useful error message. | Passed |
+| 1 | Supertest | GET /api/health returns 200, status=ok | Passed |
+| 2 | Supertest | GET /api/categories returns 4 seeded categories in id order | Passed |
+| 3 | Vitest | Heading renders | Passed |
+| 4 | Vitest | Success state shows Online + category list | Passed |
+| 5 | Vitest | Error state shows Offline + message | Passed |
 
-## Verification commands
+Paste your passing terminal output / screenshot below.
 
-```powershell
-cd server
-npm.cmd test
-npm.cmd run build
-cd ..\client
-npm.cmd test
-npm.cmd run build
-```
+### Test screenshots
 
-Recorded results:
+1. Health endpoint test
+![Health endpoint test](test-1-health.png)
 
-- Server: 2 test files and 3 tests passed; TypeScript build passed.
-![alt text](image-1.png)
-- Client: 1 test file and 4 tests passed; production build passed.
-![alt text](image.png)
-- The live `GET /api/categories` check returned HTTP 200 with the four seeded categories.
-![alt text](image-3.png)
-- Heading renders
-![alt text](image-5.png)
-- Success state shows Online + category list
-![alt text](image-2.png)
-- Error state shows Offline + message
-![alt text](image-4.png)
+2. Categories API test
+![Categories API test](test-2-categories.png)
+
+3. Heading test
+![Heading test](test-3-heading.png)
+
+4. Success-state test
+![Success-state test](test-4-success.png)
+
+5. Offline-error test
+![Offline-error test](test-5-error.png)
