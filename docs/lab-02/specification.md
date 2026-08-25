@@ -83,7 +83,58 @@ Create Ticket has reference-data loading/failure states, read-only Requester/Tic
 
 Add `Requester`, `RelatedSystem`, `TicketCounter`, `Ticket`, and `Attachment`; add `isActive` and required timestamps to `Category`. Use `TicketPriority` (`LOW`, `MEDIUM`, `HIGH`, `URGENT`) and `TicketStatus` (`NEW`) enums. Use unique email/name/number constraints, restrictive foreign keys, requester-first ownership indexes, reference/filter/sort indexes, and soft-removal fields. Use an annual counter row and a transaction for Ticket Number allocation. Seed four active Requesters, one inactive Requester, four Categories, and seven Related Systems idempotently.
 
-Attachment metadata includes original filename, MIME type, size, generated stored filename, upload time, nullable removal time/reason/remover, and Ticket relationship. Stored filenames and paths never appear in API responses.
+### 7.1 Database design justifications
+
+`TicketCounter` is a separate row for each calendar year so the backend can lock and increment one authoritative sequence inside the Ticket transaction. This makes `TKT-YYYY-######` allocation concurrency-safe, prevents duplicate numbers, and naturally starts a new six-digit sequence each year.
+
+Attachments use soft removal rather than deleting their database row or immediately deleting their protected bytes. The retained metadata and `removedAt`/`removalReason`/`removedByRequesterId` values provide an audit trail, while the API blocks download and preview and excludes removed rows from the five-active-attachment limit. This preserves evidence for review without exposing or serving removed content.
+
+### 7.2 Exact data model contract
+
+Unless a later approved migration says otherwise, database identifiers use Prisma `Int @id @default(autoincrement())`, matching the existing `Category` model and the public reference-data shapes. The UUID used in a protected attachment path is independent of the database identifier. Persist timestamps as UTC `DateTime`; Prisma `@updatedAt` maintains `updatedAt` on updates.
+
+**`Requester`**
+
+- Fields: `id Int @id @default(autoincrement())`; `name String`; `email String @unique`; `isActive Boolean @default(true)`; `createdAt DateTime @default(now())`; `updatedAt DateTime @updatedAt`.
+- Relations: `tickets Ticket[]`; `removedAttachments Attachment[] @relation("AttachmentRemovedBy")`.
+- Constraints/indexes: active requester queries use an index on `[isActive, name]`; inactive rows remain in the database but are never returned by the reference API.
+
+**`Category`**
+
+- Fields: existing `id Int @id @default(autoincrement())` and `name String @unique`; add `isActive Boolean @default(true)` and `updatedAt DateTime @updatedAt`; retain `createdAt DateTime @default(now())`.
+- Relations: `tickets Ticket[]`.
+- Constraints/indexes: active selector queries use `[isActive, name]`; seed names are idempotent and unique.
+
+**`RelatedSystem`**
+
+- Fields: `id Int @id @default(autoincrement())`; `name String @unique`; `isActive Boolean @default(true)`; `createdAt DateTime @default(now())`; `updatedAt DateTime @updatedAt`.
+- Relations: `tickets Ticket[]`.
+- Constraints/indexes: active selector queries use `[isActive, name]`; seed names are idempotent and unique.
+
+**`TicketCounter`**
+
+- Fields: `id Int @id @default(autoincrement())`; `year Int @unique`; `lastIssued Int @default(0)`; `createdAt DateTime @default(now())`; `updatedAt DateTime @updatedAt`.
+- Relations: none exposed to the API.
+- Constraints/indexes: exactly one row per year; allocation locks the year row, increments `lastIssued`, and formats the result as six digits before creating the Ticket.
+
+**`Ticket`**
+
+- Fields: `id Int @id @default(autoincrement())`; `ticketNumber String @unique`; `requesterId Int`; `categoryId Int`; `relatedSystemId Int`; `requestedPriority TicketPriority`; `status TicketStatus @default(NEW)`; `summary String`; `description String`; `createdAt DateTime @default(now())`; `updatedAt DateTime @updatedAt`.
+- Relations: `requester Requester @relation(fields: [requesterId], references: [id], onDelete: Restrict)`; `category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)`; `relatedSystem RelatedSystem @relation(fields: [relatedSystemId], references: [id], onDelete: Restrict)`; `attachments Attachment[]`.
+- Constraints/indexes: requester ownership/list queries use `[requesterId, updatedAt, id]`, `[requesterId, createdAt, id]`, and requester/filter columns; `ticketNumber` is unique. `createdAt` is the backend-generated Ticket Date.
+
+**`Attachment`**
+
+- Fields: `id Int @id @default(autoincrement())`; `ticketId Int`; `originalName String`; `mimeType String`; `sizeBytes Int`; `storedFilename String @unique`; `uploadedAt DateTime @default(now())`; `removedAt DateTime?`; `removalReason String?`; `removedByRequesterId Int?`.
+- Relations: `ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Restrict)`; `removedByRequester Requester? @relation("AttachmentRemovedBy", fields: [removedByRequesterId], references: [id], onDelete: Restrict)`.
+- Constraints/indexes: use `[ticketId, removedAt]` for active-count and metadata queries; `sizeBytes` is at most 5 MiB; `storedFilename` and all filesystem paths are internal and never serialized in API responses.
+
+Enums are exactly:
+
+```prisma
+enum TicketPriority { LOW MEDIUM HIGH URGENT }
+enum TicketStatus { NEW }
+```
 
 ## 8. API Contract Summary
 
