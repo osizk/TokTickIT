@@ -48,7 +48,7 @@ Returns active Development Requesters only:
 [{ "id": 1, "name": "Amina Rahman", "email": "amina@example.test" }]
 ```
 
-Reference failures return `500` with a safe message. No inactive Requester is returned.
+Reference failures return `500` with `{ "error": { "code": "REFERENCE_DATA_UNAVAILABLE", "message": "..." } }`; internal database details are never returned. No inactive Requester is returned.
 
 ## 3. Ticket Shapes
 

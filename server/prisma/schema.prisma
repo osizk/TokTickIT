@@ -1,5 +1,5 @@
-// Prisma schema — datasource and generator are pre-wired.
-// Your DATABASE_URL lives in server/.env (copy it from .env.example).
+// Prisma schema for TokTickIT Lab 2.
+// DATABASE_URL is loaded from server/.env or server/.env.test.
 
 generator client {
   provider = "prisma-client-js"
@@ -10,17 +10,95 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ---------------------------------------------------------------------------
-// Issue 3 — Create and seed IT request categories
-// Define a Category model with:
-//   id        Int      @id @default(autoincrement())
-//   name      String   @unique
-//   createdAt DateTime @default(now())
-// Then run:  npx prisma migrate dev --name init
-// ---------------------------------------------------------------------------
+model Requester {
+  id                 Int          @id @default(autoincrement())
+  name               String
+  email              String       @unique
+  isActive           Boolean      @default(true)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @default(now()) @updatedAt
+  tickets            Ticket[]
+  removedAttachments Attachment[] @relation("AttachmentRemovedBy")
+
+  @@index([isActive, name])
+}
 
 model Category {
   id        Int      @id @default(autoincrement())
   name      String   @unique
+  isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  tickets   Ticket[]
+
+  @@index([isActive, name])
+}
+
+model RelatedSystem {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  tickets   Ticket[]
+
+  @@index([isActive, name])
+}
+
+model TicketCounter {
+  id         Int      @id @default(autoincrement())
+  year       Int      @unique
+  lastIssued Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
+}
+
+model Ticket {
+  id                Int            @id @default(autoincrement())
+  ticketNumber      String         @unique
+  requesterId       Int
+  categoryId        Int
+  relatedSystemId   Int
+  requestedPriority TicketPriority
+  status            TicketStatus   @default(NEW)
+  summary           String
+  description       String
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @default(now()) @updatedAt
+  requester         Requester      @relation(fields: [requesterId], references: [id], onDelete: Restrict)
+  category          Category       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  relatedSystem     RelatedSystem  @relation(fields: [relatedSystemId], references: [id], onDelete: Restrict)
+  attachments       Attachment[]
+
+  @@index([requesterId, updatedAt, id])
+  @@index([requesterId, createdAt, id])
+  @@index([requesterId, categoryId, relatedSystemId, requestedPriority, status])
+}
+
+model Attachment {
+  id                   Int        @id @default(autoincrement())
+  ticketId             Int
+  originalName         String
+  mimeType             String
+  sizeBytes            Int
+  storedFilename       String     @unique
+  uploadedAt           DateTime   @default(now())
+  removedAt            DateTime?
+  removalReason        String?
+  removedByRequesterId Int?
+  ticket               Ticket     @relation(fields: [ticketId], references: [id], onDelete: Restrict)
+  removedByRequester   Requester? @relation("AttachmentRemovedBy", fields: [removedByRequesterId], references: [id], onDelete: Restrict)
+
+  @@index([ticketId, removedAt])
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TicketStatus {
+  NEW
 }

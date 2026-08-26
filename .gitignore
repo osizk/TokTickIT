@@ -18,3 +18,9 @@ docs/lab-01/PLAN_LAB1.md
 docs/lab-02/Lab2_labsheet.pdf
 docs/lab-02/PLAN_LAB2.md
 TokTickIT_GitHub_Workflow_Guide_TH_EN.pdf
+
+# Lab 2 local test/runtime data and secrets
+*.env.test
+server/.test-attachments/
+server/attachments/
+server/tmp/
