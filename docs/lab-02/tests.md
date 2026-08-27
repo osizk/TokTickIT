@@ -8,7 +8,7 @@ All Lab 2 test files live under `server/tests/lab-02/`, `client/tests/lab-02/`, 
 |---|------|------|--------|
 | 1 | Vitest | Ticket Number, field, query, and Attachment validation/unit boundaries | Planned |
 | 2 | Supertest/Vitest | Reference APIs, requester context, Ticket creation, ownership, list, detail, and Attachment APIs | Planned |
-| 3 | Vitest + Testing Library | Requester selection, Create Ticket, My Tickets, Detail, Attachment states, and duplicate-submit behavior | Planned |
+| 3 | Vitest + Testing Library | Requester selection, Create Ticket, My Tickets, Detail, Attachment states, and duplicate-submit behavior | Issue #14 requester-context tests pass locally; remaining UI flows planned |
 | 4 | Vitest/DOM assertions | Zen Green classes, labels, errors, focus, badges, responsive classes, and non-color indicators | Planned |
 | 5 | Playwright | Complete requester Ticket/Attachment lifecycle and cross-requester isolation | Planned |
 | 6 | Playwright screenshots | Desktop, tablet, and mobile Create Ticket, My Tickets, and Ticket Detail evidence | Planned |
@@ -24,6 +24,15 @@ Pass/fail output and screenshots will be added below as the Issues are implement
 - [x] `npx prisma migrate deploy` applies `20260826100000_lab2_data_reference` successfully.
 - [x] `npm run prisma:seed` ran twice without duplicate conflicts; active endpoint counts remain 4 categories, 7 related systems, and 4 requesters, with one inactive requester retained in the database.
 - [ ] Repeat the same checks using a student-created isolated `server/.env.test` database and temporary `ATTACHMENT_STORAGE_DIR`; only `.env.test.example` is tracked.
+
+### Issue #14 evidence (2026-08-27)
+
+- [x] Planned failing baseline recorded before implementation: `client/tests/lab-02/RequesterSelection.test.tsx` failed because the requester API helper and Lab 2 route/context UI were not yet implemented; the four existing Lab 1 client tests passed.
+- [x] `client/tests/lab-02/RequesterSelection.test.tsx` passes 7 tests covering loading, active options, disabled Continue, safe failure/Retry, empty state, startup storage validation, malformed/inactive stored IDs, protected-route guarding, and Change Requester.
+- [x] Combined client regression run (`npm.cmd test -- --run` from `client/`) passes 2 test files and 11 tests: 7 Issue #14 tests plus 4 Lab 1 tests.
+- [x] Client production build (`npm.cmd run build` from `client/`) passes after the requester-context implementation.
+- [x] Relevant server regression run (`npm.cmd test -- --run` from `server/`) passes 3 test files and 8 tests, and the server TypeScript build passes.
+- [ ] API-backed manual verification, responsive screenshots, and full E2E coverage remain planned for the later Issues.
 
 ### Test screenshots
 
@@ -51,8 +60,8 @@ Each final screenshot must include a short caption stating what it shows and whi
 | API-09 | Supertest | FR-12/13/14, AC-15/16/17/18 | Metadata, add, active download, capacity, removal, retained metadata, and blocked removed download work. | `server/tests/lab-02/attachments.api.test.ts` | Planned |
 | API-10 | Supertest | BR-12/14, AC-08/17 | Attachment validation and filesystem/database compensation leave safe state. | `server/tests/lab-02/attachments.api.test.ts` | Planned |
 | API-11 | Supertest | FR-15, AC-14/19 | Cross-owner detail, metadata, download, add, and remove are safe `404`s. | `server/tests/lab-02/attachments.api.test.ts` | Planned |
-| UI-01 | Vitest/Testing Library | FR-01/02, AC-01/02 | Selector loading, empty, Retry, active options, disabled Continue, labels, and focus. | `client/tests/lab-02/RequesterSelection.test.tsx` | Planned |
-| UI-02 | Vitest/Testing Library | FR-03/04, AC-03/04 | Valid/invalid sessionStorage and Change Requester clear/reload context. | `client/tests/lab-02/RequesterSelection.test.tsx` | Planned |
+| UI-01 | Vitest/Testing Library | FR-01/02, AC-01/02 | Selector loading, empty, Retry, active options, disabled Continue, labels, and focus. | `client/tests/lab-02/RequesterSelection.test.tsx` | Passed locally (7 Issue #14 tests) |
+| UI-02 | Vitest/Testing Library | FR-03/04, AC-03/04 | Valid/invalid sessionStorage and Change Requester clear/reload context. | `client/tests/lab-02/RequesterSelection.test.tsx` | Passed locally (7 Issue #14 tests) |
 | UI-03 | Vitest/Testing Library | FR-05/06/17, AC-05/07/09/20 | Create references, validation, file errors, preserved failure values, and duplicate-submit guard. | `client/tests/lab-02/CreateTicket.test.tsx` | Planned |
 | UI-04 | Vitest/Testing Library | FR-07/08, AC-05/06 | Success displays backend Ticket Number/date/status and next action. | `client/tests/lab-02/CreateTicket.test.tsx` | Planned |
 | UI-05 | Vitest/Testing Library | FR-09/10, AC-10/11/12 | My Tickets query controls, table/cards, loading, empty/no-results/failure, pagination. | `client/tests/lab-02/MyTickets.test.tsx` | Planned |

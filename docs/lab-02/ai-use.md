@@ -14,6 +14,7 @@ The prompts below are concise summaries of prompts used during this work.
 | 4 | Edit `specification.md` with the requested database rationale and model details, keeping the change limited to that document. | Updated the specification, aligned `updatedAt` defaults with the migration, and verified formatting before the local commit. |
 | 5 | Create a local commit for the reviewed specification update without pushing it. | Created commit `a644340` with only `specification.md`, then verified that no push occurred and the working tree was clean. |
 | 6 | Implement Issue #13 Data/reference APIs from the latest `lab2-staging`; keep `PLAN_LAB2.md` private/ignored and do not commit, push, or change GitHub Project status. | Created `feature/lab2-data-reference`, wrote the failing tests first, added the schema/migration/seed/reference routes and safe errors, updated living evidence, and verified Prisma validation, migration, repeated seed, 8 server tests, build, and `git diff --check`. |
+| 7 | Proceed with the next Lab 2 issue, warn me about any branch-name conflict, use Issue #14's `feature/7-Lab2RequesterContext` name, and number the future feature branches in the private plan. | Checked the Issue/plan mismatch, updated the ignored plan's numbered branch list, created the new branch from the latest `lab2-staging`, wrote the requester-context tests first, implemented the selection and route shell, and verified the failing baseline followed by 11 passing client tests and a production build. |
 
 ## Reflection
 
