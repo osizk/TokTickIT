@@ -5,6 +5,12 @@ export interface Category {
   name: string;
 }
 
+export interface Requester {
+  id: number;
+  name: string;
+  email: string;
+}
+
 export interface SystemStatus {
   online: boolean;
   service: string;
@@ -14,6 +20,48 @@ export interface SystemStatus {
 export interface HealthStatus {
   status: "ok";
   service: string;
+}
+
+function isRequester(value: unknown): value is Requester {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate.id === "number" &&
+    Number.isSafeInteger(candidate.id) &&
+    candidate.id > 0 &&
+    typeof candidate.name === "string" &&
+    candidate.name.trim().length > 0 &&
+    typeof candidate.email === "string" &&
+    candidate.email.trim().length > 0
+  );
+}
+
+export async function fetchRequesters(): Promise<Requester[]> {
+  let response: Response;
+
+  try {
+    response = await fetch(`${API_URL}/api/requesters`);
+  } catch {
+    throw new Error("Unable to load Development Requesters.");
+  }
+
+  if (!response.ok) {
+    throw new Error("Unable to load Development Requesters.");
+  }
+
+  try {
+    const body = (await response.json()) as unknown;
+    if (!Array.isArray(body) || !body.every(isRequester)) {
+      throw new Error("Invalid requester response.");
+    }
+
+    return body;
+  } catch {
+    throw new Error("Unable to load Development Requesters.");
+  }
 }
 
 export async function checkHealth(): Promise<HealthStatus> {
