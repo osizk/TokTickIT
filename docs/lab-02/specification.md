@@ -95,31 +95,31 @@ Unless a later approved migration says otherwise, database identifiers use Prism
 
 **`Requester`**
 
-- Fields: `id Int @id @default(autoincrement())`; `name String`; `email String @unique`; `isActive Boolean @default(true)`; `createdAt DateTime @default(now())`; `updatedAt DateTime @updatedAt`.
+- Fields: `id Int @id @default(autoincrement())`; `name String`; `email String @unique`; `isActive Boolean @default(true)`; `createdAt DateTime @default(now())`; `updatedAt DateTime @default(now()) @updatedAt`.
 - Relations: `tickets Ticket[]`; `removedAttachments Attachment[] @relation("AttachmentRemovedBy")`.
 - Constraints/indexes: active requester queries use an index on `[isActive, name]`; inactive rows remain in the database but are never returned by the reference API.
 
 **`Category`**
 
-- Fields: existing `id Int @id @default(autoincrement())` and `name String @unique`; add `isActive Boolean @default(true)` and `updatedAt DateTime @updatedAt`; retain `createdAt DateTime @default(now())`.
+- Fields: existing `id Int @id @default(autoincrement())` and `name String @unique`; add `isActive Boolean @default(true)` and `updatedAt DateTime @default(now()) @updatedAt`; retain `createdAt DateTime @default(now())`.
 - Relations: `tickets Ticket[]`.
 - Constraints/indexes: active selector queries use `[isActive, name]`; seed names are idempotent and unique.
 
 **`RelatedSystem`**
 
-- Fields: `id Int @id @default(autoincrement())`; `name String @unique`; `isActive Boolean @default(true)`; `createdAt DateTime @default(now())`; `updatedAt DateTime @updatedAt`.
+- Fields: `id Int @id @default(autoincrement())`; `name String @unique`; `isActive Boolean @default(true)`; `createdAt DateTime @default(now())`; `updatedAt DateTime @default(now()) @updatedAt`.
 - Relations: `tickets Ticket[]`.
 - Constraints/indexes: active selector queries use `[isActive, name]`; seed names are idempotent and unique.
 
 **`TicketCounter`**
 
-- Fields: `id Int @id @default(autoincrement())`; `year Int @unique`; `lastIssued Int @default(0)`; `createdAt DateTime @default(now())`; `updatedAt DateTime @updatedAt`.
+- Fields: `id Int @id @default(autoincrement())`; `year Int @unique`; `lastIssued Int @default(0)`; `createdAt DateTime @default(now())`; `updatedAt DateTime @default(now()) @updatedAt`.
 - Relations: none exposed to the API.
 - Constraints/indexes: exactly one row per year; allocation locks the year row, increments `lastIssued`, and formats the result as six digits before creating the Ticket.
 
 **`Ticket`**
 
-- Fields: `id Int @id @default(autoincrement())`; `ticketNumber String @unique`; `requesterId Int`; `categoryId Int`; `relatedSystemId Int`; `requestedPriority TicketPriority`; `status TicketStatus @default(NEW)`; `summary String`; `description String`; `createdAt DateTime @default(now())`; `updatedAt DateTime @updatedAt`.
+- Fields: `id Int @id @default(autoincrement())`; `ticketNumber String @unique`; `requesterId Int`; `categoryId Int`; `relatedSystemId Int`; `requestedPriority TicketPriority`; `status TicketStatus @default(NEW)`; `summary String`; `description String`; `createdAt DateTime @default(now())`; `updatedAt DateTime @default(now()) @updatedAt`.
 - Relations: `requester Requester @relation(fields: [requesterId], references: [id], onDelete: Restrict)`; `category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)`; `relatedSystem RelatedSystem @relation(fields: [relatedSystemId], references: [id], onDelete: Restrict)`; `attachments Attachment[]`.
 - Constraints/indexes: requester ownership/list queries use `[requesterId, updatedAt, id]`, `[requesterId, createdAt, id]`, and requester/filter columns; `ticketNumber` is unique. `createdAt` is the backend-generated Ticket Date.
 

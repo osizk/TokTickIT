@@ -12,9 +12,18 @@ All Lab 2 test files live under `server/tests/lab-02/`, `client/tests/lab-02/`, 
 | 4 | Vitest/DOM assertions | Zen Green classes, labels, errors, focus, badges, responsive classes, and non-color indicators | Planned |
 | 5 | Playwright | Complete requester Ticket/Attachment lifecycle and cross-requester isolation | Planned |
 | 6 | Playwright screenshots | Desktop, tablet, and mobile Create Ticket, My Tickets, and Ticket Detail evidence | Planned |
-| 7 | npm/Vitest/Prisma | Final server/client regressions, builds, migration, and repeated idempotent seed | Planned |
+| 7 | npm/Vitest/Prisma | Final server/client regressions, builds, migration, and repeated idempotent seed | Issue #13 migration/seed verified locally; final regression pending |
 
-Pass/fail output and screenshots will be added below as the Issues are implemented. No Lab 2 product tests have been implemented yet.
+Pass/fail output and screenshots will be added below as the Issues are implemented. Issue #13 now has reference-data API coverage; the remaining Lab 2 product tests are pending.
+
+### Issue #13 evidence (2026-08-26)
+
+- [x] Planned failing baseline run recorded: missing `/api/related-systems` and `/api/requesters` returned `404`, and the existing category failure returned an unstructured error string.
+- [x] `server/tests/lab-02/reference-data.test.ts` passes 5 tests; Lab 1 health/category regression tests also pass (8 server tests total).
+- [x] `npm run build` passes on the Issue #13 branch.
+- [x] `npx prisma migrate deploy` applies `20260826100000_lab2_data_reference` successfully.
+- [x] `npm run prisma:seed` ran twice without duplicate conflicts; active endpoint counts remain 4 categories, 7 related systems, and 4 requesters, with one inactive requester retained in the database.
+- [ ] Repeat the same checks using a student-created isolated `server/.env.test` database and temporary `ATTACHMENT_STORAGE_DIR`; only `.env.test.example` is tracked.
 
 ### Test screenshots
 
@@ -31,7 +40,7 @@ Each final screenshot must include a short caption stating what it shows and whi
 | UNIT-01 | Vitest unit | BR-01, AC-06 | Ticket Number formatter produces `TKT-YYYY-######`. | `server/tests/lab-02/ticket-number.unit.test.ts` | Planned |
 | UNIT-02 | Vitest unit | BR-08/09, AC-07 | Trimmed field limits, blank values, and priority enum validation are exact. | `server/tests/lab-02/validation.unit.test.ts` | Planned |
 | UNIT-03 | Vitest unit | BR-12, AC-08 | Extension/MIME/signature, 5 MiB boundary, filename, and count rules are exact. | `server/tests/lab-02/attachment-validation.unit.test.ts` | Planned |
-| API-01 | Supertest | FR-01, AC-01/02/23 | Active requester/reference endpoints return active records only and safe failures. | `server/tests/lab-02/reference-data.api.test.ts` | Planned |
+| API-01 | Supertest | FR-01, AC-01/02/23 | Active requester/reference endpoints return active records only and safe failures. | `server/tests/lab-02/reference-data.test.ts` | Passed locally (5 tests) |
 | API-02 | Supertest | FR-07, AC-05/06 | Valid multipart create returns `201`, one Ticket, official number, `NEW`, `createdAt`, and metadata. | `server/tests/lab-02/create-ticket.api.test.ts` | Planned |
 | API-03 | Supertest | BR-05/08/09, AC-07/19 | Missing context, body requesterId, invalid fields, inactive references, and invalid priority return documented errors. | `server/tests/lab-02/create-ticket.api.test.ts` | Planned |
 | API-04 | Supertest | BR-13/14, AC-08/09 | Invalid file, storage failure, and transaction failure leave no Ticket, metadata, or request-created file. | `server/tests/lab-02/create-ticket.api.test.ts` | Planned |
