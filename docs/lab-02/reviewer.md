@@ -9,12 +9,19 @@
 | PR | Branch | Merge commit | Reviewer verdict |
 |----|--------|--------------|------------------|
 | [#20](https://github.com/osizk/TokTickIT/pull/20) | `feature/5-Lab2Contract` | `fc25158` | **Commented**; requested fixes were completed; accepted as Lab 2 legacy evidence. |
+| [#23](https://github.com/osizk/TokTickIT/pull/23) | `feature/7-Lab2RequesterContext` | `bcaf342` | **Approved** by [@HolyThiccDaddy](https://github.com/HolyThiccDaddy/toktickit/pull/23#pullrequestreview-5038529275); merged into `lab2-staging`. |
 
 PR [#20](https://github.com/osizk/TokTickIT/pull/20) - Branch: `feature/5-Lab2Contract`
 
 **Reviewer comment received:** `@HolyThiccDaddy` asked for one database-design reason and exact model fields and relations in `specification.md`.
 
 **How I responded:** I updated `specification.md` in commit `a644340` and asked for another review. My friend confirmed that the requested changes were fixed, and I authorized the merge into `lab2-staging`.
+
+PR [#23](https://github.com/osizk/TokTickIT/pull/23) - Branch: `feature/7-Lab2RequesterContext`
+
+**Reviewer comment received:** [@HolyThiccDaddy](https://github.com/HolyThiccDaddy/toktickit/pull/23#pullrequestreview-5038529275) wrote, “Looks very great. Nice work. Request selection & all 4 UI states working very smooth. All 7 tests are pass. Anything to add more before I merge it?” and submitted an **Approve** review.
+
+**How I responded:** I replied, “No my friend, please merge,” and my friend then replied, “Okay. I will merge right now.” The approved PR was merged into `lab2-staging` with merge commit `bcaf342`.
 
 ## Pull Requests I reviewed for my partner
 

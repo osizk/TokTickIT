@@ -296,6 +296,122 @@ select:focus-visible {
   color: var(--zen-surface);
 }
 
+.zen-ticket-card {
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+.zen-ticket-card form {
+  margin-top: 1.75rem;
+}
+
+.zen-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.2rem 1.4rem;
+}
+
+.zen-field-wide {
+  grid-column: 1 / -1;
+}
+
+.zen-field select,
+.zen-input {
+  min-height: 3rem;
+  width: 100%;
+  border: 1px solid var(--zen-border);
+  border-radius: 0.55rem;
+  background: var(--zen-surface);
+  color: var(--zen-text);
+  padding: 0.7rem 0.85rem;
+}
+
+.zen-input:read-only,
+.zen-readonly {
+  background: #edf2ef;
+  color: var(--zen-muted);
+}
+
+.zen-input[aria-invalid="true"],
+.zen-field select[aria-invalid="true"] {
+  border-color: var(--zen-error);
+}
+
+.zen-textarea {
+  min-height: 10rem;
+  resize: vertical;
+}
+
+.zen-file-input {
+  padding: 0.5rem;
+}
+
+.zen-help {
+  color: var(--zen-muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.zen-field-error {
+  margin: 0;
+  color: var(--zen-error);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.zen-state-success {
+  border: 1px solid #9ac7aa;
+  background: var(--zen-pale);
+}
+
+.zen-state-success h2 {
+  margin: 0 0 0.75rem;
+  color: var(--zen-primary);
+  font-size: 1.1rem;
+}
+
+.zen-state-success p {
+  margin: 0.35rem 0;
+}
+
+.zen-state-success .zen-button {
+  margin-top: 0.85rem;
+}
+
+.zen-file-list {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.zen-file-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid var(--zen-border);
+  border-radius: 0.5rem;
+  padding: 0.55rem 0.7rem;
+}
+
+.zen-file-list .zen-button-link {
+  flex: 0 0 auto;
+  color: var(--zen-secondary);
+}
+
+.zen-file-list .zen-button-link:hover:not(:disabled) {
+  color: var(--zen-primary);
+}
+
+.zen-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.7rem;
+}
+
 @media (max-width: 991px) {
   .zen-header-inner {
     flex-wrap: wrap;
@@ -310,6 +426,10 @@ select:focus-visible {
   .zen-nav a {
     flex: 1;
     text-align: center;
+  }
+
+  .zen-form-grid {
+    gap: 1rem;
   }
 }
 
@@ -355,5 +475,28 @@ select:focus-visible {
   .zen-actions,
   .zen-actions .zen-button {
     width: 100%;
+  }
+
+  .zen-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .zen-field-wide {
+    grid-column: auto;
+  }
+
+  .zen-form-actions,
+  .zen-form-actions .zen-button {
+    width: 100%;
+  }
+
+  .zen-form-actions {
+    flex-direction: column-reverse;
+  }
+
+  .zen-file-list li {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.35rem;
   }
 }
