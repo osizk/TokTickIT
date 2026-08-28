@@ -5,6 +5,7 @@ import {
   checkSystem,
   fetchRequesters,
 } from "./api.js";
+import CreateTicketPage from "./CreateTicket.js";
 import "./styles.css";
 
 type UiState = "idle" | "loading" | "success" | "error";
@@ -297,21 +298,23 @@ function AppShell({
       </header>
 
       <main className="zen-main" id="main-content">
-        <RoutePlaceholder path={path} />
+        <RoutePlaceholder path={path} requester={requester} navigate={navigate} />
       </main>
     </div>
   );
 }
 
-function RoutePlaceholder({ path }: { path: string }) {
+function RoutePlaceholder({
+  path,
+  requester,
+  navigate,
+}: {
+  path: string;
+  requester: Requester;
+  navigate: (path: string) => void;
+}) {
   if (path === "/tickets/new") {
-    return (
-      <section className="zen-card" aria-labelledby="create-ticket-heading">
-        <p className="zen-eyebrow">Requester workspace</p>
-        <h1 id="create-ticket-heading">Create Ticket</h1>
-        <p className="zen-lead">The Create Ticket form will be added in the next approved Issue.</p>
-      </section>
-    );
+    return <CreateTicketPage requester={requester} navigate={navigate} />;
   }
 
   if (path.startsWith("/tickets/") && path !== "/tickets/new") {
