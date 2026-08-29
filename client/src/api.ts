@@ -17,6 +17,16 @@ export interface RelatedSystem {
 }
 
 export type TicketPriority = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+export type TicketStatus = "NEW";
+
+export type TicketListSort =
+  | "updatedAt"
+  | "createdAt"
+  | "ticketNumber"
+  | "summary"
+  | "requestedPriority";
+export type TicketListOrder = "asc" | "desc";
+export type TicketListPageSize = 10 | 25 | 50;
 
 export interface TicketAttachment {
   id: number;
@@ -56,6 +66,44 @@ export interface CreateTicketInput {
 export interface CreateTicketResponse {
   ticket: CreatedTicket;
   attachments: TicketAttachment[];
+}
+
+export interface TicketListItem {
+  id: number;
+  ticketNumber: string;
+  summary: string;
+  category: Category;
+  relatedSystem: RelatedSystem;
+  requestedPriority: TicketPriority;
+  status: TicketStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TicketListQuery {
+  search?: string;
+  categoryId?: number;
+  relatedSystemId?: number;
+  priority?: TicketPriority;
+  status?: TicketStatus;
+  sort: TicketListSort;
+  order: TicketListOrder;
+  page: number;
+  pageSize: TicketListPageSize;
+}
+
+export interface TicketListPagination {
+  page: number;
+  pageSize: TicketListPageSize;
+  totalItems: number;
+  totalPages: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+}
+
+export interface TicketListResponse {
+  items: TicketListItem[];
+  pagination: TicketListPagination;
 }
 
 export class ApiClientError extends Error {
@@ -221,6 +269,63 @@ function isCreatedTicket(value: unknown): value is CreatedTicket {
   );
 }
 
+function isTicketListItem(value: unknown): value is TicketListItem {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate.id === "number" &&
+    Number.isSafeInteger(candidate.id) &&
+    candidate.id > 0 &&
+    typeof candidate.ticketNumber === "string" &&
+    /^TKT-\d{4}-\d{6}$/.test(candidate.ticketNumber) &&
+    typeof candidate.summary === "string" &&
+    isNamedReference(candidate.category) &&
+    isNamedReference(candidate.relatedSystem) &&
+    ["LOW", "MEDIUM", "HIGH", "URGENT"].includes(candidate.requestedPriority as string) &&
+    candidate.status === "NEW" &&
+    typeof candidate.createdAt === "string" &&
+    typeof candidate.updatedAt === "string"
+  );
+}
+
+function isTicketListPagination(value: unknown): value is TicketListPagination {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate.page === "number" &&
+    Number.isSafeInteger(candidate.page) &&
+    candidate.page > 0 &&
+    [10, 25, 50].includes(candidate.pageSize as number) &&
+    typeof candidate.totalItems === "number" &&
+    Number.isSafeInteger(candidate.totalItems) &&
+    candidate.totalItems >= 0 &&
+    typeof candidate.totalPages === "number" &&
+    Number.isSafeInteger(candidate.totalPages) &&
+    candidate.totalPages >= 0 &&
+    typeof candidate.hasPreviousPage === "boolean" &&
+    typeof candidate.hasNextPage === "boolean"
+  );
+}
+
+function isTicketListResponse(value: unknown): value is TicketListResponse {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  return (
+    Array.isArray(candidate.items) &&
+    candidate.items.every(isTicketListItem) &&
+    isTicketListPagination(candidate.pagination)
+  );
+}
+
 export async function createTicket(
   requesterId: number,
   input: CreateTicketInput,
@@ -284,6 +389,44 @@ export async function createTicket(
     ticket: result.ticket,
     attachments: result.attachments,
   };
+}
+
+export async function fetchTickets(
+  requesterId: number,
+  query: TicketListQuery,
+): Promise<TicketListResponse> {
+  const params = new URLSearchParams();
+  if (query.search?.trim()) params.set("search", query.search.trim());
+  if (query.categoryId !== undefined) params.set("categoryId", String(query.categoryId));
+  if (query.relatedSystemId !== undefined) params.set("relatedSystemId", String(query.relatedSystemId));
+  if (query.priority) params.set("priority", query.priority);
+  if (query.status) params.set("status", query.status);
+  params.set("sort", query.sort);
+  params.set("order", query.order);
+  params.set("page", String(query.page));
+  params.set("pageSize", String(query.pageSize));
+
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}/api/tickets?${params.toString()}`, {
+      headers: { "X-Requester-Id": String(requesterId) },
+    });
+  } catch {
+    throw new ApiClientError("Unable to load My Tickets.", 0);
+  }
+
+  let body: unknown = null;
+  try {
+    body = await response.json();
+  } catch {
+    body = null;
+  }
+
+  if (!response.ok || !isTicketListResponse(body)) {
+    throw new ApiClientError("Unable to load My Tickets.", response.status);
+  }
+
+  return body;
 }
 
 export async function checkHealth(): Promise<HealthStatus> {
