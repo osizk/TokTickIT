@@ -44,7 +44,9 @@ select {
 
 button:focus-visible,
 a:focus-visible,
-select:focus-visible {
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
   outline: 3px solid var(--zen-focus);
   outline-offset: 3px;
 }
@@ -821,5 +823,206 @@ select:focus-visible {
   .zen-pagination > button:last-of-type {
     grid-column: 2;
     grid-row: 2;
+  }
+}
+
+.zen-detail-card {
+  max-width: 1120px;
+}
+
+.zen-detail-heading,
+.zen-section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.25rem;
+}
+
+.zen-detail-heading > .zen-button {
+  flex: 0 0 auto;
+}
+
+.zen-detail-fields {
+  margin-top: 1.7rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #dce8e1;
+}
+
+.zen-detail-fields .zen-textarea {
+  min-height: 7rem;
+}
+
+.zen-attachment-section {
+  margin-top: 2rem;
+  padding-top: 1.7rem;
+  border-top: 1px solid #dce8e1;
+}
+
+.zen-section-heading h2 {
+  margin: 0;
+  color: var(--zen-text);
+  font-size: 1.35rem;
+}
+
+.zen-section-heading .zen-help {
+  max-width: 18rem;
+  text-align: right;
+}
+
+.zen-detail-attachment-list {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1.1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.zen-detail-attachment-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid var(--zen-border);
+  border-radius: 0.7rem;
+  background: var(--zen-surface);
+  padding: 0.85rem 1rem;
+}
+
+.zen-detail-attachment-list li.is-removed {
+  background: #f6f8f7;
+  color: var(--zen-muted);
+}
+
+.zen-attachment-meta {
+  display: grid;
+  min-width: 0;
+  gap: 0.25rem;
+}
+
+.zen-attachment-meta strong,
+.zen-attachment-meta span {
+  overflow-wrap: anywhere;
+}
+
+.zen-attachment-meta strong {
+  color: var(--zen-text);
+}
+
+.zen-attachment-meta span {
+  color: var(--zen-muted);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.zen-attachment-removed {
+  color: #7b4d32 !important;
+}
+
+.zen-attachment-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.zen-attachment-actions .zen-button {
+  min-height: 2.45rem;
+  padding: 0.45rem 0.75rem;
+}
+
+.zen-attachment-upload {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 0.75rem 1rem;
+  margin-top: 1.2rem;
+  padding: 1rem;
+  border: 1px solid #b8dfc7;
+  border-radius: 0.7rem;
+  background: var(--zen-pale);
+}
+
+.zen-attachment-upload .zen-help {
+  grid-column: 1 / -1;
+  margin: -0.35rem 0 0;
+}
+
+.zen-attachment-upload > .zen-button {
+  white-space: nowrap;
+}
+
+.zen-modal-backdrop {
+  position: fixed;
+  z-index: 10;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: auto;
+  background: rgb(23 61 43 / 0.42);
+  padding: 1rem;
+}
+
+.zen-removal-dialog {
+  width: min(100%, 540px);
+  border: 1px solid var(--zen-border);
+  border-radius: 0.9rem;
+  background: var(--zen-surface);
+  box-shadow: 0 1rem 3rem rgb(23 61 43 / 0.25);
+  padding: clamp(1.25rem, 4vw, 2rem);
+}
+
+.zen-removal-dialog h2 {
+  margin: 0;
+  color: var(--zen-text);
+  font-size: 1.3rem;
+}
+
+.zen-removal-dialog > p {
+  margin: 0.8rem 0 1.2rem;
+  color: var(--zen-muted);
+  line-height: 1.55;
+}
+
+.zen-removal-reason {
+  min-height: 7rem;
+}
+
+@media (max-width: 767px) {
+  .zen-detail-heading,
+  .zen-section-heading {
+    display: grid;
+    gap: 0.9rem;
+  }
+
+  .zen-detail-heading > .zen-button {
+    width: 100%;
+  }
+
+  .zen-section-heading .zen-help {
+    max-width: none;
+    text-align: left;
+  }
+
+  .zen-detail-attachment-list li {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .zen-attachment-actions,
+  .zen-attachment-actions .zen-button {
+    width: 100%;
+  }
+
+  .zen-attachment-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .zen-attachment-upload {
+    grid-template-columns: 1fr;
+  }
+
+  .zen-attachment-upload > .zen-button {
+    width: 100%;
   }
 }

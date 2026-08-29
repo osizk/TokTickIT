@@ -6,15 +6,15 @@ All Lab 2 test files live under `server/tests/lab-02/`, `client/tests/lab-02/`, 
 
 | # | Tool | Test | Result |
 |---|------|------|--------|
-| 1 | Vitest | Ticket Number, field, query, and Attachment validation/unit boundaries | Issue #15 field and Attachment validation tests pass locally; remaining Ticket Number/query units planned |
-| 2 | Supertest/Vitest | Reference APIs, requester context, Ticket creation, ownership, list, detail, and Attachment APIs | Issue #13 reference APIs, Issue #15 Ticket creation, and Issue #16 My Tickets list tests pass locally; remaining detail/Attachment APIs planned |
-| 3 | Vitest + Testing Library | Requester selection, Create Ticket, My Tickets, Detail, Attachment states, and duplicate-submit behavior | Issue #14 requester-context, Issue #15 Create Ticket, and Issue #16 My Tickets tests pass locally (23 client tests total); remaining UI flows planned |
+| 1 | Vitest | Ticket Number, field, query, and Attachment validation/unit boundaries | Issue #15 field/file validation and Issue #17 Attachment lifecycle boundary tests pass locally; remaining Ticket Number unit test is planned |
+| 2 | Supertest/Vitest | Reference APIs, requester context, Ticket creation, ownership, list, detail, and Attachment APIs | Issues #13, #15, #16, and #17 focused API suites pass locally (37 server tests in the full regression); final release verification remains |
+| 3 | Vitest + Testing Library | Requester selection, Create Ticket, My Tickets, Detail, Attachment states, and duplicate-submit behavior | Issues #14–#17 UI tests pass locally (28 client tests in the full regression); visual/E2E flows remain planned |
 | 4 | Vitest/DOM assertions | Zen Green classes, labels, errors, focus, badges, responsive classes, and non-color indicators | Planned |
 | 5 | Playwright | Complete requester Ticket/Attachment lifecycle and cross-requester isolation | Planned |
 | 6 | Playwright screenshots | Desktop, tablet, and mobile Create Ticket, My Tickets, and Ticket Detail evidence | Planned |
-| 7 | npm/Vitest/Prisma | Final server/client regressions, builds, migration, and repeated idempotent seed | Issue #13 migration/seed verified locally; Issues #15 and #16 server/client regressions and builds pass; final release verification pending |
+| 7 | npm/Vitest/Prisma | Final server/client regressions, builds, migration, and repeated idempotent seed | Issues #13–#17 migrations, focused regressions, and builds pass locally; final release verification pending |
 
-Pass/fail output and screenshots will be added below as the Issues are implemented. Issues #13, #14, #15, and #16 now have focused automated coverage; detail, Attachment, responsive, and E2E evidence remain pending.
+Pass/fail output and screenshots will be added below as the Issues are implemented. Issues #13–#17 now have focused automated coverage; responsive, visual, and E2E evidence remain pending.
 
 ### Issue #13 evidence (2026-08-26)
 
@@ -57,6 +57,18 @@ Pass/fail output and screenshots will be added below as the Issues are implement
 - [x] Updated the existing Create Ticket reference-data fixture to account for the new My Tickets route loading reference data before navigation to `/tickets/new`; no product behavior was weakened.
 - [ ] Responsive screenshots, manual browser/API evidence, and Playwright coverage remain pending for the later verification/evidence Issues.
 
+### Issue #17 evidence (2026-08-29)
+
+- [x] Planned failing baseline recorded before implementation: the new detail and Attachment API requests returned `404` because the Issue #17 routes did not yet exist.
+- [x] `server/tests/lab-02/ticket-detail.api.test.ts` passes 3 tests for owned read-only detail fields, Attachment metadata privacy, required context, and identical safe `404` behavior for missing/cross-requester Tickets.
+- [x] `server/tests/lab-02/attachments.api.test.ts` passes 8 tests for one-file upload, exact download bytes and safe headers, active/removed metadata, soft removal and repeat-removal conflict, active-capacity/free-slot behavior, signature/size validation, cross-requester isolation, and malformed JSON safety.
+- [x] `server/tests/lab-02/attachment-rollback.api.test.ts` passes a deterministic post-row filesystem-failure test; the Attachment row rolls back and staged/final files are compensated.
+- [x] `client/tests/lab-02/RequesterTicketDetail.test.tsx` passes 2 tests for read-only fields, excluded staff workflow fields, independent loading/error states, and safe Retry actions.
+- [x] `client/tests/lab-02/AttachmentSection.test.tsx` passes 3 tests for client signature validation, upload, download, confirmation/reason, removed-row actions, and invalid-file rejection.
+- [x] Full server regression (`npm.cmd test -- --run`) passes 11 files and 37 tests, including all Lab 1 tests; server TypeScript build passes.
+- [x] Full client regression (`npm.cmd test -- --run`) passes 6 files and 28 tests, including all Lab 1 tests; client production build passes.
+- [ ] Manual browser/API checks, responsive screenshots, and Playwright coverage remain pending for Issues #18 and #19.
+
 ### Test screenshots
 
 1. Create Ticket evidence: `artifacts/lab-02/screenshots/create-ticket/` (planned)
@@ -79,17 +91,17 @@ Each final screenshot must include a short caption stating what it shows and whi
 | API-05 | Supertest | BR-01, AC-06 | Concurrent creates produce unique correctly formatted numbers. | `server/tests/lab-02/create-ticket.api.test.ts` | Passed locally (1 test with 4 concurrent creates) |
 | API-06 | Supertest | FR-09/10, AC-10/11/12 | Owned list returns search, filters, sorts, stable order, page sizes, and metadata. | `server/tests/lab-02/my-tickets.api.test.ts` | Passed locally (4 tests) |
 | API-07 | Supertest | BR-17/19, AC-11 | Invalid query parameters return `400`; beyond-last valid pages return empty items. | `server/tests/lab-02/my-tickets.api.test.ts` | Passed locally (included in 4-test suite) |
-| API-08 | Supertest | FR-11/15, AC-13/14 | Owned detail succeeds; missing and cross-owner detail both return safe `404`. | `server/tests/lab-02/ticket-detail.api.test.ts` | Planned |
-| API-09 | Supertest | FR-12/13/14, AC-15/16/17/18 | Metadata, add, active download, capacity, removal, retained metadata, and blocked removed download work. | `server/tests/lab-02/attachments.api.test.ts` | Planned |
-| API-10 | Supertest | BR-12/14, AC-08/17 | Attachment validation and filesystem/database compensation leave safe state. | `server/tests/lab-02/attachments.api.test.ts` | Planned |
-| API-11 | Supertest | FR-15, AC-14/19 | Cross-owner detail, metadata, download, add, and remove are safe `404`s. | `server/tests/lab-02/attachments.api.test.ts` | Planned |
+| API-08 | Supertest | FR-11/15, AC-13/14 | Owned detail succeeds; missing and cross-owner detail both return safe `404`. | `server/tests/lab-02/ticket-detail.api.test.ts` | Passed locally (3 tests) |
+| API-09 | Supertest | FR-12/13/14, AC-15/16/17/18 | Metadata, add, active download, capacity, removal, retained metadata, and blocked removed download work. | `server/tests/lab-02/attachments.api.test.ts` | Passed locally (7 tests) |
+| API-10 | Supertest | BR-12/14, AC-08/17 | Attachment validation and filesystem/database compensation leave safe state. | `server/tests/lab-02/attachments.api.test.ts`, `server/tests/lab-02/attachment-rollback.api.test.ts` | Passed locally (validation and forced post-row rollback) |
+| API-11 | Supertest | FR-15, AC-14/19 | Cross-owner detail, metadata, download, add, and remove are safe `404`s. | `server/tests/lab-02/ticket-detail.api.test.ts`, `server/tests/lab-02/attachments.api.test.ts` | Passed locally |
 | UI-01 | Vitest/Testing Library | FR-01/02, AC-01/02 | Selector loading, empty, Retry, active options, disabled Continue, labels, and focus. | `client/tests/lab-02/RequesterSelection.test.tsx` | Passed locally (7 Issue #14 tests) |
 | UI-02 | Vitest/Testing Library | FR-03/04, AC-03/04 | Valid/invalid sessionStorage and Change Requester clear/reload context. | `client/tests/lab-02/RequesterSelection.test.tsx` | Passed locally (7 Issue #14 tests) |
 | UI-03 | Vitest/Testing Library | FR-05/06/17, AC-05/07/09/20 | Create references, validation, file errors, preserved failure values, and duplicate-submit guard. | `client/tests/lab-02/CreateTicket.test.tsx` | Passed locally (8 tests) |
 | UI-04 | Vitest/Testing Library | FR-07/08, AC-05/06 | Success displays backend Ticket Number/date/status and next action. | `client/tests/lab-02/CreateTicket.test.tsx` | Passed locally (included in 8-test suite) |
 | UI-05 | Vitest/Testing Library | FR-09/10, AC-10/11/12 | My Tickets query controls, table/cards, loading, empty/no-results/failure, pagination. | `client/tests/lab-02/MyTickets.test.tsx` | Passed locally (4 tests) |
-| UI-06 | Vitest/Testing Library | FR-11/12/13/14, AC-13/15/16/17/18 | Detail read-only fields, Attachment states, upload/download, confirmation/reason, removed state. | `client/tests/lab-02/RequesterTicketDetail.test.tsx` | Planned |
-| UI-07 | Vitest/Testing Library | AC-17/18 | Removed rows have no download action; invalid/busy actions are disabled. | `client/tests/lab-02/AttachmentSection.test.tsx` | Planned |
+| UI-06 | Vitest/Testing Library | FR-11/12/13/14, AC-13/15/16/17/18 | Detail read-only fields, Attachment states, upload/download, confirmation/reason, removed state. | `client/tests/lab-02/RequesterTicketDetail.test.tsx` | Passed locally (2 tests) |
+| UI-07 | Vitest/Testing Library | AC-17/18 | Removed rows have no download action; invalid/busy actions are disabled. | `client/tests/lab-02/AttachmentSection.test.tsx` | Passed locally (3 tests) |
 | STYLE-01 | Vitest/DOM | FR-16, AC-21/22 | Required labels, asterisks, errors, focus, buttons, badges, responsive classes, and non-color indicators. | `client/tests/lab-02/ZenGreen.styles.test.tsx` | Planned |
 | E2E-01 | Playwright | AC-01/05/06/10/13/15/16/17 | Requester A selects, creates with file, finds, opens, downloads, adds, and removes. | `e2e/lab-02/requester-ticket-flow.spec.ts` | Planned |
 | E2E-02 | Playwright | AC-14 | Requester B cannot see or directly access Requester A resources. | `e2e/lab-02/requester-ticket-flow.spec.ts` | Planned |
@@ -157,8 +169,8 @@ Paste passing terminal output and screenshots below as each Issue is completed. 
 | Area | Result | Evidence |
 |---|---|---|
 | Unit | Planned | Add command/output |
-| API/integration | Planned | Add command/output |
-| UI/style/accessibility | Planned | Add command/output |
+| API/integration | Issues #13–#17 focused/full suites passed locally | Add final release output and links |
+| UI/style/accessibility | Issues #14–#17 component suites passed locally; STYLE-01 remains planned | Add final style/visual output and links |
 | Responsive/visual | Planned | Add checklist and screenshot paths |
 | E2E | Planned | Add Playwright output and screenshots |
 | Final `main` regression | Planned | Add after release merge |

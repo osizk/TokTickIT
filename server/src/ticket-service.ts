@@ -31,12 +31,12 @@ export class TicketApiError extends Error {
   }
 }
 
-interface ParsedAttachment {
+export interface ParsedAttachment {
   validated: ValidatedAttachment;
   buffer: Buffer;
 }
 
-interface StagedAttachment extends ParsedAttachment {
+export interface StagedAttachment extends ParsedAttachment {
   stagedPath: string;
   finalPath: string;
   storedFilename: string;
@@ -94,19 +94,22 @@ function normalizeFields(fields: Fields): Record<string, unknown> {
   );
 }
 
-function flattenFiles(files: Files): FormidableFile[] {
-  const unknownFileFields = Object.keys(files).filter((name) => name !== "attachments");
+function flattenFiles(files: Files, expectedField: string): FormidableFile[] {
+  const unknownFileFields = Object.keys(files).filter((name) => name !== expectedField);
   if (unknownFileFields.length > 0) {
     throw apiError(400, "VALIDATION_ERROR", "Please correct the highlighted fields.", {
-      attachments: "Files must use the attachments field.",
+      [expectedField]: `Files must use the ${expectedField} field.`,
     });
   }
 
-  const attachments = files.attachments ?? [];
+  const attachments = files[expectedField] ?? [];
   return Array.isArray(attachments) ? attachments : [attachments];
 }
 
-async function parseMultipart(request: Request): Promise<{ fields: Record<string, unknown>; files: ParsedAttachment[] }> {
+export async function parseMultipart(
+  request: Request,
+  expectedFileField = "attachments",
+): Promise<{ fields: Record<string, unknown>; files: ParsedAttachment[] }> {
   const buffers = new Map<string, Buffer[]>();
   const bufferKeys = new WeakMap<object, string>();
   const form = formidable({
@@ -147,7 +150,7 @@ async function parseMultipart(request: Request): Promise<{ fields: Record<string
   }
 
   const parsedAttachments: ParsedAttachment[] = [];
-  for (const file of flattenFiles(files)) {
+  for (const file of flattenFiles(files, expectedFileField)) {
     const buffer = Buffer.concat(buffers.get(bufferKeys.get(file) ?? "") ?? []);
     try {
       parsedAttachments.push({
@@ -169,12 +172,12 @@ async function parseMultipart(request: Request): Promise<{ fields: Record<string
   return { fields: normalizeFields(fields), files: parsedAttachments };
 }
 
-function storageRoot(): string {
+export function storageRoot(): string {
   const configured = process.env.ATTACHMENT_STORAGE_DIR?.trim();
   return configured ? path.resolve(configured) : DEFAULT_ATTACHMENT_STORAGE_DIR;
 }
 
-async function stageAttachments(attachments: ParsedAttachment[]): Promise<{ stagingDir: string | null; staged: StagedAttachment[] }> {
+export async function stageAttachments(attachments: ParsedAttachment[]): Promise<{ stagingDir: string | null; staged: StagedAttachment[] }> {
   if (attachments.length === 0) {
     return { stagingDir: null, staged: [] };
   }
@@ -200,7 +203,7 @@ async function stageAttachments(attachments: ParsedAttachment[]): Promise<{ stag
   }
 }
 
-async function removeCreatedFiles(stagingDir: string | null, staged: StagedAttachment[]): Promise<void> {
+export async function removeCreatedFiles(stagingDir: string | null, staged: StagedAttachment[]): Promise<void> {
   await Promise.all(
     staged.flatMap((attachment) => [
       rm(attachment.stagedPath, { force: true }).catch(() => undefined),
@@ -228,7 +231,7 @@ async function allocateTicketNumber(tx: Prisma.TransactionClient, year: number):
   return `TKT-${year}-${String(issued).padStart(6, "0")}`;
 }
 
-function serializeAttachment(attachment: TicketWithRelations["attachments"][number]): SerializedAttachment {
+export function serializeAttachment(attachment: TicketWithRelations["attachments"][number]): SerializedAttachment {
   return {
     id: attachment.id,
     originalName: attachment.originalName,

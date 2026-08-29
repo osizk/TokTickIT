@@ -54,6 +54,8 @@ export interface CreatedTicket {
   attachments: TicketAttachment[];
 }
 
+export type TicketDetail = Omit<CreatedTicket, "attachments">;
+
 export interface CreateTicketInput {
   categoryId: number;
   relatedSystemId: number;
@@ -269,6 +271,45 @@ function isCreatedTicket(value: unknown): value is CreatedTicket {
   );
 }
 
+function isTicketDetail(value: unknown): value is TicketDetail {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate.id === "number" &&
+    Number.isSafeInteger(candidate.id) &&
+    candidate.id > 0 &&
+    typeof candidate.ticketNumber === "string" &&
+    /^TKT-\d{4}-\d{6}$/.test(candidate.ticketNumber) &&
+    isRequester(candidate.requester) &&
+    isNamedReference(candidate.category) &&
+    isNamedReference(candidate.relatedSystem) &&
+    ["LOW", "MEDIUM", "HIGH", "URGENT"].includes(candidate.requestedPriority as string) &&
+    candidate.status === "NEW" &&
+    typeof candidate.summary === "string" &&
+    typeof candidate.description === "string" &&
+    typeof candidate.createdAt === "string" &&
+    typeof candidate.updatedAt === "string"
+  );
+}
+
+function readApiError(body: unknown): { code?: string; fieldErrors?: Record<string, string> } {
+  const errorBody = body as { error?: { code?: unknown; fieldErrors?: unknown } } | null;
+  const error = errorBody?.error;
+  const fieldErrors =
+    error && typeof error.fieldErrors === "object" && error.fieldErrors !== null
+      ? Object.fromEntries(
+          Object.entries(error.fieldErrors).filter((entry): entry is [string, string] => typeof entry[1] === "string"),
+        )
+      : undefined;
+  return {
+    code: typeof error?.code === "string" ? error.code : undefined,
+    fieldErrors,
+  };
+}
+
 function isTicketListItem(value: unknown): value is TicketListItem {
   if (typeof value !== "object" || value === null) {
     return false;
@@ -427,6 +468,169 @@ export async function fetchTickets(
   }
 
   return body;
+}
+
+export async function fetchTicket(requesterId: number, ticketNumber: string): Promise<TicketDetail> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}/api/tickets/${encodeURIComponent(ticketNumber)}`, {
+      headers: { "X-Requester-Id": String(requesterId) },
+    });
+  } catch {
+    throw new ApiClientError("Unable to load Ticket.", 0);
+  }
+
+  let body: unknown = null;
+  try {
+    body = await response.json();
+  } catch {
+    body = null;
+  }
+  if (!response.ok) {
+    const details = readApiError(body);
+    throw new ApiClientError("Unable to load Ticket.", response.status, details.code, details.fieldErrors);
+  }
+  const result = body as { ticket?: unknown } | null;
+  if (!result || !isTicketDetail(result.ticket)) {
+    throw new ApiClientError("Unable to load Ticket.", response.status);
+  }
+  return result.ticket;
+}
+
+export async function fetchTicketAttachments(
+  requesterId: number,
+  ticketNumber: string,
+): Promise<TicketAttachment[]> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}/api/tickets/${encodeURIComponent(ticketNumber)}/attachments`, {
+      headers: { "X-Requester-Id": String(requesterId) },
+    });
+  } catch {
+    throw new ApiClientError("Unable to load Attachments.", 0);
+  }
+
+  let body: unknown = null;
+  try {
+    body = await response.json();
+  } catch {
+    body = null;
+  }
+  if (!response.ok) {
+    const details = readApiError(body);
+    throw new ApiClientError("Unable to load Attachments.", response.status, details.code, details.fieldErrors);
+  }
+  const result = body as { attachments?: unknown } | null;
+  if (!result || !Array.isArray(result.attachments) || !result.attachments.every(isTicketAttachment)) {
+    throw new ApiClientError("Unable to load Attachments.", response.status);
+  }
+  return result.attachments;
+}
+
+export async function addTicketAttachment(
+  requesterId: number,
+  ticketNumber: string,
+  file: File,
+): Promise<TicketAttachment> {
+  const formData = new FormData();
+  formData.append("file", file, file.name);
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}/api/tickets/${encodeURIComponent(ticketNumber)}/attachments`, {
+      method: "POST",
+      headers: { "X-Requester-Id": String(requesterId) },
+      body: formData,
+    });
+  } catch {
+    throw new ApiClientError("Unable to upload Attachment.", 0);
+  }
+
+  let body: unknown = null;
+  try {
+    body = await response.json();
+  } catch {
+    body = null;
+  }
+  if (!response.ok) {
+    const details = readApiError(body);
+    throw new ApiClientError("Unable to upload Attachment.", response.status, details.code, details.fieldErrors);
+  }
+  const result = body as { attachment?: unknown } | null;
+  if (!result || !isTicketAttachment(result.attachment)) {
+    throw new ApiClientError("Unable to upload Attachment.", response.status);
+  }
+  return result.attachment;
+}
+
+export async function downloadTicketAttachment(
+  requesterId: number,
+  ticketNumber: string,
+  attachmentId: number,
+): Promise<Blob> {
+  let response: Response;
+  try {
+    response = await fetch(
+      `${API_URL}/api/tickets/${encodeURIComponent(ticketNumber)}/attachments/${attachmentId}/download`,
+      { headers: { "X-Requester-Id": String(requesterId) } },
+    );
+  } catch {
+    throw new ApiClientError("Unable to download Attachment.", 0);
+  }
+  if (!response.ok) {
+    let body: unknown = null;
+    try {
+      body = await response.json();
+    } catch {
+      body = null;
+    }
+    const details = readApiError(body);
+    throw new ApiClientError("Unable to download Attachment.", response.status, details.code, details.fieldErrors);
+  }
+  try {
+    return await response.blob();
+  } catch {
+    throw new ApiClientError("Unable to download Attachment.", response.status);
+  }
+}
+
+export async function removeTicketAttachment(
+  requesterId: number,
+  ticketNumber: string,
+  attachmentId: number,
+  removalReason: string,
+): Promise<TicketAttachment> {
+  let response: Response;
+  try {
+    response = await fetch(
+      `${API_URL}/api/tickets/${encodeURIComponent(ticketNumber)}/attachments/${attachmentId}`,
+      {
+        method: "DELETE",
+        headers: {
+          "X-Requester-Id": String(requesterId),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ removalReason }),
+      },
+    );
+  } catch {
+    throw new ApiClientError("Unable to remove Attachment.", 0);
+  }
+
+  let body: unknown = null;
+  try {
+    body = await response.json();
+  } catch {
+    body = null;
+  }
+  if (!response.ok) {
+    const details = readApiError(body);
+    throw new ApiClientError("Unable to remove Attachment.", response.status, details.code, details.fieldErrors);
+  }
+  const result = body as { attachment?: unknown } | null;
+  if (!result || !isTicketAttachment(result.attachment)) {
+    throw new ApiClientError("Unable to remove Attachment.", response.status);
+  }
+  return result.attachment;
 }
 
 export async function checkHealth(): Promise<HealthStatus> {
