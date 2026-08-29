@@ -7,6 +7,7 @@ import {
 } from "./api.js";
 import CreateTicketPage from "./CreateTicket.js";
 import MyTickets from "./MyTickets.js";
+import TicketDetail from "./TicketDetail.js";
 import "./styles.css";
 
 type UiState = "idle" | "loading" | "success" | "error";
@@ -323,13 +324,13 @@ function RoutePlaceholder({
   }
 
   if (path.startsWith("/tickets/") && path !== "/tickets/new") {
-    return (
-      <section className="zen-card" aria-labelledby="ticket-detail-heading">
-        <p className="zen-eyebrow">Requester workspace</p>
-        <h1 id="ticket-detail-heading">Ticket Detail</h1>
-        <p className="zen-lead">Ticket details will be added in the approved detail Issue.</p>
-      </section>
-    );
+    let ticketNumber = path.slice("/tickets/".length);
+    try {
+      ticketNumber = decodeURIComponent(ticketNumber);
+    } catch {
+      // The backend returns a safe not-found response for malformed numbers.
+    }
+    return <TicketDetail requester={requester} ticketNumber={ticketNumber} navigate={navigate} />;
   }
 
   return (

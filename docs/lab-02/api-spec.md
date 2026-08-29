@@ -137,17 +137,17 @@ Success:
 
 ## 6. `GET /api/tickets/:ticketNumber`
 
-Requires `X-Requester-Id`. Returns `200` with owned Ticket detail or safe `404` for missing/cross-owner resources.
+Requires `X-Requester-Id`. Returns `200` with `{ "ticket": <owned detail> }` or safe `404` for missing/cross-owner resources. The detail contains Ticket Number, Ticket Date (`createdAt`), Requester, Category, Related System, Requested Priority, Current Status, Summary, Description, `createdAt`, and `updatedAt`; it does not expose internal requester IDs or Attachment storage fields.
 
 ## 7. Attachment Endpoints
 
 ### `GET /api/tickets/:ticketNumber/attachments`
 
-Requires ownership. Returns `200` with all active and removed metadata. Stored paths/names are omitted.
+Requires ownership. Returns `200` with `{ "attachments": [...] }` containing all active and removed metadata. Stored paths/names are omitted.
 
 ### `POST /api/tickets/:ticketNumber/attachments`
 
-Requires ownership. Multipart field: one `file`. Enforce type/signature, exact 5 MiB limit, active-count limit, filesystem compensation, and database metadata creation. Success is `201`; use `404`, `409`, `413`, `415`, and safe `500` as documented.
+Requires ownership. Multipart field: one `file`. Enforce type/signature, exact 5 MiB limit, active-count limit, filesystem compensation, and database metadata creation. Success is `201` with `{ "attachment": <metadata> }`; use `404`, `409`, `413`, `415`, and safe `500` as documented.
 
 ### `GET /api/tickets/:ticketNumber/attachments/:attachmentId/download`
 
@@ -162,6 +162,8 @@ Requires ownership and JSON body:
 ```
 
 Validate 5–250 trimmed characters. Success is `200` with retained metadata and removal audit fields. Missing/cross-owner is `404`; already removed or active conflicts are `409`; invalid reason is `400`.
+
+Success returns `{ "attachment": <metadata with removedAt, removalReason, and removedByRequesterId> }`.
 
 ## 8. Status and Error Matrix
 
