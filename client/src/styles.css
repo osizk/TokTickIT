@@ -288,13 +288,21 @@ textarea:focus-visible {
   min-height: auto;
   border: 0;
   background: transparent;
-  color: #d9f1e3;
+  color: var(--zen-secondary);
   padding: 0.25rem;
   text-decoration: underline;
   text-underline-offset: 0.2em;
 }
 
 .zen-button-link:hover:not(:disabled) {
+  color: var(--zen-primary);
+}
+
+.zen-identity .zen-button-link {
+  color: #d9f1e3;
+}
+
+.zen-identity .zen-button-link:hover:not(:disabled) {
   color: var(--zen-surface);
 }
 

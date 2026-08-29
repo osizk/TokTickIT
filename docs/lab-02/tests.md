@@ -9,12 +9,12 @@ All Lab 2 test files live under `server/tests/lab-02/`, `client/tests/lab-02/`, 
 | 1 | Vitest | Ticket Number, field, query, and Attachment validation/unit boundaries | Issue #15 field/file validation and Issue #17 Attachment lifecycle boundary tests pass locally; remaining Ticket Number unit test is planned |
 | 2 | Supertest/Vitest | Reference APIs, requester context, Ticket creation, ownership, list, detail, and Attachment APIs | Issues #13, #15, #16, and #17 focused API suites pass locally (37 server tests in the full regression); final release verification remains |
 | 3 | Vitest + Testing Library | Requester selection, Create Ticket, My Tickets, Detail, Attachment states, and duplicate-submit behavior | Issues #14–#17 UI tests pass locally (28 client tests in the full regression); visual/E2E flows remain planned |
-| 4 | Vitest/DOM assertions | Zen Green classes, labels, errors, focus, badges, responsive classes, and non-color indicators | Planned |
-| 5 | Playwright | Complete requester Ticket/Attachment lifecycle and cross-requester isolation | Planned |
-| 6 | Playwright screenshots | Desktop, tablet, and mobile Create Ticket, My Tickets, and Ticket Detail evidence | Planned |
+| 4 | Vitest/DOM + Playwright axe/DOM assertions | Zen Green classes, labels, errors, focus, badges, responsive classes, and non-color indicators | Issue #18 axe scans, focus checks, and no-horizontal-scroll checks pass; the dedicated STYLE-01 Vitest suite remains planned |
+| 5 | Playwright | Complete requester Ticket/Attachment lifecycle and cross-requester isolation | Issue #18 passes on desktop, tablet, and mobile (3 tests) |
+| 6 | Playwright screenshots | Desktop, tablet, and mobile Create Ticket, My Tickets, and Ticket Detail evidence | Issue #18 produced 9 readable screenshots with captions in `artifacts/lab-02/screenshots/` |
 | 7 | npm/Vitest/Prisma | Final server/client regressions, builds, migration, and repeated idempotent seed | Issues #13–#17 migrations, focused regressions, and builds pass locally; final release verification pending |
 
-Pass/fail output and screenshots will be added below as the Issues are implemented. Issues #13–#17 now have focused automated coverage; responsive, visual, and E2E evidence remain pending.
+Pass/fail output and screenshots will be added below as the Issues are implemented. Issues #13–#18 now have focused automated coverage; final release verification and evidence audit remain pending.
 
 ### Issue #13 evidence (2026-08-26)
 
@@ -69,11 +69,24 @@ Pass/fail output and screenshots will be added below as the Issues are implement
 - [x] Full client regression (`npm.cmd test -- --run`) passes 6 files and 28 tests, including all Lab 1 tests; client production build passes.
 - [ ] Manual browser/API checks, responsive screenshots, and Playwright coverage remain pending for Issues #18 and #19.
 
+### Issue #18 evidence (2026-08-29)
+
+- [x] Planned failing baseline recorded before implementation: `npx --no-install playwright test --list` failed because the Playwright runner was not installed.
+- [x] Added `@playwright/test` and `@axe-core/playwright` as client development dependencies; `client/playwright.config.ts` uses `testDir: "../e2e"` and supports `cd client && npx playwright test`.
+- [x] `e2e/lab-02/requester-ticket-flow.spec.ts` covers requester selection, Create Ticket with a PDF, My Tickets search, owned detail, exact download, second-file upload, soft removal and blocked removed action, requester switching, and cross-requester API rejection.
+- [x] The complete Playwright run passes all 3 projects: desktop (1440px), tablet (900px), and mobile (390px), with 3 tests passed.
+- [x] Axe scans pass on requester selection, Create Ticket, Ticket Detail before/after removal, and My Tickets; keyboard focus and document/body horizontal-scroll assertions also pass.
+- [x] The first axe run found an insufficient-contrast Attachment Remove link; the shared Zen Green link style was corrected with a header-specific override and the suite was rerun successfully.
+- [x] Nine screenshots were captured under `artifacts/lab-02/screenshots/{create-ticket,my-tickets,ticket-detail}/`; captions and requirement mappings are in that directory's `README.md`.
+- [x] Global and per-project E2E cleanup seeds idempotent reference data and removes only `E2E-18-` test Tickets, metadata, and protected files. Playwright uses the isolated `toktickit_e2e` PostgreSQL schema and `server/.test-attachments/toktickit_e2e/`; the development database and storage were verified empty after the run.
+- [x] Post-Issue #18 regressions pass: server Vitest 11 files/37 tests plus build, and client Vitest 6 files/28 tests plus production build.
+- [ ] Final `main` regression, Project/PR evidence audit, and release-documentation checks remain for Issue #19.
+
 ### Test screenshots
 
-1. Create Ticket evidence: `artifacts/lab-02/screenshots/create-ticket/` (planned)
-2. My Tickets evidence: `artifacts/lab-02/screenshots/my-tickets/` (planned)
-3. Ticket Detail and Attachment evidence: `artifacts/lab-02/screenshots/ticket-detail/` (planned)
+1. Create Ticket evidence: `artifacts/lab-02/screenshots/create-ticket/` (desktop/tablet/mobile captured)
+2. My Tickets evidence: `artifacts/lab-02/screenshots/my-tickets/` (desktop/tablet/mobile captured)
+3. Ticket Detail and Attachment evidence: `artifacts/lab-02/screenshots/ticket-detail/` (desktop/tablet/mobile captured)
 
 Each final screenshot must include a short caption stating what it shows and which requirement it proves.
 
@@ -103,10 +116,10 @@ Each final screenshot must include a short caption stating what it shows and whi
 | UI-06 | Vitest/Testing Library | FR-11/12/13/14, AC-13/15/16/17/18 | Detail read-only fields, Attachment states, upload/download, confirmation/reason, removed state. | `client/tests/lab-02/RequesterTicketDetail.test.tsx` | Passed locally (2 tests) |
 | UI-07 | Vitest/Testing Library | AC-17/18 | Removed rows have no download action; invalid/busy actions are disabled. | `client/tests/lab-02/AttachmentSection.test.tsx` | Passed locally (3 tests) |
 | STYLE-01 | Vitest/DOM | FR-16, AC-21/22 | Required labels, asterisks, errors, focus, buttons, badges, responsive classes, and non-color indicators. | `client/tests/lab-02/ZenGreen.styles.test.tsx` | Planned |
-| E2E-01 | Playwright | AC-01/05/06/10/13/15/16/17 | Requester A selects, creates with file, finds, opens, downloads, adds, and removes. | `e2e/lab-02/requester-ticket-flow.spec.ts` | Planned |
-| E2E-02 | Playwright | AC-14 | Requester B cannot see or directly access Requester A resources. | `e2e/lab-02/requester-ticket-flow.spec.ts` | Planned |
-| E2E-03 | Playwright | AC-21/22 | Required screens remain usable at desktop/tablet/mobile sizes. | `e2e/lab-02/requester-ticket-flow.spec.ts` | Planned |
-| VIS-01 | Playwright/screenshots | FR-16, AC-21 | Screenshots show Zen Green tokens, field states, table/cards, and no clipping/overlap/scroll. | `artifacts/lab-02/screenshots/{create-ticket,my-tickets,ticket-detail}/` | Planned |
+| E2E-01 | Playwright | AC-01/05/06/10/13/15/16/17 | Requester A selects, creates with file, finds, opens, downloads, adds, and removes. | `e2e/lab-02/requester-ticket-flow.spec.ts` | Passed locally on desktop/tablet/mobile (3 tests) |
+| E2E-02 | Playwright | AC-14 | Requester B cannot see or directly access Requester A resources. | `e2e/lab-02/requester-ticket-flow.spec.ts` | Passed locally on desktop/tablet/mobile (detail, metadata, download, add, and remove all safe 404s) |
+| E2E-03 | Playwright | AC-21/22 | Required screens remain usable at desktop/tablet/mobile sizes. | `e2e/lab-02/requester-ticket-flow.spec.ts` | Passed locally with viewport assertions and screenshots |
+| VIS-01 | Playwright/screenshots | FR-16, AC-21 | Screenshots show Zen Green tokens, field states, table/cards, and no clipping/overlap/scroll. | `artifacts/lab-02/screenshots/{create-ticket,my-tickets,ticket-detail}/` | Passed locally; 9 screenshots and caption README captured |
 | REG-01 | npm/Vitest/Prisma | AC-24 | Lab 1 tests/builds, Lab 2 tests/builds, migrations, and repeated seed pass from final `main`. | `server/tests/lab-01/*`, `client/tests/lab-01/*`, documented commands | Planned |
 
 ## Acceptance-Criterion Traceability
@@ -140,12 +153,12 @@ Each final screenshot must include a short caption stating what it shows and whi
 
 ## Responsive and Visual Checklist
 
-- [ ] Desktop, tablet, and mobile screenshots exist for Create Ticket, My Tickets, and Ticket Detail.
-- [ ] Zen Green colors, readable text, surfaces, and button hierarchy match `ui-spec.md`.
-- [ ] Editable/read-only fields, required markers, and field-level messages are clear.
-- [ ] Focus indicators and non-color status meaning are visible.
-- [ ] Table/card conversion, filters, pagination, Attachment names, and dialogs remain usable.
-- [ ] No clipping, overlap, hidden actions, or horizontal page scrolling.
+- [x] Desktop, tablet, and mobile screenshots exist for Create Ticket, My Tickets, and Ticket Detail.
+- [x] Zen Green colors, readable text, surfaces, and button hierarchy match `ui-spec.md` for the exercised screens.
+- [x] Editable/read-only fields, required markers, and field-level messages are clear.
+- [x] Focus indicators and non-color status meaning are visible.
+- [x] Table/card conversion, filters, pagination controls, Attachment names, and dialogs remain usable in the exercised flow.
+- [x] No clipping, overlap, hidden actions, or horizontal page scrolling was observed or reported by the viewport assertions.
 
 ## Test Commands
 
@@ -171,8 +184,8 @@ Paste passing terminal output and screenshots below as each Issue is completed. 
 | Unit | Planned | Add command/output |
 | API/integration | Issues #13–#17 focused/full suites passed locally | Add final release output and links |
 | UI/style/accessibility | Issues #14–#17 component suites passed locally; STYLE-01 remains planned | Add final style/visual output and links |
-| Responsive/visual | Planned | Add checklist and screenshot paths |
-| E2E | Planned | Add Playwright output and screenshots |
+| Responsive/visual | Issue #18 passed locally | 9 screenshots plus caption README under `artifacts/lab-02/screenshots/` |
+| E2E | Issue #18 passed locally (3 projects) | `cd client && npx playwright test` output and screenshots |
 | Final `main` regression | Planned | Add after release merge |
 
 ## Known Limitations or Deferred Tests

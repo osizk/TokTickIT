@@ -24,3 +24,7 @@ TokTickIT_GitHub_Workflow_Guide_TH_EN.pdf
 server/.test-attachments/
 server/attachments/
 server/tmp/
+
+# Playwright transient output (captured evidence screenshots remain tracked)
+client/test-results/
+artifacts/lab-02/playwright-report/
