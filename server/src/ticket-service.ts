@@ -71,7 +71,7 @@ function apiError(
   return new TicketApiError({ statusCode, code, message, ...(fieldErrors ? { fieldErrors } : {}) });
 }
 
-function parseRequesterId(request: Request): number {
+export function parseRequesterId(request: Request): number {
   const header = request.header("X-Requester-Id");
   if (!header || !/^\d+$/.test(header)) {
     throw apiError(400, "REQUESTER_CONTEXT_REQUIRED", "A valid X-Requester-Id header is required.");

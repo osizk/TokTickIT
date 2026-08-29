@@ -2,6 +2,7 @@ import express, { Request, Response } from "express";
 import cors from "cors";
 import { getPrisma } from "./prisma.js";
 import { createTicketFromMultipart, toApiError } from "./ticket-service.js";
+import { listTickets } from "./ticket-list-service.js";
 
 export const app = express();
 
@@ -69,6 +70,24 @@ app.get("/api/requesters", async (_req: Request, res: Response) => {
     res.status(200).json(requesters);
   } catch {
     sendReferenceError(res, "Unable to load requesters.");
+  }
+});
+
+app.get("/api/tickets", async (req: Request, res: Response) => {
+  try {
+    const result = await listTickets(req);
+    markUncached(res);
+    res.status(200).json(result);
+  } catch (error) {
+    const details = toApiError(error);
+    markUncached(res);
+    res.status(details.statusCode).json({
+      error: {
+        code: details.code,
+        message: details.message,
+        ...(details.fieldErrors ? { fieldErrors: details.fieldErrors } : {}),
+      },
+    });
   }
 });
 

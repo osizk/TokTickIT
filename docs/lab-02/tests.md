@@ -7,14 +7,14 @@ All Lab 2 test files live under `server/tests/lab-02/`, `client/tests/lab-02/`, 
 | # | Tool | Test | Result |
 |---|------|------|--------|
 | 1 | Vitest | Ticket Number, field, query, and Attachment validation/unit boundaries | Issue #15 field and Attachment validation tests pass locally; remaining Ticket Number/query units planned |
-| 2 | Supertest/Vitest | Reference APIs, requester context, Ticket creation, ownership, list, detail, and Attachment APIs | Issue #13 reference APIs and Issue #15 Ticket creation tests pass locally; remaining ownership/list/detail/Attachment APIs planned |
-| 3 | Vitest + Testing Library | Requester selection, Create Ticket, My Tickets, Detail, Attachment states, and duplicate-submit behavior | Issue #14 requester-context tests and Issue #15 Create Ticket tests pass locally (19 client tests total); remaining UI flows planned |
+| 2 | Supertest/Vitest | Reference APIs, requester context, Ticket creation, ownership, list, detail, and Attachment APIs | Issue #13 reference APIs, Issue #15 Ticket creation, and Issue #16 My Tickets list tests pass locally; remaining detail/Attachment APIs planned |
+| 3 | Vitest + Testing Library | Requester selection, Create Ticket, My Tickets, Detail, Attachment states, and duplicate-submit behavior | Issue #14 requester-context, Issue #15 Create Ticket, and Issue #16 My Tickets tests pass locally (23 client tests total); remaining UI flows planned |
 | 4 | Vitest/DOM assertions | Zen Green classes, labels, errors, focus, badges, responsive classes, and non-color indicators | Planned |
 | 5 | Playwright | Complete requester Ticket/Attachment lifecycle and cross-requester isolation | Planned |
 | 6 | Playwright screenshots | Desktop, tablet, and mobile Create Ticket, My Tickets, and Ticket Detail evidence | Planned |
-| 7 | npm/Vitest/Prisma | Final server/client regressions, builds, migration, and repeated idempotent seed | Issue #13 migration/seed verified locally; Issue #15 server/client regressions and builds pass; final release verification pending |
+| 7 | npm/Vitest/Prisma | Final server/client regressions, builds, migration, and repeated idempotent seed | Issue #13 migration/seed verified locally; Issues #15 and #16 server/client regressions and builds pass; final release verification pending |
 
-Pass/fail output and screenshots will be added below as the Issues are implemented. Issue #13 now has reference-data API coverage; the remaining Lab 2 product tests are pending.
+Pass/fail output and screenshots will be added below as the Issues are implemented. Issues #13, #14, #15, and #16 now have focused automated coverage; detail, Attachment, responsive, and E2E evidence remain pending.
 
 ### Issue #13 evidence (2026-08-26)
 
@@ -47,6 +47,16 @@ Pass/fail output and screenshots will be added below as the Issues are implement
 - [x] Manual API smoke check on 2026-08-28: a valid `curl.exe` multipart request returned `201` with a backend Ticket Number, `createdAt`, `NEW`, and no stored filename/path; the temporary diagnostic Ticket was removed afterward.
 - [ ] Responsive screenshots and Playwright coverage remain pending for the later verification/evidence Issues.
 
+### Issue #16 evidence (2026-08-28)
+
+- [x] Planned failing baseline recorded before implementation: the new list API suite received `404` because `GET /api/tickets` did not exist, and the new My Tickets UI suite could not import the not-yet-created `fetchTickets` helper.
+- [x] `server/tests/lab-02/my-tickets.api.test.ts` passes 4 tests for required requester context, inactive requester safety, invalid query validation, search across Ticket Number/summary/description, category/system/priority/status filters, sort/order, page sizes, pagination, public-field shape, and requester ownership isolation.
+- [x] `client/tests/lab-02/MyTickets.test.tsx` passes 4 tests for loading/list controls, desktop table and mobile cards, URL query persistence, filter/page requests, distinct owned-empty and filtered-no-results states, clear filters, safe failure, and Retry.
+- [x] Full server regression (`npm.cmd test -- --run`) passes 8 files and 25 tests; full client regression passes 4 files and 23 tests. Both TypeScript/production builds pass.
+- [x] Server Vitest file parallelism is disabled because these integration suites share the isolated database/storage environment; the full server suite passed 25/25 on two consecutive runs without row-count races.
+- [x] Updated the existing Create Ticket reference-data fixture to account for the new My Tickets route loading reference data before navigation to `/tickets/new`; no product behavior was weakened.
+- [ ] Responsive screenshots, manual browser/API evidence, and Playwright coverage remain pending for the later verification/evidence Issues.
+
 ### Test screenshots
 
 1. Create Ticket evidence: `artifacts/lab-02/screenshots/create-ticket/` (planned)
@@ -67,17 +77,17 @@ Each final screenshot must include a short caption stating what it shows and whi
 | API-03 | Supertest | BR-05/08/09, AC-07/19 | Missing context, body requesterId, invalid fields, inactive references, and invalid priority return documented errors. | `server/tests/lab-02/create-ticket.api.test.ts`, `server/tests/lab-02/ticket-validation.unit.test.ts` | Passed locally for context/body/reference/field cases |
 | API-04 | Supertest | BR-13/14, AC-08/09 | Invalid file, storage failure, and transaction failure leave no Ticket, metadata, or request-created file. | `server/tests/lab-02/create-ticket.api.test.ts`, `server/tests/lab-02/create-ticket-rollback.api.test.ts` | Passed locally: invalid-file, count, storage failure, staged-file compensation, and forced post-row move failure |
 | API-05 | Supertest | BR-01, AC-06 | Concurrent creates produce unique correctly formatted numbers. | `server/tests/lab-02/create-ticket.api.test.ts` | Passed locally (1 test with 4 concurrent creates) |
-| API-06 | Supertest | FR-09/10, AC-10/11/12 | Owned list returns search, filters, sorts, stable order, page sizes, and metadata. | `server/tests/lab-02/my-tickets.api.test.ts` | Planned |
-| API-07 | Supertest | BR-17/19, AC-11 | Invalid query parameters return `400`; beyond-last valid pages return empty items. | `server/tests/lab-02/my-tickets.api.test.ts` | Planned |
+| API-06 | Supertest | FR-09/10, AC-10/11/12 | Owned list returns search, filters, sorts, stable order, page sizes, and metadata. | `server/tests/lab-02/my-tickets.api.test.ts` | Passed locally (4 tests) |
+| API-07 | Supertest | BR-17/19, AC-11 | Invalid query parameters return `400`; beyond-last valid pages return empty items. | `server/tests/lab-02/my-tickets.api.test.ts` | Passed locally (included in 4-test suite) |
 | API-08 | Supertest | FR-11/15, AC-13/14 | Owned detail succeeds; missing and cross-owner detail both return safe `404`. | `server/tests/lab-02/ticket-detail.api.test.ts` | Planned |
 | API-09 | Supertest | FR-12/13/14, AC-15/16/17/18 | Metadata, add, active download, capacity, removal, retained metadata, and blocked removed download work. | `server/tests/lab-02/attachments.api.test.ts` | Planned |
 | API-10 | Supertest | BR-12/14, AC-08/17 | Attachment validation and filesystem/database compensation leave safe state. | `server/tests/lab-02/attachments.api.test.ts` | Planned |
 | API-11 | Supertest | FR-15, AC-14/19 | Cross-owner detail, metadata, download, add, and remove are safe `404`s. | `server/tests/lab-02/attachments.api.test.ts` | Planned |
 | UI-01 | Vitest/Testing Library | FR-01/02, AC-01/02 | Selector loading, empty, Retry, active options, disabled Continue, labels, and focus. | `client/tests/lab-02/RequesterSelection.test.tsx` | Passed locally (7 Issue #14 tests) |
 | UI-02 | Vitest/Testing Library | FR-03/04, AC-03/04 | Valid/invalid sessionStorage and Change Requester clear/reload context. | `client/tests/lab-02/RequesterSelection.test.tsx` | Passed locally (7 Issue #14 tests) |
-| UI-03 | Vitest/Testing Library | FR-05/06/17, AC-05/07/09/20 | Create references, validation, file errors, preserved failure values, and duplicate-submit guard. | `client/tests/lab-02/CreateTicket.test.tsx` | Passed locally (7 tests) |
+| UI-03 | Vitest/Testing Library | FR-05/06/17, AC-05/07/09/20 | Create references, validation, file errors, preserved failure values, and duplicate-submit guard. | `client/tests/lab-02/CreateTicket.test.tsx` | Passed locally (8 tests) |
 | UI-04 | Vitest/Testing Library | FR-07/08, AC-05/06 | Success displays backend Ticket Number/date/status and next action. | `client/tests/lab-02/CreateTicket.test.tsx` | Passed locally (included in 8-test suite) |
-| UI-05 | Vitest/Testing Library | FR-09/10, AC-10/11/12 | My Tickets query controls, table/cards, loading, empty/no-results/failure, pagination. | `client/tests/lab-02/MyTickets.test.tsx` | Planned |
+| UI-05 | Vitest/Testing Library | FR-09/10, AC-10/11/12 | My Tickets query controls, table/cards, loading, empty/no-results/failure, pagination. | `client/tests/lab-02/MyTickets.test.tsx` | Passed locally (4 tests) |
 | UI-06 | Vitest/Testing Library | FR-11/12/13/14, AC-13/15/16/17/18 | Detail read-only fields, Attachment states, upload/download, confirmation/reason, removed state. | `client/tests/lab-02/RequesterTicketDetail.test.tsx` | Planned |
 | UI-07 | Vitest/Testing Library | AC-17/18 | Removed rows have no download action; invalid/busy actions are disabled. | `client/tests/lab-02/AttachmentSection.test.tsx` | Planned |
 | STYLE-01 | Vitest/DOM | FR-16, AC-21/22 | Required labels, asterisks, errors, focus, buttons, badges, responsive classes, and non-color indicators. | `client/tests/lab-02/ZenGreen.styles.test.tsx` | Planned |

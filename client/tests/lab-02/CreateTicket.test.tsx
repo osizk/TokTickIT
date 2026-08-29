@@ -92,7 +92,12 @@ describe("Create Ticket", () => {
 
   it("shows a safe reference-data failure and retries successfully", async () => {
     const categorySpy = vi.mocked(api.fetchCategories);
-    categorySpy.mockRejectedValueOnce(new Error("database unavailable")).mockResolvedValue(categories);
+    // The requester shell visits My Tickets before this helper opens Create
+    // Ticket, so reserve the failure for Create Ticket's own reference load.
+    categorySpy
+      .mockResolvedValueOnce(categories)
+      .mockRejectedValueOnce(new Error("database unavailable"))
+      .mockResolvedValue(categories);
     const user = userEvent.setup();
     await openCreateTicket(user);
 
@@ -100,7 +105,7 @@ describe("Create Ticket", () => {
       "Unable to load Ticket reference data.",
     );
     await user.click(screen.getByRole("button", { name: "Retry" }));
-    await waitFor(() => expect(categorySpy).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(categorySpy).toHaveBeenCalledTimes(3));
     expect(screen.getByRole("button", { name: "Submit Ticket" })).not.toBeDisabled();
   });
 

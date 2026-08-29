@@ -6,6 +6,7 @@ import {
   fetchRequesters,
 } from "./api.js";
 import CreateTicketPage from "./CreateTicket.js";
+import MyTickets from "./MyTickets.js";
 import "./styles.css";
 
 type UiState = "idle" | "loading" | "success" | "error";
@@ -317,6 +318,10 @@ function RoutePlaceholder({
     return <CreateTicketPage requester={requester} navigate={navigate} />;
   }
 
+  if (path === "/tickets") {
+    return <MyTickets requester={requester} navigate={navigate} />;
+  }
+
   if (path.startsWith("/tickets/") && path !== "/tickets/new") {
     return (
       <section className="zen-card" aria-labelledby="ticket-detail-heading">
@@ -471,10 +476,17 @@ export default function App() {
   }, []);
 
   const navigate = useCallback((nextPath: string) => {
-    if (currentPath() !== nextPath) {
+    const nextUrl = new URL(nextPath, window.location.origin);
+    const currentUrl = new URL(window.location.href);
+    const currentLocation = `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`;
+    const nextLocation = `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`;
+    if (currentLocation !== nextLocation) {
       window.history.pushState({}, "", nextPath);
+      window.dispatchEvent(new PopStateEvent("popstate"));
     }
-    setPath(nextPath);
+    // Keep route matching based on the pathname while allowing pages such as
+    // My Tickets to persist their controls in the URL query string.
+    setPath(nextUrl.pathname);
   }, []);
 
   if (!isLab2Route(path)) {
