@@ -128,7 +128,9 @@ export default defineConfig({
           command: "npm.cmd run dev -- --host 127.0.0.1",
           cwd: clientDir,
           url: "http://127.0.0.1:5173",
-          reuseExistingServer: !process.env.CI,
+          // Always start the server with the isolated E2E environment. Reusing
+          // a developer server can silently send test data to the real schema.
+          reuseExistingServer: false,
           env: {
             ...serverEnv,
             VITE_API_URL: process.env.PLAYWRIGHT_API_URL ?? `http://127.0.0.1:${serverEnv.PORT}`,
@@ -138,7 +140,7 @@ export default defineConfig({
           command: "node ../e2e/server-bootstrap.mjs",
           cwd: serverDir,
           url: `${process.env.PLAYWRIGHT_API_URL ?? `http://127.0.0.1:${serverEnv.PORT}`}/api/health`,
-          reuseExistingServer: !process.env.CI,
+          reuseExistingServer: false,
           env: serverEnv,
         },
       ],

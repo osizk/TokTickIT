@@ -1,20 +1,20 @@
-# Lab 2 - Test Plan and Evidence  (fill this in)
+# Lab 2 - Test Plan and Evidence
 
-All Lab 2 test files live under `server/tests/lab-02/`, `client/tests/lab-02/`, and `e2e/lab-02/`. Tests are planned before product implementation and must be updated with their real result and evidence in the feature branch that implements them.
+All Lab 2 feature tests live under `server/tests/lab-02/`, `client/tests/lab-02/`, and `e2e/lab-02/`; feature scenarios were planned before product implementation and updated with their real result in the implementing branch. Issue #19 adds only release-state evidence coverage. This file records the release audit on `lab2-staging` at merge commit `9499959`; checks from final `main` remain a post-release gate.
 
 ## Summary Test Table
 
 | # | Tool | Test | Result |
 |---|------|------|--------|
-| 1 | Vitest | Ticket Number, field, query, and Attachment validation/unit boundaries | Issue #15 field/file validation and Issue #17 Attachment lifecycle boundary tests pass locally; remaining Ticket Number unit test is planned |
-| 2 | Supertest/Vitest | Reference APIs, requester context, Ticket creation, ownership, list, detail, and Attachment APIs | Issues #13, #15, #16, and #17 focused API suites pass locally (37 server tests in the full regression); final release verification remains |
-| 3 | Vitest + Testing Library | Requester selection, Create Ticket, My Tickets, Detail, Attachment states, and duplicate-submit behavior | Issues #14–#17 UI tests pass locally (28 client tests in the full regression); visual/E2E flows remain planned |
-| 4 | Vitest/DOM + Playwright axe/DOM assertions | Zen Green classes, labels, errors, focus, badges, responsive classes, and non-color indicators | Issue #18 axe scans, focus checks, and no-horizontal-scroll checks pass; the dedicated STYLE-01 Vitest suite remains planned |
-| 5 | Playwright | Complete requester Ticket/Attachment lifecycle and cross-requester isolation | Issue #18 passes on desktop, tablet, and mobile (3 tests) |
-| 6 | Playwright screenshots | Desktop, tablet, and mobile Create Ticket, My Tickets, and Ticket Detail evidence | Issue #18 produced 9 readable screenshots with captions in `artifacts/lab-02/screenshots/` |
-| 7 | npm/Vitest/Prisma | Final server/client regressions, builds, migration, and repeated idempotent seed | Issues #13–#17 migrations, focused regressions, and builds pass locally; final release verification pending |
+| 1 | Vitest | Ticket Number, field, query, and Attachment validation/unit boundaries | Passed locally: 5 validation/unit tests; Ticket Number formatting and concurrency are asserted by API-05 in `create-ticket.api.test.ts`. |
+| 2 | Supertest/Vitest | Reference APIs, requester context, Ticket creation, ownership, list, detail, and Attachment APIs | Passed locally: complete server regression, 11 files and 37 tests. |
+| 3 | Vitest + Testing Library | Requester selection, Create Ticket, My Tickets, Detail, Attachment states, and duplicate-submit behavior | Passed locally: complete client regression, 7 files and 31 tests (including STYLE-01). |
+| 4 | Vitest/DOM + Playwright axe/DOM assertions | Zen Green classes, labels, errors, focus, badges, responsive classes, and non-color indicators | Passed by 3 stylesheet assertions, component DOM assertions, and Issue #18 axe, focus, viewport, no-scroll, and screenshot checks. |
+| 5 | Playwright | Complete requester Ticket/Attachment lifecycle and cross-requester isolation | Passed with explicit isolated schema on desktop, tablet, and mobile (3 tests). |
+| 6 | Playwright screenshots | Desktop, tablet, and mobile Create Ticket, My Tickets, and Ticket Detail evidence | 9 responsive lifecycle screenshots plus 27 submission-state screenshots were refreshed by the release run with captions in `artifacts/lab-02/screenshots/`. |
+| 7 | npm/Vitest/Prisma | Final server/client regressions, builds, migration, and repeated idempotent seed | Passed on the release branch: server/client tests and builds, isolated migration, and two consecutive seed runs. Final `main` rerun remains gated on the release merge. |
 
-Pass/fail output and screenshots will be added below as the Issues are implemented. Issues #13–#18 now have focused automated coverage; final release verification and evidence audit remain pending.
+The Issue #19 release audit is complete on `lab2-staging`; the final `main` and GitHub Project board checks are intentionally recorded as post-merge gates rather than claimed early.
 
 ### Issue #13 evidence (2026-08-26)
 
@@ -23,7 +23,7 @@ Pass/fail output and screenshots will be added below as the Issues are implement
 - [x] `npm run build` passes on the Issue #13 branch.
 - [x] `npx prisma migrate deploy` applies `20260826100000_lab2_data_reference` successfully.
 - [x] `npm run prisma:seed` ran twice without duplicate conflicts; active endpoint counts remain 4 categories, 7 related systems, and 4 requesters, with one inactive requester retained in the database.
-- [ ] Repeat the same checks using a student-created isolated `server/.env.test` database and temporary `ATTACHMENT_STORAGE_DIR`; only `.env.test.example` is tracked. Attempted on 2026-08-28, but the local `toktickit` PostgreSQL role cannot create `toktickit_lab2_test` (`permission denied to create database`).
+- [x] Issue #19 completed an equivalent isolated PostgreSQL schema audit with a temporary attachment directory: migration applied, seed ran twice, and counts remained 4 active categories, 7 related systems, 5 requesters (4 active and 1 inactive). Only `.env.test.example` is tracked; the real `.env.test`, credentials, and uploaded files remain local/ignored. A separate database named `toktickit_lab2_test` was not created because the local role lacks database-create permission.
 
 ### Issue #14 evidence (2026-08-27)
 
@@ -33,7 +33,7 @@ Pass/fail output and screenshots will be added below as the Issues are implement
 - [x] Client production build (`npm.cmd run build` from `client/`) passes after the requester-context implementation.
 - [x] Relevant server regression run (`npm.cmd test -- --run` from `server/`) passes 3 test files and 8 tests, and the server TypeScript build passes.
 - [x] Manual reference-API smoke check on 2026-08-28: `/api/requesters` returned HTTP 200 with 4 active records, `/api/categories` returned 4 records, and `/api/related-systems` returned 7 records.
-- [ ] Responsive screenshots and full E2E coverage remain planned for the later Issues.
+- [x] Responsive, accessibility, and Playwright evidence was completed by Issue #18; the requester-context component suite remains part of the current 31-test client regression.
 
 ### Issue #15 evidence (2026-08-27)
 
@@ -45,7 +45,7 @@ Pass/fail output and screenshots will be added below as the Issues are implement
 - [x] Full server regression (`npm.cmd test -- --run`) passes 7 files and 21 tests, including all Lab 1 tests; server TypeScript build passes.
 - [x] Full client regression (`npm.cmd test -- --run`) passes 3 files and 19 tests, including all Lab 1 tests; client production build passes.
 - [x] Manual API smoke check on 2026-08-28: a valid `curl.exe` multipart request returned `201` with a backend Ticket Number, `createdAt`, `NEW`, and no stored filename/path; the temporary diagnostic Ticket was removed afterward.
-- [ ] Responsive screenshots and Playwright coverage remain pending for the later verification/evidence Issues.
+- [x] Responsive screenshots and Playwright coverage were completed by Issues #18 and #19; this Issue #15 record remains the historical focused-test evidence.
 
 ### Issue #16 evidence (2026-08-28)
 
@@ -55,7 +55,7 @@ Pass/fail output and screenshots will be added below as the Issues are implement
 - [x] Full server regression (`npm.cmd test -- --run`) passes 8 files and 25 tests; full client regression passes 4 files and 23 tests. Both TypeScript/production builds pass.
 - [x] Server Vitest file parallelism is disabled because these integration suites share the isolated database/storage environment; the full server suite passed 25/25 on two consecutive runs without row-count races.
 - [x] Updated the existing Create Ticket reference-data fixture to account for the new My Tickets route loading reference data before navigation to `/tickets/new`; no product behavior was weakened.
-- [ ] Responsive screenshots, manual browser/API evidence, and Playwright coverage remain pending for the later verification/evidence Issues.
+- [x] Responsive screenshots, manual browser/API behavior, and Playwright coverage were completed by Issues #18 and #19; the My Tickets component suite remains part of the current 31-test client regression.
 
 ### Issue #17 evidence (2026-08-29)
 
@@ -67,7 +67,7 @@ Pass/fail output and screenshots will be added below as the Issues are implement
 - [x] `client/tests/lab-02/AttachmentSection.test.tsx` passes 3 tests for client signature validation, upload, download, confirmation/reason, removed-row actions, and invalid-file rejection.
 - [x] Full server regression (`npm.cmd test -- --run`) passes 11 files and 37 tests, including all Lab 1 tests; server TypeScript build passes.
 - [x] Full client regression (`npm.cmd test -- --run`) passes 6 files and 28 tests, including all Lab 1 tests; client production build passes.
-- [ ] Manual browser/API checks, responsive screenshots, and Playwright coverage remain pending for Issues #18 and #19.
+- [x] Manual browser/API behavior is represented by the focused API suites and the Issue #18 Playwright flow; responsive screenshots and Playwright coverage were completed by Issues #18 and #19.
 
 ### Issue #18 evidence (2026-08-29)
 
@@ -77,16 +77,33 @@ Pass/fail output and screenshots will be added below as the Issues are implement
 - [x] The complete Playwright run passes all 3 projects: desktop (1440px), tablet (900px), and mobile (390px), with 3 tests passed.
 - [x] Axe scans pass on requester selection, Create Ticket, Ticket Detail before/after removal, and My Tickets; keyboard focus and document/body horizontal-scroll assertions also pass.
 - [x] The first axe run found an insufficient-contrast Attachment Remove link; the shared Zen Green link style was corrected with a header-specific override and the suite was rerun successfully.
-- [x] Nine screenshots were captured under `artifacts/lab-02/screenshots/{create-ticket,my-tickets,ticket-detail}/`; captions and requirement mappings are in that directory's `README.md`.
+- [x] Nine screenshots were refreshed by the Issue #19 release run under `artifacts/lab-02/screenshots/{create-ticket,my-tickets,ticket-detail}/`; captions and requirement mappings are in that directory's `README.md`.
 - [x] Global and per-project E2E cleanup seeds idempotent reference data and removes only `E2E-18-` test Tickets, metadata, and protected files. Playwright uses the isolated `toktickit_e2e` PostgreSQL schema and `server/.test-attachments/toktickit_e2e/`; the development database and storage were verified empty after the run.
 - [x] Post-Issue #18 regressions pass: server Vitest 11 files/37 tests plus build, and client Vitest 6 files/28 tests plus production build.
-- [ ] Final `main` regression, Project/PR evidence audit, and release-documentation checks remain for Issue #19.
+- [x] Issue #19 release-documentation and PR/review evidence audit completed on `lab2-staging`.
+- [ ] Final `main` regression and final Project-board screenshot/status audit remain after the separately authorized release PR is merged.
+
+### Issue #19 release audit (2026-08-30)
+
+- [x] Release branch `feature/12-Lab2ReleaseEvidence` was created from the latest `lab2-staging` merge `9499959` (Issue #18 PR #27). No GitHub Issue, Project, PR, push, merge, or status mutation was performed by this audit.
+- [x] Server regression: `npm.cmd test -- --run` passed 11 files and 37 tests; `npm.cmd run build` passed.
+- [x] Client regression: `npm.cmd test -- --run` passed 7 files and 31 tests (including `ZenGreen.styles.test.tsx`); `npm.cmd run build` passed.
+- [x] Playwright lifecycle: `PLAYWRIGHT_API_PORT=3019 PLAYWRIGHT_SCHEMA=toktickit_release_e2e npx.cmd playwright test` passed desktop (1440px), tablet (900px), and mobile (390px), 3 tests total. The config now always refuses reuse of an existing server process.
+- [x] Playwright submission states: `lab-02/release-evidence-states.spec.ts` passed 2 evidence tests in each desktop, tablet, and mobile project (6 tests total); it produced 27 screenshots (the 9 required requester/Create Ticket states in each viewport) for the labsheet-required loading, empty, failure, validation, invalid-file, API-failure, submitting, and success states.
+- [x] Full final Playwright command with both specs passed all 9 tests across desktop, tablet, and mobile with no skips; teardown left the isolated schema/storage clean.
+- [x] The release audit used explicit isolated schemas (`toktickit_release_e2e` for the lifecycle run and `toktickit_release_final` for the full run) plus temporary protected storage; global teardown removed both. The post-run development check found 0 Tickets, 0 Attachments, 0 release schemas, and 0 files in `server/attachments`.
+- [x] Isolated migration/repeated-seed audit created a disposable schema, ran `npm.cmd run prisma:migrate`, ran `npm.cmd run prisma:seed` twice, and verified 4 categories, 7 related systems, 5 requesters (4 active and 1 inactive). The schema and temporary directory were removed afterward.
+- [x] `reviewer.md` now records my authored PRs #20 and #22-#27 plus my reviews of the partner's Lab 2 PRs #19-#25, with actual teammate Approve links where available, reviewer comments, and author/friend responses. My authored PR #20 remains explicitly recorded as the accepted Lab 2 legacy comment-only evidence.
+- [x] `README.md` now documents Lab 2 setup, isolated test configuration, Playwright command, protected-storage rules, and contract/evidence links. `specification.md` now records the numbered branch workflow and final release gate.
+- [x] The labsheet was checked with the PDF extraction workflow, including the exact `Answer Part 1` through `Answer Part 9` heading order and the required captions and repository/Issue/PR/Project/document links for the one-PDF submission.
+- [ ] Before submission, rerun the full commands from final `main` after the release PR is merged, capture the final GitHub Project board with every Lab 2 Issue in Done, and attach the final readable screenshots/links to the PDF.
 
 ### Test screenshots
 
 1. Create Ticket evidence: `artifacts/lab-02/screenshots/create-ticket/` (desktop/tablet/mobile captured)
 2. My Tickets evidence: `artifacts/lab-02/screenshots/my-tickets/` (desktop/tablet/mobile captured)
 3. Ticket Detail and Attachment evidence: `artifacts/lab-02/screenshots/ticket-detail/` (desktop/tablet/mobile captured)
+4. Required selection/Create Ticket states: `artifacts/lab-02/screenshots/release-states/{desktop,tablet,mobile}/` (27 captures with captions)
 
 Each final screenshot must include a short caption stating what it shows and which requirement it proves.
 
@@ -94,7 +111,7 @@ Each final screenshot must include a short caption stating what it shows and whi
 
 | Test ID | Tool/level | Requirement / AC | Test and expected result | Automated test path | Result |
 |---|---|---|---|---|---|
-| UNIT-01 | Vitest unit | BR-01, AC-06 | Ticket Number formatter produces `TKT-YYYY-######`. | `server/tests/lab-02/ticket-number.unit.test.ts` | Planned |
+| UNIT-01 | Vitest/API boundary | BR-01, AC-06 | Ticket Number formatter produces `TKT-YYYY-######`; the concurrent create path also proves uniqueness. | `server/tests/lab-02/create-ticket.api.test.ts` (API-05) | Passed locally (4 concurrent creates; exact format and unique values asserted) |
 | UNIT-02 | Vitest unit | BR-08/09, AC-07 | Trimmed field limits, blank values, and priority enum validation are exact. | `server/tests/lab-02/ticket-validation.unit.test.ts` | Passed locally (3 tests) |
 | UNIT-03 | Vitest unit | BR-12, AC-08 | Extension/MIME/signature, 5 MiB boundary, filename, and count rules are exact. | `server/tests/lab-02/attachment-validation.unit.test.ts` | Passed locally (2 tests; count is covered by API-04) |
 | API-01 | Supertest | FR-01, AC-01/02/23 | Active requester/reference endpoints return active records only and safe failures. | `server/tests/lab-02/reference-data.test.ts` | Passed locally (5 tests) |
@@ -115,26 +132,27 @@ Each final screenshot must include a short caption stating what it shows and whi
 | UI-05 | Vitest/Testing Library | FR-09/10, AC-10/11/12 | My Tickets query controls, table/cards, loading, empty/no-results/failure, pagination. | `client/tests/lab-02/MyTickets.test.tsx` | Passed locally (4 tests) |
 | UI-06 | Vitest/Testing Library | FR-11/12/13/14, AC-13/15/16/17/18 | Detail read-only fields, Attachment states, upload/download, confirmation/reason, removed state. | `client/tests/lab-02/RequesterTicketDetail.test.tsx` | Passed locally (2 tests) |
 | UI-07 | Vitest/Testing Library | AC-17/18 | Removed rows have no download action; invalid/busy actions are disabled. | `client/tests/lab-02/AttachmentSection.test.tsx` | Passed locally (3 tests) |
-| STYLE-01 | Vitest/DOM | FR-16, AC-21/22 | Required labels, asterisks, errors, focus, buttons, badges, responsive classes, and non-color indicators. | `client/tests/lab-02/ZenGreen.styles.test.tsx` | Planned |
+| STYLE-01 | Vitest/DOM + Playwright | FR-16, AC-21/22 | Required labels, asterisks, errors, focus, buttons, badges, responsive classes, and non-color indicators. | `client/tests/lab-02/ZenGreen.styles.test.tsx`; `client/tests/lab-02/{RequesterSelection,CreateTicket,MyTickets,RequesterTicketDetail,AttachmentSection}.test.tsx`; `e2e/lab-02/requester-ticket-flow.spec.ts`; `artifacts/lab-02/screenshots/` | Passed locally: 3 stylesheet assertions, component assertions, axe/focus/viewport/no-scroll assertions, and visual inspection of 9 captioned screenshots |
 | E2E-01 | Playwright | AC-01/05/06/10/13/15/16/17 | Requester A selects, creates with file, finds, opens, downloads, adds, and removes. | `e2e/lab-02/requester-ticket-flow.spec.ts` | Passed locally on desktop/tablet/mobile (3 tests) |
 | E2E-02 | Playwright | AC-14 | Requester B cannot see or directly access Requester A resources. | `e2e/lab-02/requester-ticket-flow.spec.ts` | Passed locally on desktop/tablet/mobile (detail, metadata, download, add, and remove all safe 404s) |
 | E2E-03 | Playwright | AC-21/22 | Required screens remain usable at desktop/tablet/mobile sizes. | `e2e/lab-02/requester-ticket-flow.spec.ts` | Passed locally with viewport assertions and screenshots |
+| EVID-01 | Playwright/screenshots | AC-01/02/05/06/07/08/09/20 | Capture the labsheet-required requester loading/empty/failure and Create Ticket initial/validation/invalid-file/API-failure/submitting/success states. | `e2e/lab-02/release-evidence-states.spec.ts`; `artifacts/lab-02/screenshots/release-states/{desktop,tablet,mobile}/` | Passed locally: 6 evidence tests across 3 viewports; 27 captioned screenshots |
 | VIS-01 | Playwright/screenshots | FR-16, AC-21 | Screenshots show Zen Green tokens, field states, table/cards, and no clipping/overlap/scroll. | `artifacts/lab-02/screenshots/{create-ticket,my-tickets,ticket-detail}/` | Passed locally; 9 screenshots and caption README captured |
-| REG-01 | npm/Vitest/Prisma | AC-24 | Lab 1 tests/builds, Lab 2 tests/builds, migrations, and repeated seed pass from final `main`. | `server/tests/lab-01/*`, `client/tests/lab-01/*`, documented commands | Planned |
+| REG-01 | npm/Vitest/Prisma | AC-24 | Lab 1 tests/builds, Lab 2 tests/builds, migrations, and repeated seed pass from the release candidate; final `main` rerun is a release gate. | `server/tests/lab-01/*`, `client/tests/lab-01/*`, documented commands, Issue #19 audit | Release candidate passed; final `main` rerun pending release merge |
 
 ## Acceptance-Criterion Traceability
 
 | AC | Planned Test IDs |
 |---|---|
-| AC-01 | API-01, UI-01, E2E-01 |
-| AC-02 | API-01, UI-01 |
+| AC-01 | API-01, UI-01, E2E-01, EVID-01 |
+| AC-02 | API-01, UI-01, EVID-01 |
 | AC-03 | UI-02 |
 | AC-04 | UI-02, E2E-02 |
-| AC-05 | API-02, UI-03, UI-04, E2E-01 |
-| AC-06 | UNIT-01, API-02, API-05, UI-04, E2E-01 |
-| AC-07 | UNIT-02, API-03, UI-03 |
-| AC-08 | UNIT-03, API-04, API-10, UI-03 |
-| AC-09 | API-04, UI-03 |
+| AC-05 | API-02, UI-03, UI-04, E2E-01, EVID-01 |
+| AC-06 | UNIT-01, API-02, API-05, UI-04, E2E-01, EVID-01 |
+| AC-07 | UNIT-02, API-03, UI-03, EVID-01 |
+| AC-08 | UNIT-03, API-04, API-10, UI-03, EVID-01 |
+| AC-09 | API-04, UI-03, EVID-01 |
 | AC-10 | API-06, UI-05, E2E-01/02 |
 | AC-11 | API-06/07, UI-05 |
 | AC-12 | API-06, UI-05 |
@@ -145,7 +163,7 @@ Each final screenshot must include a short caption stating what it shows and whi
 | AC-17 | API-09/10, UI-06/07, E2E-01 |
 | AC-18 | API-09, UI-07 |
 | AC-19 | API-03/11, UI-01 |
-| AC-20 | UI-03, STYLE-01 |
+| AC-20 | UI-03, STYLE-01, EVID-01 |
 | AC-21 | STYLE-01, E2E-03, VIS-01 |
 | AC-22 | STYLE-01, E2E-03 |
 | AC-23 | API-01, REG-01 |
@@ -177,19 +195,22 @@ Run migrations and the seed against the isolated documented database; run the se
 
 ## Results and Evidence
 
-Paste passing terminal output and screenshots below as each Issue is completed. Every final image must include a caption describing what it proves.
+Record passing terminal output and screenshots as each Issue is completed. Every final image must include a caption describing what it proves.
 
 | Area | Result | Evidence |
 |---|---|---|
-| Unit | Planned | Add command/output |
-| API/integration | Issues #13–#17 focused/full suites passed locally | Add final release output and links |
-| UI/style/accessibility | Issues #14–#17 component suites passed locally; STYLE-01 remains planned | Add final style/visual output and links |
-| Responsive/visual | Issue #18 passed locally | 9 screenshots plus caption README under `artifacts/lab-02/screenshots/` |
-| E2E | Issue #18 passed locally (3 projects) | `cd client && npx playwright test` output and screenshots |
-| Final `main` regression | Planned | Add after release merge |
+| Unit | Passed locally | 5 validation/unit tests; Ticket Number format/concurrency is covered by API-05. |
+| API/integration | Passed locally | Complete server regression: 11 files, 37 tests; focused API evidence in Issues #13, #15, #16, and #17. |
+| UI/style/accessibility | Passed locally | Complete client regression: 7 files, 31 tests; stylesheet/component assertions, axe, focus, viewport, and screenshot evidence. |
+| Responsive/visual | Passed locally | 9 refreshed desktop/tablet/mobile screenshots plus caption README under `artifacts/lab-02/screenshots/`. |
+| E2E | Passed locally (9 passed, no skips) | `PLAYWRIGHT_API_PORT=3019 PLAYWRIGHT_SCHEMA=toktickit_release_final npx.cmd playwright test` - lifecycle and submission-state evidence passed on desktop, tablet, and mobile. |
+| Submission-state screenshots | Passed locally | `lab-02/release-evidence-states.spec.ts` - 6 evidence tests passed across 3 viewports; 27 readable, captioned images under `artifacts/lab-02/screenshots/release-states/{desktop,tablet,mobile}/`. |
+| Migration/repeated seed | Passed in isolated schema | Release audit applied migration and ran seed twice; exact reference counts verified and schema removed. |
+| Development DB/storage hygiene | Passed after cleanup | 0 Tickets, 0 Attachments, 0 release schemas, and 0 files in protected development storage after E2E teardown. |
+| Final `main` regression | Pending by design | Run after the release PR is approved and merged into `main`. |
 
 ## Known Limitations or Deferred Tests
 
 - Real authentication and shared/object storage are deferred to later labs.
 - In-app Attachment preview is not required; active download and removed-download blocking are required.
-- Issue 1 contains the contract and test plan only; product test results remain pending until feature branches.
+- Final `main` and GitHub Project board evidence are intentionally pending until the separately authorized release PR is approved and merged; `lab2-staging` is the current release candidate and source for this audit.

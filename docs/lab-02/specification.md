@@ -200,4 +200,4 @@ Use `200` for retrieval/download/removal, `201` for creation, `400` for invalid 
 - Dates are persisted as UTC and localized only for display.
 - The real `.env.test` and credentials are never committed; only `.env.test.example` is committed.
 - Playwright is a client development dependency, configured under `client/` with `testDir: ../e2e` and run by `cd client && npx playwright test`.
-- Issue 1 is developed on the existing `feature/5-Lab2Contract` working branch for this session; the planned canonical branch name is `feature/Lab2Contract`. No branch rename, commit, push, PR, or merge is performed here.
+- Issue 1 used the numbered `feature/5-Lab2Contract` branch and was merged before the product increments. Issues 2 through 8 followed the approved numbered branches through `feature/12-Lab2ReleaseEvidence`, with each feature PR targeting `lab2-staging`; the final release PR targets `main` only after the release evidence is approved. The Lab 1-only `feature/Lab1Doc` exception and an unapproved Lab 2 documentation branch are not part of this workflow.
