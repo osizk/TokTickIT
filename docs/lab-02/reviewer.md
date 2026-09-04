@@ -15,6 +15,8 @@
 | [#25](https://github.com/osizk/TokTickIT/pull/25) | `feature/9-Lab2MyTickets` | `057d63f` | **Approved** by [@HolyThiccDaddy](https://github.com/osizk/TokTickIT/pull/25#pullrequestreview-5057291994); merged into `lab2-staging`. |
 | [#26](https://github.com/osizk/TokTickIT/pull/26) | `feature/10-Lab2TicketDetailAttachments` | `d3a7478` | **Approved** by [@HolyThiccDaddy](https://github.com/osizk/TokTickIT/pull/26#pullrequestreview-5058229760); merged into `lab2-staging`. |
 | [#27](https://github.com/osizk/TokTickIT/pull/27) | `feature/11-Lab2E2EVisual` | `9499959` | **Approved** by [@HolyThiccDaddy](https://github.com/osizk/TokTickIT/pull/27#pullrequestreview-5058768926); merged into `lab2-staging`. |
+| [#29](https://github.com/osizk/TokTickIT/pull/29) | `feature/12-Lab2ReleaseEvidence` | `ddece86` | **Comment-only review** by [@HolyThiccDaddy](https://github.com/osizk/TokTickIT/pull/29#issuecomment-5542710764); no formal GitHub **Approve** review was recorded; merged into `lab2-staging`. |
+| [#30](https://github.com/osizk/TokTickIT/pull/30) | `lab2-staging` | `c32005b` | **Comment-only review** by [@HolyThiccDaddy](https://github.com/osizk/TokTickIT/pull/30#issuecomment-5543339776); no formal GitHub **Approve** review was recorded; merged into `main`. |
 
 The GitHub PR #22 branch is recorded with its actual spelling, `feature/6-Lab2-dataReference`; the approved branch table used the equivalent `feature/6-Lab2DataReference` label.
 
@@ -60,6 +62,18 @@ PR [#27](https://github.com/osizk/TokTickIT/pull/27) - Branch: `feature/11-Lab2E
 
 **My response:** I replied ["Merge please, Thank you."](https://github.com/osizk/TokTickIT/pull/27#issuecomment-5466582529). The approved PR was merged into `lab2-staging` with commit `9499959`.
 
+PR [#29](https://github.com/osizk/TokTickIT/pull/29) - Branch: `feature/12-Lab2ReleaseEvidence`
+
+**Reviewer verdict:** My friend wrote ["Nice work, no problem as always. Almost done keep it up. Do you want me to merge it now?"](https://github.com/osizk/TokTickIT/pull/29#issuecomment-5542710764). This was an actual review comment, not a formal GitHub **Approve** review; the PR was merged into `lab2-staging`.
+
+**My response:** I replied ["Yes please."](https://github.com/osizk/TokTickIT/pull/29#issuecomment-5542788703), authorizing the merge. The merge commit was `ddece86657441655ca4f02cfa41de6403b6177d2`.
+
+PR [#30](https://github.com/osizk/TokTickIT/pull/30) - Branch: `lab2-staging`
+
+**Reviewer verdict:** My friend wrote ["Very good. Want to merge?"](https://github.com/osizk/TokTickIT/pull/30#issuecomment-5543339776). This was an actual review comment, not a formal GitHub **Approve** review; the PR was merged into `main`.
+
+**My response:** I replied ["Yes bro."](https://github.com/osizk/TokTickIT/pull/30#issuecomment-5543369303), authorizing the final promotion. The merge commit was `c32005bc01dd54abee0dcf2a7c3ed275cb415be7`.
+
 ## Pull Requests I reviewed for my partner
 
 | PR | Branch | Merge commit | My review verdict |
@@ -71,8 +85,9 @@ PR [#27](https://github.com/osizk/TokTickIT/pull/27) - Branch: `feature/11-Lab2E
 | [#23](https://github.com/HolyThiccDaddy/toktickit/pull/23) | `feature/9-my-tickets` | `f2356bf` | **Changes requested → Approved** on 2026-09-03. |
 | [#24](https://github.com/HolyThiccDaddy/toktickit/pull/24) | `feature/10-ticket-detail` | `08882a2` | **Changes requested → Approved** on 2026-09-03. |
 | [#25](https://github.com/HolyThiccDaddy/toktickit/pull/25) | `feature/11-e2e-release` | `92c4942` | **Changes requested → Approved** on 2026-09-03. |
+| [#26](https://github.com/HolyThiccDaddy/toktickit/pull/26) | `feature/lab2-reviewer-docs` | `dcd28d9` | **Approved** by [@osizk](https://github.com/HolyThiccDaddy/toktickit/pull/26#pullrequestreview-5105189535) on 2026-09-03. |
 
-All seven PRs were merged into the partner's `lab2-staging` branch. The branch names and short merge commits above are copied from the partner repository's public PR records.
+All eight PRs were merged into the partner's `lab2-staging` branch. The branch names and short merge commits above are copied from the partner repository's public PR records.
 
 PR [#19](https://github.com/HolyThiccDaddy/toktickit/pull/19) - Branch: `feature/5-spec-test-plan`
 
@@ -115,3 +130,9 @@ PR [#25](https://github.com/HolyThiccDaddy/toktickit/pull/25) - Branch: `feature
 **My review verdict:** I requested responsive E2E journeys and screenshots for Create Ticket, My Tickets, and Ticket Detail, plus the approved Playwright dependency/configuration under `client/` ([responsive review](https://github.com/HolyThiccDaddy/toktickit/pull/25#discussion_r3926786998), [Playwright setup review](https://github.com/HolyThiccDaddy/toktickit/pull/25#discussion_r3926802396)). After the fixes, I approved the PR ([approval](https://github.com/HolyThiccDaddy/toktickit/pull/25#pullrequestreview-5104809200)).
 
 **Partner's response:** My friend said the requested changes were fixed and asked for a final recheck ([response](https://github.com/HolyThiccDaddy/toktickit/pull/25#issuecomment-5529417807)). After approval, my friend asked to merge and I confirmed ([merge exchange](https://github.com/HolyThiccDaddy/toktickit/pull/25#issuecomment-5529448594)). The PR was merged into `lab2-staging`.
+
+PR [#26](https://github.com/HolyThiccDaddy/toktickit/pull/26) - Branch: `feature/lab2-reviewer-docs`
+
+**My review verdict:** I submitted an **Approve** review ([approval](https://github.com/HolyThiccDaddy/toktickit/pull/26#pullrequestreview-5105189535)) and a follow-up approval containing ["Look good,Merge now?"](https://github.com/HolyThiccDaddy/toktickit/pull/26#pullrequestreview-5105200072).
+
+**Partner's response:** My friend replied ["Yes sir" after quoting the merge question](https://github.com/HolyThiccDaddy/toktickit/pull/26#issuecomment-5529974056). The PR was merged into `lab2-staging` with merge commit `dcd28d9b0bb5c8e8e7ac2354930d3fe390be39f9`.
