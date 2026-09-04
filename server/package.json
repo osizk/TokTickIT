@@ -9,6 +9,8 @@
     "start": "node dist/index.js",
     "prisma:migrate": "prisma migrate deploy",
     "prisma:seed": "prisma db seed",
+    "prisma:test:migrate": "node scripts/run-test-prisma.mjs migrate",
+    "prisma:test:seed": "node scripts/run-test-prisma.mjs seed",
     "test": "vitest run"
   },
   "prisma": {
@@ -18,11 +20,13 @@
     "@prisma/client": "^5.22.0",
     "cors": "^2.8.5",
     "dotenv": "^17.4.2",
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "formidable": "^3.5.4"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
+    "@types/formidable": "^3.5.1",
     "@types/node": "^22.10.2",
     "@types/supertest": "^6.0.2",
     "prisma": "^5.22.0",

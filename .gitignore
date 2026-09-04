@@ -14,4 +14,18 @@ server/prisma/*.db
 .DS_Store
 # lab files
 docs/lab-01/Lab1_Labsheet.pdf
-plan.md
+docs/lab-01/PLAN_LAB1.md
+docs/lab-02/Lab2_labsheet.pdf
+docs/lab-02/PLAN_LAB2.md
+docs/lab-02/Lab2_Submission_Draft.docx
+TokTickIT_GitHub_Workflow_Guide_TH_EN.pdf
+
+# Lab 2 local test/runtime data and secrets
+*.env.test
+server/.test-attachments/
+server/attachments/
+server/tmp/
+
+# Playwright transient output (captured evidence screenshots remain tracked)
+client/test-results/
+artifacts/lab-02/playwright-report/
