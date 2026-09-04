@@ -67,15 +67,17 @@ context; a Ticket request body must never contain `requesterId`.
 ### Isolated test configuration
 
 For database-backed checks, copy [`server/.env.test.example`](server/.env.test.example)
-to `server/.env.test` and point it at a disposable PostgreSQL database. Set a
-disposable `ATTACHMENT_STORAGE_DIR` when running server integration tests. Real
-`.env.test` files, credentials, secrets, uploaded files, and local attachment
-storage are ignored and must never be committed.
+to `server/.env.test` and point it at a disposable PostgreSQL database whose name
+ends with `_test`. Real `.env.test` files, credentials, secrets, uploaded files,
+and local attachment storage are ignored and must never be committed.
 
-The Playwright configuration also creates the isolated `toktickit_e2e` schema and
-temporary attachment directory automatically when no separate test database URL
-is supplied. It always starts the API with that isolated environment instead of
-reusing an existing developer server.
+Server Vitest and Playwright refuse to run when `server/.env.test` is missing,
+never fall back to `server/.env`, and require the database name to end with
+`_test`. Playwright additionally accepts only the allowlisted E2E schemas
+`toktickit_e2e`, `toktickit_release_e2e`, and `toktickit_release_final`. It creates
+the selected schema and a temporary protected attachment directory automatically,
+and always starts the API with that isolated environment instead of reusing an
+existing developer server.
 
 ### Lab 2 test commands
 
@@ -83,8 +85,8 @@ reusing an existing developer server.
 cd server
 npm test
 npm run build
-npm run prisma:migrate
-npm run prisma:seed
+npm run prisma:test:migrate
+npm run prisma:test:seed
 
 cd ../client
 npm test

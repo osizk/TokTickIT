@@ -3,11 +3,15 @@ import { createRequire } from "node:module";
 import { mkdir, readdir, rm } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
+import {
+  assertAllowedE2ESchema,
+  assertSafeE2EEnvironment,
+} from "./e2e-environment.cjs";
 
 const repositoryDirectory = path.resolve(process.cwd(), "..");
 const serverDirectory = path.join(repositoryDirectory, "server");
 const requireFromServer = createRequire(path.join(serverDirectory, "package.json"));
-const { PrismaClient } = requireFromServer("@prisma/client") as {
+const { PrismaClient, Prisma } = requireFromServer("@prisma/client") as {
   PrismaClient: new () => {
     requester: {
       upsert: (args: unknown) => Promise<unknown>;
@@ -28,8 +32,11 @@ const { PrismaClient } = requireFromServer("@prisma/client") as {
       attachment: { deleteMany: (args: unknown) => Promise<{ count: number }> };
       ticket: { deleteMany: (args: unknown) => Promise<{ count: number }> };
     }) => Promise<T>) => Promise<T>;
-    $executeRawUnsafe: (query: string) => Promise<unknown>;
+    $executeRaw: (query: unknown) => Promise<unknown>;
     $disconnect: () => Promise<void>;
+  };
+  Prisma: {
+    sql: (strings: TemplateStringsArray, ...values: unknown[]) => unknown;
   };
 };
 
@@ -43,33 +50,63 @@ const npmArguments = (args: string[]) => process.platform === "win32"
 
 function isolatedDatabaseUrl(): string {
   const currentUrl = process.env.DATABASE_URL;
-  const schema = process.env.PLAYWRIGHT_SCHEMA;
-  if (!currentUrl || !schema) {
+  const schema = assertAllowedE2ESchema(process.env.PLAYWRIGHT_SCHEMA);
+  if (!currentUrl) {
     throw new Error("Playwright isolated database environment is incomplete.");
+  }
+  const currentEnvironment = assertSafeE2EEnvironment({ baseDatabaseUrl: currentUrl, schemaName: schema });
+  const configuredEnvironment = isolatedEnvironment();
+  if (currentEnvironment.databaseName !== configuredEnvironment.databaseName) {
+    throw new Error("Playwright base and isolated DATABASE_URL values must use the same disposable database.");
   }
   const url = new URL(currentUrl);
   url.searchParams.set("schema", schema);
   return url.toString();
 }
 
-async function createSchema(): Promise<void> {
+function isolatedEnvironment(): { baseUrl: string; databaseName: string; schema: string } {
   const baseUrl = process.env.PLAYWRIGHT_BASE_DATABASE_URL;
-  const schema = process.env.PLAYWRIGHT_SCHEMA;
-  if (!baseUrl || !schema) {
+  const schema = assertAllowedE2ESchema(process.env.PLAYWRIGHT_SCHEMA);
+  if (!baseUrl) {
     throw new Error("Playwright isolated database environment is incomplete.");
   }
+  const validated = assertSafeE2EEnvironment({ baseDatabaseUrl: baseUrl, schemaName: schema });
+  return {
+    baseUrl: validated.baseDatabaseUrl,
+    databaseName: validated.databaseName,
+    schema: validated.schemaName,
+  };
+}
+
+function schemaIdentifierSql(schema: string): unknown {
+  switch (assertAllowedE2ESchema(schema)) {
+    case "toktickit_e2e":
+      return Prisma.sql`"toktickit_e2e"`;
+    case "toktickit_release_e2e":
+      return Prisma.sql`"toktickit_release_e2e"`;
+    case "toktickit_release_final":
+      return Prisma.sql`"toktickit_release_final"`;
+    default:
+      throw new Error("Playwright schema is not mapped to a static SQL identifier.");
+  }
+}
+
+async function createSchema(): Promise<void> {
+  const { baseUrl, schema } = isolatedEnvironment();
   const previousUrl = process.env.DATABASE_URL;
   process.env.DATABASE_URL = baseUrl;
   const prisma = prismaClient();
   try {
-    await prisma.$executeRawUnsafe(`CREATE SCHEMA IF NOT EXISTS "${schema}"`);
+    await prisma.$executeRaw(
+      Prisma.sql`CREATE SCHEMA IF NOT EXISTS ${schemaIdentifierSql(schema)}`,
+    );
   } finally {
     await prisma.$disconnect();
     process.env.DATABASE_URL = previousUrl;
   }
 }
 
-async function runPrismaCommand(command: "prisma:migrate" | "prisma:seed"): Promise<void> {
+async function runPrismaCommand(command: "prisma:test:migrate" | "prisma:test:seed"): Promise<void> {
   const environment = {
     ...process.env,
     DATABASE_URL: isolatedDatabaseUrl(),
@@ -85,18 +122,29 @@ async function runPrismaCommand(command: "prisma:migrate" | "prisma:seed"): Prom
 
 export async function ensureIsolatedDatabase(): Promise<void> {
   await createSchema();
-  await runPrismaCommand("prisma:migrate");
-  await runPrismaCommand("prisma:seed");
+  await runPrismaCommand("prisma:test:migrate");
+  await runPrismaCommand("prisma:test:seed");
 }
 
 export function storageRoot(): string {
-  return path.resolve(
-    serverDirectory,
-    process.env.ATTACHMENT_STORAGE_DIR?.trim() || ".test-attachments",
-  );
+  const schema = assertAllowedE2ESchema(process.env.PLAYWRIGHT_SCHEMA);
+  return path.resolve(serverDirectory, ".test-attachments", schema);
 }
 
 function prismaClient() {
+  const currentUrl = process.env.DATABASE_URL;
+  const schema = assertAllowedE2ESchema(process.env.PLAYWRIGHT_SCHEMA);
+  if (!currentUrl) {
+    throw new Error("Playwright isolated database environment is incomplete.");
+  }
+  const currentEnvironment = assertSafeE2EEnvironment({ baseDatabaseUrl: currentUrl, schemaName: schema });
+  const configuredBaseUrl = process.env.PLAYWRIGHT_BASE_DATABASE_URL;
+  if (configuredBaseUrl) {
+    const configuredEnvironment = assertSafeE2EEnvironment({ baseDatabaseUrl: configuredBaseUrl, schemaName: schema });
+    if (currentEnvironment.databaseName !== configuredEnvironment.databaseName) {
+      throw new Error("Playwright base and current DATABASE_URL values must use the same disposable database.");
+    }
+  }
   return new PrismaClient();
 }
 
@@ -180,15 +228,19 @@ export async function cleanupE2eData(): Promise<void> {
 
 export async function dropIsolatedDatabase(): Promise<void> {
   const baseUrl = process.env.PLAYWRIGHT_BASE_DATABASE_URL;
-  const schema = process.env.PLAYWRIGHT_SCHEMA;
-  if (!baseUrl || !schema) {
+  const rawSchema = process.env.PLAYWRIGHT_SCHEMA;
+  if (!baseUrl && !rawSchema) {
     return;
   }
+  const schema = assertAllowedE2ESchema(rawSchema);
+  const validated = assertSafeE2EEnvironment({ baseDatabaseUrl: baseUrl, schemaName: schema });
   const previousUrl = process.env.DATABASE_URL;
-  process.env.DATABASE_URL = baseUrl;
+  process.env.DATABASE_URL = validated.baseDatabaseUrl;
   const prisma = prismaClient();
   try {
-    await prisma.$executeRawUnsafe(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
+    await prisma.$executeRaw(
+      Prisma.sql`DROP SCHEMA IF EXISTS ${schemaIdentifierSql(schema)} CASCADE`,
+    );
   } finally {
     await prisma.$disconnect();
     process.env.DATABASE_URL = previousUrl;

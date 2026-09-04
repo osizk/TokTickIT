@@ -178,14 +178,14 @@ Use `200` for retrieval/download/removal, `201` for creation, `400` for invalid 
 - **AC-21:** Given desktop, tablet, and mobile viewports, when the required screens render, then no clipping, overlap, unreadable control, or horizontal page scroll occurs.
 - **AC-22:** Given keyboard-only interaction, when the user navigates forms, lists, dialogs, and buttons, then labels, focus, messages, and actions are accessible.
 - **AC-23:** Given the seed runs repeatedly, when database contents are inspected, then required reference records have no duplicates.
-- **AC-24:** Given final `main`, when all documented commands run, then server/client tests/builds, Playwright, migrations, seed verification, traceability, and evidence audits pass.
+- **AC-24:** Given the exact release candidate that will be promoted into `main`, when all documented commands run before promotion, then server/client tests/builds, Playwright, migrations, seed verification, traceability, and evidence audits pass; the candidate SHA is recorded and must not change before merge.
 
 ## 10. Product Definition of Done
 
 - All approved FR, BR, and AC scope is implemented without excluded functionality.
 - Backend validation and ownership are authoritative; frontend validation is strict and accessible.
 - Migration and repeated seed are safe; test database/storage are isolated.
-- All planned tests pass from final `main`; none are skipped, disabled, or replaced by unrelated tests.
+- All planned tests pass against the exact pre-main release candidate; none are skipped, disabled, or replaced by unrelated tests, and the tested candidate SHA is recorded before promotion.
 - API, UI, data, responsive, accessibility, and attachment behavior match this contract.
 - `tests.md` maps every AC to an actual test path and final result.
 - `ai-use.md` contains real prompts, decisions, verification, and reflection.
@@ -199,5 +199,7 @@ Use `200` for retrieval/download/removal, `201` for creation, `400` for invalid 
 - Attachment bytes use a configurable local root and are never served as public static files.
 - Dates are persisted as UTC and localized only for display.
 - The real `.env.test` and credentials are never committed; only `.env.test.example` is committed.
+- Server Vitest and Playwright require the local ignored `server/.env.test` and reject database names that do not end with `_test`; neither falls back to `server/.env`, and Playwright additionally accepts only the documented E2E schema allowlist.
+- Migration and repeated-seed verification uses the guarded `npm run prisma:test:migrate` and `npm run prisma:test:seed` commands, which require `server/.env.test` and reject a database or attachment-storage path outside the disposable test environment.
 - Playwright is a client development dependency, configured under `client/` with `testDir: ../e2e` and run by `cd client && npx playwright test`.
 - Issue 1 used the numbered `feature/5-Lab2Contract` branch and was merged before the product increments. Issues 2 through 8 followed the approved numbered branches through `feature/12-Lab2ReleaseEvidence`, with each feature PR targeting `lab2-staging`; the final release PR targets `main` only after the release evidence is approved. The Lab 1-only `feature/Lab1Doc` exception and an unapproved Lab 2 documentation branch are not part of this workflow.

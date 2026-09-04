@@ -1,10 +1,11 @@
 import { execFile, spawn } from "node:child_process";
 import { createRequire } from "node:module";
 import { promisify } from "node:util";
+import { assertAllowedE2ESchema, assertSafeE2EEnvironment } from "./lab-02/e2e-environment.cjs";
 
 const serverDirectory = process.cwd();
 const requireFromServer = createRequire(`${serverDirectory}/package.json`);
-const { PrismaClient } = requireFromServer("@prisma/client");
+const { PrismaClient, Prisma } = requireFromServer("@prisma/client");
 const execFileAsync = promisify(execFile);
 const npmExecutable = process.platform === "win32" ? (process.env.ComSpec ?? "cmd.exe") : "npm";
 const npmArguments = (args) => process.platform === "win32"
@@ -17,27 +18,49 @@ const schema = process.env.PLAYWRIGHT_SCHEMA;
 if (!baseDatabaseUrl || !isolatedDatabaseUrl || !schema) {
   throw new Error("Playwright isolated database environment is incomplete.");
 }
+const validatedBaseEnvironment = assertSafeE2EEnvironment({ baseDatabaseUrl, schemaName: schema });
+const validatedIsolatedEnvironment = assertSafeE2EEnvironment({ baseDatabaseUrl: isolatedDatabaseUrl, schemaName: schema });
+if (validatedBaseEnvironment.databaseName !== validatedIsolatedEnvironment.databaseName) {
+  throw new Error("Playwright base and isolated DATABASE_URL values must use the same disposable database.");
+}
+const safeIsolatedDatabaseUrl = new URL(validatedIsolatedEnvironment.baseDatabaseUrl);
+safeIsolatedDatabaseUrl.searchParams.set("schema", validatedBaseEnvironment.schemaName);
 
-process.env.DATABASE_URL = baseDatabaseUrl;
+function schemaIdentifierSql(schemaValue) {
+  switch (assertAllowedE2ESchema(schemaValue)) {
+    case "toktickit_e2e":
+      return Prisma.sql`"toktickit_e2e"`;
+    case "toktickit_release_e2e":
+      return Prisma.sql`"toktickit_release_e2e"`;
+    case "toktickit_release_final":
+      return Prisma.sql`"toktickit_release_final"`;
+    default:
+      throw new Error("Playwright schema is not mapped to a static SQL identifier.");
+  }
+}
+
+process.env.DATABASE_URL = validatedBaseEnvironment.baseDatabaseUrl;
 const basePrisma = new PrismaClient();
 try {
-  await basePrisma.$executeRawUnsafe(`CREATE SCHEMA IF NOT EXISTS "${schema}"`);
+  await basePrisma.$executeRaw(
+    Prisma.sql`CREATE SCHEMA IF NOT EXISTS ${schemaIdentifierSql(validatedBaseEnvironment.schemaName)}`,
+  );
 } finally {
   await basePrisma.$disconnect();
-  process.env.DATABASE_URL = isolatedDatabaseUrl;
+  process.env.DATABASE_URL = safeIsolatedDatabaseUrl.toString();
 }
 
 const childEnvironment = {
   ...process.env,
-  DATABASE_URL: isolatedDatabaseUrl,
+  DATABASE_URL: safeIsolatedDatabaseUrl.toString(),
 };
-await execFileAsync(npmExecutable, npmArguments(["run", "prisma:migrate"]), {
+await execFileAsync(npmExecutable, npmArguments(["run", "prisma:test:migrate"]), {
   cwd: serverDirectory,
   env: childEnvironment,
   windowsHide: true,
   maxBuffer: 4 * 1024 * 1024,
 });
-await execFileAsync(npmExecutable, npmArguments(["run", "prisma:seed"]), {
+await execFileAsync(npmExecutable, npmArguments(["run", "prisma:test:seed"]), {
   cwd: serverDirectory,
   env: childEnvironment,
   windowsHide: true,

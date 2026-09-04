@@ -1,20 +1,26 @@
 # Lab 2 - Test Plan and Evidence
 
-All Lab 2 feature tests live under `server/tests/lab-02/`, `client/tests/lab-02/`, and `e2e/lab-02/`; feature scenarios were planned before product implementation and updated with their real result in the implementing branch. Issue #19 adds only release-state evidence coverage. This file records the release audit on `lab2-staging` at merge commit `9499959`; checks from final `main` remain a post-release gate.
+All Lab 2 feature tests live under `server/tests/lab-02/`, `client/tests/lab-02/`, and `e2e/lab-02/`; feature scenarios were planned before product implementation and updated with their real result in the implementing branch. Issue #19 adds only release-state evidence coverage. This file records the release audit on `lab2-staging` at merge commit `9499959`; the final pre-main release gate must be completed against the exact candidate commit before promotion to `main`.
+
+The safe implementation/release-candidate checks below are complete on a
+disposable test database. Every checkbox in this file records evidence captured
+on this branch. The exact final-`main` commit SHA, GitHub Project board state,
+and submission-PDF attachment audit are post-merge handoff steps; they are
+written as explicit instructions below rather than being claimed prematurely.
 
 ## Summary Test Table
 
 | # | Tool | Test | Result |
 |---|------|------|--------|
 | 1 | Vitest | Ticket Number, field, query, and Attachment validation/unit boundaries | Passed locally: 5 validation/unit tests; Ticket Number formatting and concurrency are asserted by API-05 in `create-ticket.api.test.ts`. |
-| 2 | Supertest/Vitest | Reference APIs, requester context, Ticket creation, ownership, list, detail, and Attachment APIs | Passed locally: complete server regression, 11 files and 37 tests. |
+| 2 | Supertest/Vitest | Reference APIs, requester context, Ticket creation, ownership, list, detail, and Attachment APIs | Safe `.env.test` regression passed 12 files/40 tests; the exact pre-main candidate SHA gate remains. |
 | 3 | Vitest + Testing Library | Requester selection, Create Ticket, My Tickets, Detail, Attachment states, and duplicate-submit behavior | Passed locally: complete client regression, 7 files and 31 tests (including STYLE-01). |
 | 4 | Vitest/DOM + Playwright axe/DOM assertions | Zen Green classes, labels, errors, focus, badges, responsive classes, and non-color indicators | Passed by 3 stylesheet assertions, component DOM assertions, and Issue #18 axe, focus, viewport, no-scroll, and screenshot checks. |
-| 5 | Playwright | Complete requester Ticket/Attachment lifecycle and cross-requester isolation | Passed with explicit isolated schema on desktop, tablet, and mobile (3 tests). |
-| 6 | Playwright screenshots | Desktop, tablet, and mobile Create Ticket, My Tickets, and Ticket Detail evidence | 9 responsive lifecycle screenshots plus 27 submission-state screenshots were refreshed by the release run with captions in `artifacts/lab-02/screenshots/`. |
-| 7 | npm/Vitest/Prisma | Final server/client regressions, builds, migration, and repeated idempotent seed | Passed on the release branch: server/client tests and builds, isolated migration, and two consecutive seed runs. Final `main` rerun remains gated on the release merge. |
+| 5 | Playwright | Complete requester Ticket/Attachment lifecycle and cross-requester isolation | Safe-config run passed all 9 tests across desktop (1440px), tablet (900px), and mobile (390px) against the disposable `.env.test` database. |
+| 6 | Playwright screenshots | Desktop, tablet, and mobile Create Ticket, My Tickets, and Ticket Detail evidence | Safe-config run refreshed 9 responsive lifecycle screenshots plus 27 submission-state screenshots with captions. |
+| 7 | npm/Vitest/Prisma | Final server/client regressions, builds, migration, and repeated idempotent seed | Safe server/client tests and builds plus guarded migration and repeated seed passed on the disposable `_test` database; the final-`main` handoff is documented below. |
 
-The Issue #19 release audit is complete on `lab2-staging`; the final `main` and GitHub Project board checks are intentionally recorded as post-merge gates rather than claimed early.
+The historical Issue #19 release audit is recorded on `lab2-staging`; the final pre-main regression, complete terminal output, safe test-database checks, and GitHub Project board evidence must be recorded before any merge into `main`.
 
 ### Issue #13 evidence (2026-08-26)
 
@@ -81,22 +87,275 @@ The Issue #19 release audit is complete on `lab2-staging`; the final `main` and 
 - [x] Global and per-project E2E cleanup seeds idempotent reference data and removes only `E2E-18-` test Tickets, metadata, and protected files. Playwright uses the isolated `toktickit_e2e` PostgreSQL schema and `server/.test-attachments/toktickit_e2e/`; the development database and storage were verified empty after the run.
 - [x] Post-Issue #18 regressions pass: server Vitest 11 files/37 tests plus build, and client Vitest 6 files/28 tests plus production build.
 - [x] Issue #19 release-documentation and PR/review evidence audit completed on `lab2-staging`.
-- [ ] Final `main` regression and final Project-board screenshot/status audit remain after the separately authorized release PR is merged.
+- [x] Release-candidate regression, complete terminal output, and safe test-database cleanup were captured on this branch; the exact final-`main` SHA and final Project-board screenshot/status audit are documented as post-merge handoff steps below.
 
 ### Issue #19 release audit (2026-08-30)
 
 - [x] Release branch `feature/12-Lab2ReleaseEvidence` was created from the latest `lab2-staging` merge `9499959` (Issue #18 PR #27). No GitHub Issue, Project, PR, push, merge, or status mutation was performed by this audit.
-- [x] Server regression: `npm.cmd test -- --run` passed 11 files and 37 tests; `npm.cmd run build` passed.
+- [x] Historical server regression: `npm.cmd test -- --run` passed 11 files and 37 tests; `npm.cmd run build` passed.
 - [x] Client regression: `npm.cmd test -- --run` passed 7 files and 31 tests (including `ZenGreen.styles.test.tsx`); `npm.cmd run build` passed.
-- [x] Playwright lifecycle: `PLAYWRIGHT_API_PORT=3019 PLAYWRIGHT_SCHEMA=toktickit_release_e2e npx.cmd playwright test` passed desktop (1440px), tablet (900px), and mobile (390px), 3 tests total. The config now always refuses reuse of an existing server process.
-- [x] Playwright submission states: `lab-02/release-evidence-states.spec.ts` passed 2 evidence tests in each desktop, tablet, and mobile project (6 tests total); it produced 27 screenshots (the 9 required requester/Create Ticket states in each viewport) for the labsheet-required loading, empty, failure, validation, invalid-file, API-failure, submitting, and success states.
-- [x] Full final Playwright command with both specs passed all 9 tests across desktop, tablet, and mobile with no skips; teardown left the isolated schema/storage clean.
-- [x] The release audit used explicit isolated schemas (`toktickit_release_e2e` for the lifecycle run and `toktickit_release_final` for the full run) plus temporary protected storage; global teardown removed both. The post-run development check found 0 Tickets, 0 Attachments, 0 release schemas, and 0 files in `server/attachments`.
-- [x] Isolated migration/repeated-seed audit created a disposable schema, ran `npm.cmd run prisma:migrate`, ran `npm.cmd run prisma:seed` twice, and verified 4 categories, 7 related systems, 5 requesters (4 active and 1 inactive). The schema and temporary directory were removed afterward.
+- [x] Historical Playwright lifecycle: `PLAYWRIGHT_API_PORT=3019 PLAYWRIGHT_SCHEMA=toktickit_release_e2e npx.cmd playwright test` passed desktop (1440px), tablet (900px), and mobile (390px), 3 tests total. The config refused reuse of an existing server process.
+- [x] Historical Playwright submission states: `lab-02/release-evidence-states.spec.ts` passed 2 evidence tests in each desktop, tablet, and mobile project (6 tests total); it produced 27 screenshots (the 9 required requester/Create Ticket states in each viewport) for the labsheet-required loading, empty, failure, validation, invalid-file, API-failure, submitting, and success states.
+- [x] Historical full Playwright command with both specs passed all 9 tests across desktop, tablet, and mobile with no skips; teardown left the historical isolated schema/storage clean.
+- [x] Historical release audit used explicit schemas (`toktickit_release_e2e` and `toktickit_release_final`) plus temporary protected storage; global teardown removed both. The post-run development check found 0 Tickets, 0 Attachments, 0 release schemas, and 0 files in `server/attachments`.
+- [x] Historical isolated migration/repeated-seed audit created a disposable schema, ran `npm.cmd run prisma:migrate`, ran `npm.cmd run prisma:seed` twice, and verified 4 categories, 7 related systems, 5 requesters (4 active and 1 inactive).
+- [x] E2E environment guard regression: the server suite passes 3 tests for the `_test` database-name requirement, schema allowlist, and rejection of unsafe values; `npx.cmd playwright test --list` fails closed when `server/.env.test` is missing.
+- [x] Safe-config Playwright lifecycle/submission-state run and guarded migration/repeated-seed audit passed on disposable PostgreSQL database `toktickit_lab2_test` configured in local ignored `server/.env.test`; reference counts remained 4 categories, 7 related systems, and 5 requesters (4 active, 1 inactive).
 - [x] `reviewer.md` now records my authored PRs #20 and #22-#27 plus my reviews of the partner's Lab 2 PRs #19-#25, with actual teammate Approve links where available, reviewer comments, and author/friend responses. My authored PR #20 remains explicitly recorded as the accepted Lab 2 legacy comment-only evidence.
 - [x] `README.md` now documents Lab 2 setup, isolated test configuration, Playwright command, protected-storage rules, and contract/evidence links. `specification.md` now records the numbered branch workflow and final release gate.
 - [x] The labsheet was checked with the PDF extraction workflow, including the exact `Answer Part 1` through `Answer Part 9` heading order and the required captions and repository/Issue/PR/Project/document links for the one-PDF submission.
-- [ ] Before submission, rerun the full commands from final `main` after the release PR is merged, capture the final GitHub Project board with every Lab 2 Issue in Done, and attach the final readable screenshots/links to the PDF.
+- [x] The release-candidate command set and complete terminal output were captured on this branch. After the approved release PR is merged, repeat the same command set from the exact `main` SHA, capture the final Project board with every Lab 2 Issue in Done, and attach the final readable screenshots/links to the PDF before submission.
+
+### Release hardening verification (2026-09-04)
+
+- [x] Historical pre-config-enforcement server regression: `npm.cmd test -- --run` passed 12 files and 40 tests; `npm.cmd run build` passed.
+- [x] Client regression after the documentation/configuration changes: `npm.cmd test -- --run` passed 7 files and 31 tests; `npm.cmd run build` passed.
+- [x] Playwright fails closed when `server/.env.test` is absent; it no longer falls back to `server/.env`.
+- [x] Server Vitest fails closed when `server/.env.test` is absent; it no longer loads the development `server/.env` database for integration tests.
+- [x] The environment guard unit suite passes 3 tests for non-`*_test` database names, non-allowlisted schemas, and safe static schema identifiers.
+- [x] Safe `.env.test` server regression (12 files/40 tests), Playwright lifecycle/submission-state tests (9 tests across three viewports), and guarded migration/repeated-seed checks passed on the disposable local `toktickit_lab2_test` database; the development database and protected storage remained clean afterward.
+
+#### Captured terminal output
+
+Safe `.env.test` migration and repeated-seed verification on the disposable
+database (`toktickit_lab2_test`, PostgreSQL port `55432`):
+
+```text
+> toktickit-server@1.0.0 prisma:test:migrate
+> node scripts/run-test-prisma.mjs migrate
+
+Using server/.env.test for Prisma migrate against database toktickit_lab2_test.
+Environment variables loaded from .env
+Prisma schema loaded from prisma\schema.prisma
+Datasource "db": PostgreSQL database "toktickit_lab2_test", schema "public" at "127.0.0.1:55432"
+
+2 migrations found in prisma/migrations
+
+
+No pending migrations to apply.
+
+> toktickit-server@1.0.0 prisma:test:seed
+> node scripts/run-test-prisma.mjs seed
+
+Using server/.env.test for Prisma seed against database toktickit_lab2_test.
+Environment variables loaded from .env
+Running seed command `tsx prisma/seed.ts` ...
+Seeded 4 categories, 7 related systems, and 5 requesters.
+
+The seed command has been executed.
+
+> toktickit-server@1.0.0 prisma:test:seed
+> node scripts/run-test-prisma.mjs seed
+
+Using server/.env.test for Prisma seed against database toktickit_lab2_test.
+Environment variables loaded from .env
+Running seed command `tsx prisma/seed.ts` ...
+Seeded 4 categories, 7 related systems, and 5 requesters.
+
+The seed command has been executed.
+```
+
+Safe server regression against that same database:
+
+```text
+> toktickit-server@1.0.0 test
+> vitest run --run
+
+RUN  v2.1.9 C:/Users/Ashira Sansoda/Desktop/TokTickIT/server
+
+ ✓ tests/lab-02/attachments.api.test.ts (8 tests) 304ms
+ ✓ tests/lab-02/create-ticket.api.test.ts (7 tests) 230ms
+ ✓ tests/lab-02/my-tickets.api.test.ts (4 tests) 209ms
+ ✓ tests/lab-02/ticket-detail.api.test.ts (3 tests) 140ms
+ ✓ tests/lab-02/attachment-rollback.api.test.ts (1 test) 123ms
+ ✓ tests/lab-02/reference-data.test.ts (5 tests) 99ms
+ ✓ tests/lab-02/create-ticket-rollback.api.test.ts (1 test) 103ms
+ ✓ tests/lab-02/ticket-validation.unit.test.ts (3 tests) 3ms
+ ✓ tests/lab-02/attachment-validation.unit.test.ts (2 tests) 4ms
+ ✓ tests/lab-02/e2e-environment.unit.test.ts (3 tests) 3ms
+ ✓ tests/lab-01/health.test.ts (2 tests) 18ms
+ ✓ tests/lab-01/categories.test.ts (1 test) 71ms
+
+ Test Files  12 passed (12)
+      Tests  40 passed (40)
+   Start at 21:12:48
+   Duration 5.96s (transform 161ms, setup 0ms, collect 2.01s, tests 1.31s, environment 2ms, prepare 849ms)
+```
+
+Safe server build:
+
+```text
+> toktickit-server@1.0.0 build
+> tsc
+```
+
+Safe client regression and production build:
+
+```text
+> toktickit-client@1.0.0 test
+> vitest run --run
+
+RUN v2.1.9 C:/Users/Ashira Sansoda/Desktop/TokTickIT/client
+
+ ✓ tests/lab-02/ZenGreen.styles.test.tsx (3 tests) 3ms
+ ✓ tests/lab-02/RequesterTicketDetail.test.tsx (2 tests) 310ms
+ ✓ tests/lab-01/App.test.tsx (4 tests) 277ms
+ ✓ tests/lab-02/RequesterSelection.test.tsx (7 tests) 524ms
+ ✓ tests/lab-02/AttachmentSection.test.tsx (3 tests) 777ms
+ ✓ tests/lab-02/MyTickets.test.tsx (4 tests) 1523ms
+ ✓ tests/lab-02/CreateTicket.test.tsx (8 tests) 6960ms
+
+Test Files 7 passed (7)
+     Tests 31 passed (31)
+  Start at 21:09:14
+  Duration 8.89s (transform 366ms, setup 1.33s, collect 2.40s, tests 10.38s, environment 6.25s, prepare 1.06s)
+
+> toktickit-client@1.0.0 build
+> tsc && vite build
+
+vite v6.4.3 building for production...
+transforming...
+✓ 32 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.39 kB │ gzip: 0.26 kB
+dist/assets/index-DC8-qoq6.css  244.89 kB │ gzip: 33.98 kB
+dist/assets/index-CpimXror.js   192.98 kB │ gzip: 57.41 kB
+✓ built in 629ms
+```
+
+Safe Playwright lifecycle and submission-state run (`cd client && npx playwright test`):
+
+```text
+Running 9 tests using 1 worker
+
+ok 1 [desktop] release-evidence-states.spec.ts - captures requester selection states (2.0s)
+ok 2 [desktop] release-evidence-states.spec.ts - captures Create Ticket validation, failure, submitting, and success states (3.0s)
+ok 3 [desktop] requester-ticket-flow.spec.ts - completes the owned lifecycle and remains accessible at every responsive viewport (5.2s)
+ok 4 [tablet] release-evidence-states.spec.ts - captures requester selection states (1.8s)
+ok 5 [tablet] release-evidence-states.spec.ts - captures Create Ticket validation, failure, submitting, and success states (2.9s)
+ok 6 [tablet] requester-ticket-flow.spec.ts - completes the owned lifecycle and remains accessible at every responsive viewport (5.3s)
+ok 7 [mobile] release-evidence-states.spec.ts - captures requester selection states (1.7s)
+ok 8 [mobile] release-evidence-states.spec.ts - captures Create Ticket validation, failure, submitting, and success states (2.8s)
+ok 9 [mobile] requester-ticket-flow.spec.ts - completes the owned lifecycle and remains accessible at every responsive viewport (5.0s)
+
+9 passed (47.2s)
+```
+
+Final read-only cleanup checks:
+
+```text
+dev_e2e_tickets=0
+dev_e2e_attachments=0
+dev_release_schemas=0
+test_categories=4
+test_systems=7
+test_requesters=5
+test_tickets=0
+test_attachments=0
+test_e2e_schemas=0
+server/.test-attachments is empty
+server/attachments is empty
+```
+
+Historical server tests before the `.env.test` config guard:
+
+```text
+> toktickit-server@1.0.0 test
+> vitest run --run
+
+RUN  v2.1.9 C:/Users/Ashira Sansoda/Desktop/TokTickIT/server
+
+ ✓ tests/lab-02/attachments.api.test.ts (8 tests) 409ms
+ ✓ tests/lab-02/create-ticket.api.test.ts (7 tests) 274ms
+ ✓ tests/lab-02/my-tickets.api.test.ts (4 tests) 201ms
+ ✓ tests/lab-02/ticket-detail.api.test.ts (3 tests) 162ms
+ ✓ tests/lab-02/attachment-rollback.api.test.ts (1 test) 266ms
+ ✓ tests/lab-02/reference-data.test.ts (5 tests) 231ms
+ ✓ tests/lab-02/create-ticket-rollback.api.test.ts (1 test) 130ms
+ ✓ tests/lab-02/ticket-validation.unit.test.ts (3 tests) 3ms
+ ✓ tests/lab-02/attachment-validation.unit.test.ts (2 tests) 4ms
+ ✓ tests/lab-02/e2e-environment.unit.test.ts (3 tests) 3ms
+ ✓ tests/lab-01/health.test.ts (2 tests) 18ms
+ ✓ tests/lab-01/categories.test.ts (1 test) 194ms
+
+Test Files  12 passed (12)
+     Tests  40 passed (40)
+  Start at  20:28:40
+  Duration  6.50s (transform 188ms, setup 0ms, collect 1.99s, tests 1.89s, environment 2ms, prepare 782ms)
+```
+
+Server build:
+
+```text
+> toktickit-server@1.0.0 build
+> tsc
+```
+
+Client tests:
+
+```text
+> toktickit-client@1.0.0 test
+> vitest run --run
+
+RUN  v2.1.9 C:/Users/Ashira Sansoda/Desktop/TokTickIT/client
+
+ ✓ tests/lab-02/ZenGreen.styles.test.tsx (3 tests) 2ms
+ ✓ tests/lab-02/RequesterTicketDetail.test.tsx (2 tests) 262ms
+ ✓ tests/lab-01/App.test.tsx (4 tests) 279ms
+ ✓ tests/lab-02/RequesterSelection.test.tsx (7 tests) 514ms
+ ✓ tests/lab-02/AttachmentSection.test.tsx (3 tests) 768ms
+   ✓ Ticket Detail Attachments > requires a removal reason and renders a removed attachment without Download or Preview 456ms
+ ✓ tests/lab-02/MyTickets.test.tsx (4 tests) 1527ms
+   ✓ My Tickets > loads owned Tickets with controls and a desktop table plus mobile cards 302ms
+   ✓ My Tickets > writes search/filter controls to the URL and requests the selected page 478ms
+   ✓ My Tickets > distinguishes no owned Tickets from filtered no-results and can clear filters 464ms
+   ✓ My Tickets > shows loading and safe retry states 373ms
+ ✓ tests/lab-02/CreateTicket.test.tsx (8 tests) 7196ms
+   ✓ Create Ticket > renders the approved Create Ticket form inside the selected requester shell 313ms
+   ✓ Create Ticket > shows strict validation errors and focuses the first invalid field before submission 302ms
+   ✓ Create Ticket > trims fields and shows the backend-created Ticket result after a successful submit 1935ms
+   ✓ Create Ticket > preserves entered values and shows a safe message when creation fails 1961ms
+   ✓ Create Ticket > guards against duplicate submissions while the create request is pending 1977ms
+
+Test Files  7 passed (7)
+     Tests  31 passed (31)
+  Start at  20:24:30
+  Duration  8.63s (transform 316ms, setup 790ms, collect 1.90s, tests 10.55s, environment 4.13s, prepare 961ms)
+```
+
+Client build:
+
+```text
+> toktickit-client@1.0.0 build
+> tsc && vite build
+
+vite v6.4.3 building for production...
+transforming...
+✓ 32 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.39 kB │ gzip:  0.26 kB
+dist/assets/index-DC8-qoq6.css  244.89 kB │ gzip: 33.98 kB
+dist/assets/index-CpimXror.js   192.98 kB │ gzip: 57.41 kB
+✓ built in 574ms
+```
+
+Playwright safety check:
+
+```text
+Error: Playwright requires C:\Users\Ashira Sansoda\Desktop\TokTickIT\server\.env.test. Copy server/.env.test.example and use a disposable *_test database.
+```
+
+Server Vitest safety check:
+
+```text
+> toktickit-server@1.0.0 test
+> vitest run --run
+
+failed to load config from C:\Users\Ashira Sansoda\Desktop\TokTickIT\server\vitest.config.ts
+Error: Vitest requires C:\Users\Ashira Sansoda\Desktop\TokTickIT\server\.env.test. Copy server/.env.test.example and use a disposable *_test database.
+```
 
 ### Test screenshots
 
@@ -138,7 +397,7 @@ Each final screenshot must include a short caption stating what it shows and whi
 | E2E-03 | Playwright | AC-21/22 | Required screens remain usable at desktop/tablet/mobile sizes. | `e2e/lab-02/requester-ticket-flow.spec.ts` | Passed locally with viewport assertions and screenshots |
 | EVID-01 | Playwright/screenshots | AC-01/02/05/06/07/08/09/20 | Capture the labsheet-required requester loading/empty/failure and Create Ticket initial/validation/invalid-file/API-failure/submitting/success states. | `e2e/lab-02/release-evidence-states.spec.ts`; `artifacts/lab-02/screenshots/release-states/{desktop,tablet,mobile}/` | Passed locally: 6 evidence tests across 3 viewports; 27 captioned screenshots |
 | VIS-01 | Playwright/screenshots | FR-16, AC-21 | Screenshots show Zen Green tokens, field states, table/cards, and no clipping/overlap/scroll. | `artifacts/lab-02/screenshots/{create-ticket,my-tickets,ticket-detail}/` | Passed locally; 9 screenshots and caption README captured |
-| REG-01 | npm/Vitest/Prisma | AC-24 | Lab 1 tests/builds, Lab 2 tests/builds, migrations, and repeated seed pass from the release candidate; final `main` rerun is a release gate. | `server/tests/lab-01/*`, `client/tests/lab-01/*`, documented commands, Issue #19 audit | Release candidate passed; final `main` rerun pending release merge |
+| REG-01 | npm/Vitest/Prisma | AC-24 | Lab 1 tests/builds, Lab 2 tests/builds, migrations, and repeated seed pass from the exact release candidate before promotion into `main`. | `server/tests/lab-01/*`, `client/tests/lab-01/*`, documented commands, Issue #19 audit | Release-candidate evidence passed on this branch; repeat from exact final `main` after the approved merge |
 
 ## Acceptance-Criterion Traceability
 
@@ -200,17 +459,17 @@ Record passing terminal output and screenshots as each Issue is completed. Every
 | Area | Result | Evidence |
 |---|---|---|
 | Unit | Passed locally | 5 validation/unit tests; Ticket Number format/concurrency is covered by API-05. |
-| API/integration | Passed locally | Complete server regression: 11 files, 37 tests; focused API evidence in Issues #13, #15, #16, and #17. |
+| API/integration | Passed on disposable `.env.test` database | Server regression passed 12 files/40 tests; the exact candidate SHA gate remains before promotion. |
 | UI/style/accessibility | Passed locally | Complete client regression: 7 files, 31 tests; stylesheet/component assertions, axe, focus, viewport, and screenshot evidence. |
 | Responsive/visual | Passed locally | 9 refreshed desktop/tablet/mobile screenshots plus caption README under `artifacts/lab-02/screenshots/`. |
-| E2E | Passed locally (9 passed, no skips) | `PLAYWRIGHT_API_PORT=3019 PLAYWRIGHT_SCHEMA=toktickit_release_final npx.cmd playwright test` - lifecycle and submission-state evidence passed on desktop, tablet, and mobile. |
+| E2E | Passed on disposable `.env.test` database | `cd client && npx playwright test` passed all 9 lifecycle/submission-state tests across desktop, tablet, and mobile with allowlisted schemas. |
 | Submission-state screenshots | Passed locally | `lab-02/release-evidence-states.spec.ts` - 6 evidence tests passed across 3 viewports; 27 readable, captioned images under `artifacts/lab-02/screenshots/release-states/{desktop,tablet,mobile}/`. |
-| Migration/repeated seed | Passed in isolated schema | Release audit applied migration and ran seed twice; exact reference counts verified and schema removed. |
+| Migration/repeated seed | Passed through guarded test commands | `npm run prisma:test:migrate` and two `npm run prisma:test:seed` runs completed against `toktickit_lab2_test`; counts remained 4/7/5. |
 | Development DB/storage hygiene | Passed after cleanup | 0 Tickets, 0 Attachments, 0 release schemas, and 0 files in protected development storage after E2E teardown. |
-| Final `main` regression | Pending by design | Run after the release PR is approved and merged into `main`. |
+| Final `main` release gate | Post-merge handoff | After the approved release PR is merged, rerun from the exact `main` commit, record its SHA and complete terminal output, capture the Project board with every Lab 2 Issue in Done, and verify the final PDF evidence before submission; no code changes may occur between those checks and submission. |
 
 ## Known Limitations or Deferred Tests
 
 - Real authentication and shared/object storage are deferred to later labs.
 - In-app Attachment preview is not required; active download and removed-download blocking are required.
-- Final `main` and GitHub Project board evidence are intentionally pending until the separately authorized release PR is approved and merged; `lab2-staging` is the current release candidate and source for this audit.
+- The release-candidate regression and complete terminal output are captured on this branch. The final-`main` regression, exact SHA, GitHub Project board evidence, and PDF attachment audit remain a post-merge handoff; `lab2-staging` is the current release candidate and source for this audit.
