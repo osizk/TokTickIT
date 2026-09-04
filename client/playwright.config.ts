@@ -3,6 +3,10 @@ import fs from "node:fs";
 import Module from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  assertSafeE2EEnvironment,
+  readEnvFile,
+} from "../e2e/lab-02/e2e-environment.cjs";
 
 const clientDir = path.dirname(fileURLToPath(import.meta.url));
 const repositoryDir = path.resolve(clientDir, "..");
@@ -14,43 +18,19 @@ const serverDir = path.join(repositoryDir, "server");
 process.env.NODE_PATH = path.join(clientDir, "node_modules");
 (Module as typeof Module & { _initPaths?: () => void })._initPaths?.();
 
-function readEnvFile(filePath: string): Record<string, string> {
-  if (!fs.existsSync(filePath)) {
-    return {};
-  }
-
-  const values: Record<string, string> = {};
-  for (const line of fs.readFileSync(filePath, "utf8").split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) {
-      continue;
-    }
-    const separator = trimmed.indexOf("=");
-    if (separator < 1) {
-      continue;
-    }
-    const key = trimmed.slice(0, separator).trim();
-    let value = trimmed.slice(separator + 1).trim();
-    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
-      value = value.slice(1, -1);
-    }
-    values[key] = value;
-  }
-  return values;
+const testEnvPath = path.join(serverDir, ".env.test");
+if (!fs.existsSync(testEnvPath)) {
+  throw new Error(`Playwright requires ${testEnvPath}. Copy server/.env.test.example and use a disposable *_test database.`);
 }
-
-const fileEnv = {
-  ...readEnvFile(path.join(serverDir, ".env")),
-  ...readEnvFile(path.join(serverDir, ".env.test")),
-};
-const baseDatabaseUrl = process.env.PLAYWRIGHT_DATABASE_URL ?? fileEnv.DATABASE_URL;
-if (!baseDatabaseUrl) {
-  throw new Error("Playwright requires DATABASE_URL in server/.env.test, server/.env, or PLAYWRIGHT_DATABASE_URL.");
-}
+const fileEnv = readEnvFile(testEnvPath);
+const configuredBaseDatabaseUrl = fileEnv.DATABASE_URL;
 // Playwright loads this config in the runner, global-setup, web-server, and
-// worker processes. Use one stable isolated schema unless the caller supplies
-// a schema explicitly, so every process points at the same migrated database.
-const schemaName = process.env.PLAYWRIGHT_SCHEMA ?? "toktickit_e2e";
+// worker processes. Use only an allowlisted isolated schema, so every process
+// points at the same disposable test database.
+const { baseDatabaseUrl, schemaName } = assertSafeE2EEnvironment({
+  baseDatabaseUrl: configuredBaseDatabaseUrl,
+  schemaName: process.env.PLAYWRIGHT_SCHEMA ?? "toktickit_e2e",
+});
 const isolatedDatabaseUrl = new URL(baseDatabaseUrl);
 isolatedDatabaseUrl.searchParams.set("schema", schemaName);
 const e2eStorageDir = path.resolve(serverDir, ".test-attachments", schemaName);
@@ -128,7 +108,9 @@ export default defineConfig({
           command: "npm.cmd run dev -- --host 127.0.0.1",
           cwd: clientDir,
           url: "http://127.0.0.1:5173",
-          reuseExistingServer: !process.env.CI,
+          // Always start the server with the isolated E2E environment. Reusing
+          // a developer server can silently send test data to the real schema.
+          reuseExistingServer: false,
           env: {
             ...serverEnv,
             VITE_API_URL: process.env.PLAYWRIGHT_API_URL ?? `http://127.0.0.1:${serverEnv.PORT}`,
@@ -138,7 +120,7 @@ export default defineConfig({
           command: "node ../e2e/server-bootstrap.mjs",
           cwd: serverDir,
           url: `${process.env.PLAYWRIGHT_API_URL ?? `http://127.0.0.1:${serverEnv.PORT}`}/api/health`,
-          reuseExistingServer: !process.env.CI,
+          reuseExistingServer: false,
           env: serverEnv,
         },
       ],

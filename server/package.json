@@ -9,6 +9,8 @@
     "start": "node dist/index.js",
     "prisma:migrate": "prisma migrate deploy",
     "prisma:seed": "prisma db seed",
+    "prisma:test:migrate": "node scripts/run-test-prisma.mjs migrate",
+    "prisma:test:seed": "node scripts/run-test-prisma.mjs seed",
     "test": "vitest run"
   },
   "prisma": {

@@ -56,3 +56,54 @@ npm run dev
 ### 5. Running Tests
 - **Frontend**: `cd client && npm test`
 - **Backend**: `cd server && npm test`
+
+## Lab 2 Verification and Evidence
+
+Lab 2 uses the temporary Development Requester selector as a testing context. The
+`X-Requester-Id` header is intentionally spoofable for this lab and is not
+authentication. Requester-owned APIs must always be exercised with the selected
+context; a Ticket request body must never contain `requesterId`.
+
+### Isolated test configuration
+
+For database-backed checks, copy [`server/.env.test.example`](server/.env.test.example)
+to `server/.env.test` and point it at a disposable PostgreSQL database whose name
+ends with `_test`. Real `.env.test` files, credentials, secrets, uploaded files,
+and local attachment storage are ignored and must never be committed.
+
+Server Vitest and Playwright refuse to run when `server/.env.test` is missing,
+never fall back to `server/.env`, and require the database name to end with
+`_test`. Playwright additionally accepts only the allowlisted E2E schemas
+`toktickit_e2e`, `toktickit_release_e2e`, and `toktickit_release_final`. It creates
+the selected schema and a temporary protected attachment directory automatically,
+and always starts the API with that isolated environment instead of reusing an
+existing developer server.
+
+### Lab 2 test commands
+
+```bash
+cd server
+npm test
+npm run build
+npm run prisma:test:migrate
+npm run prisma:test:seed
+
+cd ../client
+npm test
+npm run build
+npx playwright test
+```
+
+Playwright is configured in `client/playwright.config.ts`, loads tests from
+`../e2e`, and runs desktop, tablet, and mobile projects. Responsive screenshot
+evidence and captions are stored under
+[`artifacts/lab-02/screenshots`](artifacts/lab-02/screenshots).
+
+### Lab 2 contract and evidence documents
+
+- [Engineering specification](docs/lab-02/specification.md)
+- [API specification](docs/lab-02/api-spec.md)
+- [UI specification](docs/lab-02/ui-spec.md)
+- [Test plan and evidence](docs/lab-02/tests.md)
+- [AI-use record](docs/lab-02/ai-use.md)
+- [Peer-review record](docs/lab-02/reviewer.md)
