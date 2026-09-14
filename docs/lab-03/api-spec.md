@@ -11,7 +11,7 @@ This contract extends the Lab 2 API without trusting a client-supplied Requester
 - Successful login and `GET /api/auth/me` return a session-bound CSRF token. Authenticated unsafe requests send it in `X-CSRF-Token`.
 - Credentialed CORS allows only the configured client origin. Login and unsafe requests validate Origin where present.
 - `X-Requester-Id` is not used in Lab 3 and `requesterId` is never accepted in a Ticket body or multipart field.
-- All protected endpoints check that the session is unexpired, not revoked, and associated with an active User. A User with `mustChangePassword=true` is limited to current-user, change-password, and logout behavior.
+- All protected endpoints check that the session is unexpired, not revoked, and associated with an active User. A session with `mustChangePassword=true` may call only `GET /api/auth/me`, `POST /api/auth/change-password`, and `POST /api/auth/logout`; Lab 3 does not expose a separate `/api/auth/csrf` endpoint because the CSRF token is returned by login, `me`, and password-change responses.
 - Responses use `Cache-Control: no-store` for authentication, user, Ticket, comment, note, and Attachment data.
 
 ### Common error shape
@@ -44,6 +44,8 @@ Never return password hashes, session/CSRF tokens except the intended client-mem
 | 415 | Unsupported media or extension/MIME/signature mismatch |
 | 429 | Login-attempt bucket is temporarily blocked |
 | 500 | Safe unexpected server failure; details are logged server-side only |
+
+For every protected endpoint, a missing, expired, revoked, or inactive session returns exactly `401` with `{ "error": { "code": "SESSION_REQUIRED", "message": "Authentication is required." } }`. A valid session with `mustChangePassword=true` receives exactly `403` with `{ "error": { "code": "PASSWORD_CHANGE_REQUIRED", "message": "Password change is required before using this resource." } }` on every other protected endpoint, including mixed-case path variants, before the endpoint handler runs. A wrong role receives exactly `403 FORBIDDEN` without protected-resource details. These responses never contain a session token, CSRF token, password hash, or stack trace.
 
 ## 2. Authentication Endpoints
 
@@ -99,21 +101,23 @@ Requires a valid session and CSRF token. Delete/revoke the session and expire th
 
 ### `GET /api/categories`
 
-Requires an authenticated User. Return active Categories in stable ID/name order:
+Requires an authenticated User. Return `200` with the existing Lab 2 array schema of active Categories in stable ID/name order:
 
 ```json
 [{ "id": 1, "name": "Hardware" }]
 ```
 
+`401 SESSION_REQUIRED` and `403 PASSWORD_CHANGE_REQUIRED` use the common contracts; an unexpected database/reference failure returns exactly `500 REFERENCE_DATA_UNAVAILABLE`.
+
 ### `GET /api/related-systems`
 
-Requires an authenticated User. Return active Related Systems in stable ID/name order:
+Requires an authenticated User. Return `200` with the existing Lab 2 array schema of active Related Systems in stable ID/name order:
 
 ```json
 [{ "id": 1, "name": "Campus Wi-Fi" }]
 ```
 
-Reference failure returns safe `500 REFERENCE_DATA_UNAVAILABLE`.
+`401 SESSION_REQUIRED` and `403 PASSWORD_CHANGE_REQUIRED` use the common contracts; an unexpected database/reference failure returns exactly `500 REFERENCE_DATA_UNAVAILABLE`.
 
 ## 4. Shared Ticket and Requester Endpoints
 
@@ -198,9 +202,43 @@ Invalid query values return `400`; a valid page beyond the end returns an empty 
 
 Requester receives only an owned Ticket. IT Staff/Administrators may use this endpoint for permitted Ticket Detail access. Return `200` with `{ "ticket": <detail> }` and never expose storage paths, stored filenames, password/session data, or Internal Notes to a Requester. Missing/cross-owner returns the same safe `404 TICKET_NOT_FOUND`.
 
-### Attachment endpoints
+### Attachment route compatibility
 
-`GET /api/tickets/:ticketNumber/attachments` returns active and removed metadata to an owner, IT Staff, or Administrator. `POST /api/tickets/:ticketNumber/attachments` uses one multipart field `file` and is Requester-owner only. `GET /api/tickets/:ticketNumber/attachments/:attachmentId/download` allows an owner, IT Staff, or Administrator to download only an active file. `DELETE /api/tickets/:ticketNumber/attachments/:attachmentId` is Requester-owner only and accepts `{ "removalReason": "No longer needed for troubleshooting." }`.
+Lab 3 preserves the exact Lab 2 Attachment routes below while replacing spoofable `X-Requester-Id` ownership with the authenticated session. The current Lab 2 contract and server use these nested routes; no `/api/attachments/:attachmentId/download` alias is required or introduced.
+
+### `GET /api/tickets/:ticketNumber/attachments`
+
+Requester owners, IT Staff, and Administrators may retrieve metadata. Return `200`:
+
+```json
+{ "attachments": [<attachment-metadata>] }
+```
+
+An inaccessible or missing Ticket returns `404 TICKET_NOT_FOUND`; a missing Attachment context never reveals another Requester's records. Other failures use the common `401`, `403`, and safe `500` contracts.
+
+### `POST /api/tickets/:ticketNumber/attachments`
+
+Requester owner only. Use `multipart/form-data` with exactly one file field named `file`. Return `201`:
+
+```json
+{ "attachment": <attachment-metadata> }
+```
+
+Use `400 VALIDATION_ERROR` for malformed fields, `404 TICKET_NOT_FOUND` for missing/cross-owner Tickets, `409 ATTACHMENT_LIMIT_REACHED` for five active files, `413 ATTACHMENT_TOO_LARGE` for a file over 5 MiB, `415 ATTACHMENT_TYPE_NOT_ALLOWED` for extension/MIME/signature disagreement, and `500 ATTACHMENT_UPLOAD_FAILED` for an unexpected compensated failure.
+
+### `GET /api/tickets/:ticketNumber/attachments/:attachmentId/download`
+
+Requester owners, IT Staff, and Administrators may download an active Attachment. Return `200` with the exact protected bytes and these headers: `Content-Type` from validated metadata, `Content-Length`, `Content-Disposition: attachment; filename="<safe original name>"`, and `X-Content-Type-Options: nosniff`. Never expose the stored UUID path or filename. Missing, cross-owner, removed, or inaccessible Attachments return the same `404 ATTACHMENT_NOT_FOUND` body.
+
+### `DELETE /api/tickets/:ticketNumber/attachments/:attachmentId`
+
+Requester owner only. Body:
+
+```json
+{ "removalReason": "No longer needed for troubleshooting." }
+```
+
+Return `200` with `{ "attachment": <attachment-metadata-with-removal-fields> }`. Use `400 VALIDATION_ERROR` for a trimmed reason outside 5–250 characters, `404 ATTACHMENT_NOT_FOUND` for missing/cross-owner resources, `409 ATTACHMENT_ALREADY_REMOVED` for a repeat removal, and safe `500 ATTACHMENT_REMOVE_FAILED` for an unexpected failure.
 
 Attachment metadata is:
 
@@ -217,7 +255,7 @@ Attachment metadata is:
 }
 ```
 
-Removed files retain metadata but download returns safe `404 ATTACHMENT_NOT_FOUND`. Enforce the existing JPEG/PNG/WEBP/PDF extension/MIME/signature and 5 MiB rules, five-active-file limit, staging/compensation, and `409 ATTACHMENT_ALREADY_REMOVED`/`ATTACHMENT_LIMIT_REACHED` behavior.
+Removed files retain metadata but download returns safe `404 ATTACHMENT_NOT_FOUND`. Enforce the existing JPEG/PNG/WEBP/PDF extension/MIME/signature and 5 MiB rules, five-active-file limit, staging/compensation, and the explicit conflict/error codes above. These routes are regression-tested by API-06/API-11 and REG-01 in `tests.md`.
 
 ## 5. Public Comments and Resolution Indication
 
@@ -259,15 +297,33 @@ IT Staff and Administrators only. Query support:
 - `page`: positive integer, default `1`; and
 - `pageSize`: `10|25|50`, default `10`.
 
-Return the same pagination shape as `GET /api/tickets`, with queue fields including requester display name, both priority badges, status, owner, created date, and updated date. Invalid parameters return `400`; inaccessible roles return `403`.
+Return exactly `200` with this envelope:
+
+```json
+{
+  "items": [<staff-ticket>],
+  "pagination": {
+    "page": 1,
+    "pageSize": 10,
+    "totalItems": 0,
+    "totalPages": 0,
+    "hasPreviousPage": false,
+    "hasNextPage": false
+  }
+}
+```
+
+Each `<staff-ticket>` contains `id`, `ticketNumber`, `requester`, `category`, `relatedSystem`, `requestedPriority`, `itPriority`, `status`, `ticketOwner`, `createdAt`, and `updatedAt`. Invalid parameters return exactly `400` with `{ "error": { "code": "VALIDATION_ERROR", "message": "Please correct the query parameters.", "fieldErrors": { ... } } }`; inaccessible roles return exactly `403 FORBIDDEN`; unexpected failures return safe `500 STAFF_QUEUE_FAILED`.
 
 ### `GET /api/staff/assignees`
 
-IT Staff and Administrators only. Return active eligible assignment Users only:
+IT Staff and Administrators only. Return `200` with active eligible assignment Users only:
 
 ```json
 [{ "id": 8, "name": "Michael Brown", "email": "michael@example.test", "role": "IT_STAFF" }]
 ```
+
+Missing/expired sessions and password-change-required sessions use the common `401`/`403` contracts; a Requester receives `403 FORBIDDEN`; unexpected failures return exactly `500 ASSIGNEE_LIST_FAILED`.
 
 ### `PATCH /api/staff/tickets/:ticketNumber/assignment`
 
@@ -277,31 +333,31 @@ IT Staff/Administrator. Body:
 { "ownerUserId": 8, "confirm": true }
 ```
 
-`ownerUserId: null` unassigns. Validate active staff/admin target and confirmation for reassign/unassign. Return `200` with updated owner or `404/409` as documented.
+`ownerUserId: null` unassigns. Validate the target as an active IT Staff or Administrator and require `confirm: true` when reassigning away from an owner or unassigning. Return `200` with `{ "ticket": <staff-ticket> }`. Return `400 VALIDATION_ERROR` for malformed input, `404 TICKET_NOT_FOUND` for a missing/inaccessible Ticket, `409 ASSIGNMENT_CONFLICT` for an inactive/ineligible target or stale mutation, and safe `500 ASSIGNMENT_UPDATE_FAILED` for unexpected failures.
 
 ### `PATCH /api/staff/tickets/:ticketNumber/priority`
 
-IT Staff/Administrator. Body `{ "itPriority": "URGENT" }`. Requested Priority remains unchanged. Return `200` with the updated Ticket or `400/404/409`.
+IT Staff/Administrator. Body `{ "itPriority": "URGENT" }`. Requested Priority remains unchanged. Return `200` with `{ "ticket": <staff-ticket> }`. Return `400 VALIDATION_ERROR` for an unsupported priority, `404 TICKET_NOT_FOUND` for a missing/inaccessible Ticket, `409 PRIORITY_UPDATE_CONFLICT` for a stale mutation, and safe `500 PRIORITY_UPDATE_FAILED` for unexpected failures.
 
 ### `PATCH /api/staff/tickets/:ticketNumber/status`
 
-IT Staff/Administrator. Body `{ "status": "RESOLVED", "confirm": true }`. Enforce the transition matrix and confirmation rules transactionally; return `409 INVALID_STATUS_TRANSITION` for disallowed/stale changes.
+IT Staff/Administrator. Body `{ "status": "RESOLVED", "confirm": true }`. Enforce the transition matrix and confirmation rules transactionally. Return `200` with `{ "ticket": <staff-ticket> }`. Return `400 VALIDATION_ERROR` for an unsupported status or missing confirmation, `404 TICKET_NOT_FOUND` for a missing/inaccessible Ticket, `409 INVALID_STATUS_TRANSITION` for a disallowed or stale transition, and safe `500 STATUS_UPDATE_FAILED` for unexpected failures.
 
 ## 7. Internal Notes
 
 ### `GET /api/tickets/:ticketNumber/internal-notes`
 
-IT Staff/Administrator only. Return `{ "notes": [...] }` with `id`, plain-text `content`, author display data, and backend `createdAt`. Requesters receive `403` or the endpoint's safe role response without note content.
+IT Staff/Administrator only. Return `200 { "notes": [...] }` with `id`, plain-text `content`, author display data, and backend `createdAt`. Requesters receive exactly `403 FORBIDDEN` with the common safe error body and no note content.
 
 ### `POST /api/tickets/:ticketNumber/internal-notes`
 
-IT Staff/Administrator only. Body `{ "content": "..." }`, trim and enforce 1-2,000 characters, return `201 { "note": <note> }`, and never include it in Requester detail/comment responses.
+IT Staff/Administrator only. Body `{ "content": "..." }`, trim and enforce 1-2,000 characters, and return `201 { "note": <note> }`. Use `400 VALIDATION_ERROR`, `404 TICKET_NOT_FOUND`, or safe `500 NOTE_CREATE_FAILED` as applicable. Never include the note in Requester detail/comment responses.
 
 ## 8. Administrator User Management
 
 ### `GET /api/admin/users?search=&role=`
 
-Administrator only. Search trimmed name/email up to 100 characters and optionally filter exactly one role. No mandatory pagination, multi-column sorting, or multiple filters. Return:
+Administrator only. Search trimmed name/email up to 100 characters and optionally filter exactly one role. No mandatory pagination, multi-column sorting, or multiple filters. Return `200`:
 
 ```json
 {
@@ -320,6 +376,8 @@ Administrator only. Search trimmed name/email up to 100 characters and optionall
 }
 ```
 
+Invalid `search` or `role` returns `400 VALIDATION_ERROR`; a non-Administrator receives `403 FORBIDDEN`; unexpected failures return safe `500 USER_LIST_FAILED`.
+
 ### `POST /api/admin/users`
 
 Administrator only. Body:
@@ -334,15 +392,15 @@ Administrator only. Body:
 }
 ```
 
-Hash the initial password and set `mustChangePassword=true`; never return it. Return `201 { "user": <safe-user> }`; duplicate email is `409`.
+Hash the initial password and set `mustChangePassword=true`; never return it. Return `201 { "user": <safe-user> }`. Return `400 VALIDATION_ERROR` for invalid fields or role, `409 DUPLICATE_EMAIL` for a normalized duplicate, and safe `500 USER_CREATE_FAILED` for unexpected failures.
 
 ### `PATCH /api/admin/users/:userId`
 
-Administrator only. Accept only `name`, `email`, `role`, and `isActive`; reject unsupported fields. Enforce duplicate email, valid role, self-deactivation protection, last-active-Administrator protection, eligible assignment/session effects, and return `200` with the safe User.
+Administrator only. Accept only `name`, `email`, `role`, and `isActive`; reject unsupported fields. Return `200 { "user": <safe-user> }` after enforcing duplicate email, valid role, self-deactivation protection, last-active-Administrator protection, and eligible assignment/session effects. Return `400 VALIDATION_ERROR`, `404 USER_NOT_FOUND`, `409 DUPLICATE_EMAIL` or `409 ADMINISTRATOR_SAFETY_VIOLATION`, and safe `500 USER_UPDATE_FAILED` as applicable.
 
 ### `POST /api/admin/users/:userId/initial-password`
 
-Administrator only. Body `{ "initialPassword": "Reset-Lab3!Password" }`. Hash, set `mustChangePassword=true`, revoke target sessions, and return `200` with safe User data. Do not return the password.
+Administrator only. Body `{ "initialPassword": "Reset-Lab3!Password" }`. Hash, set `mustChangePassword=true`, revoke target sessions, and return `200 { "user": <safe-user> }`. Return `400 VALIDATION_ERROR`, `404 USER_NOT_FOUND`, or safe `500 PASSWORD_RESET_FAILED` as applicable. Do not return the password.
 
 ## 9. Safe Error and Ownership Rules
 

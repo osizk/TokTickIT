@@ -4,7 +4,7 @@
 
 TokTickIT will replace the temporary Lab 2 Development Requester selector with secure authenticated accounts and backend-enforced role authorization. Authenticated Requesters keep their existing Ticket and Attachment experience and gain Public Comments and a non-authoritative problem-resolution indication. IT Staff and Administrators receive a shared operational Ticket workflow, while Administrators also receive a deliberately small User Management screen. Existing Lab 2 records, ownership, protected files, Zen Green conventions, accessibility, and responsive behavior must survive the increment.
 
-## 2. Stakeholder Request Interpretation
+## 2. Stakeholder Request
 
 The stakeholder needs real users who sign in with an email address and password. An account using an initial password must change it before entering the application. Requesters must continue working with their own Tickets. IT Staff need a queue and detail workflow for finding, assigning, prioritizing, communicating about, and progressing Tickets. Administrators need simple user-account management. Hiding a control is not authorization; every protected operation must be checked by the backend.
 
@@ -25,7 +25,9 @@ The stakeholder needs real users who sign in with an email address and password.
 
 Self-registration; email invitations or password-reset email; MFA, SSO, and social login; multiple roles; departments/organizations/profile photos; user deletion, bulk operations, import/export, account history, advanced recovery/unlocking; Actions Taken; formal SLA/escalation/notifications; dashboards/KPIs beyond queue counts; public/internal entry editing or deletion; production/cloud deployment; and multi-tenant administration.
 
-## 4. Roles and Authorization Matrix
+## 4. Functional Requirements
+
+### 4.1 Roles and Authorization Matrix
 
 The backend is authoritative. The Administrator staff permissions below are an explicit Sprint 3 decision: the labsheet makes Administrators eligible Ticket Owners and visible to Public Comments/Internal Notes. User Management remains a separate Administrator responsibility and screen.
 
@@ -47,7 +49,7 @@ The backend is authoritative. The Administrator staff permissions below are an e
 
 Unauthenticated requests return safe `401`. Authenticated wrong-role requests return safe `403` unless that would reveal a protected resource. Missing and inaccessible Tickets, Attachments, comments, and notes use the same safe `404`. User identity, ownership, author, role, status, and timestamps come from the session/backend, never from a Requester body field.
 
-## 5. Functional Requirements
+### 4.2 Functional Requirements
 
 - **FR-01 Authentication:** An active User with valid credentials can establish an authenticated server session; invalid and inactive credentials receive the same safe failure.
 - **FR-02 First login:** A User marked `mustChangePassword` cannot access normal application screens or APIs until a valid new password is saved.
@@ -66,9 +68,9 @@ Unauthenticated requests return safe `401`. Authenticated wrong-role requests re
 - **FR-15 Seed and migration:** Development/test data is realistic, idempotent, local-only, and does not overwrite user-created records or secrets.
 - **FR-16 Safe errors:** APIs return structured status/code/message/field errors without hashes, credentials, storage paths, internal stack traces, or existence leaks.
 - **FR-17 UI quality:** All required screens use the Lab 2 Zen Green system, accessible labels/focus, field validation, feedback states, and desktop/tablet/mobile layouts without horizontal page scrolling.
-- **FR-18 Traceability:** Every acceptance criterion maps to a planned test ID and actual file path, and final evidence is captured from the tested release candidate/final `main`.
+- **FR-18 Traceability:** Every functional requirement, business rule, and acceptance criterion maps to a planned Test ID and actual file path, and final evidence is captured from the tested release candidate/final `main`.
 
-## 6. Business Rules
+## 5. Business Rules
 
 - **BR-01:** Only an active User with valid credentials may authenticate.
 - **BR-02:** Email is trimmed/lowercased and unique; a duplicate normalized email is a `409`.
@@ -99,7 +101,13 @@ Unauthenticated requests return safe `401`. Authenticated wrong-role requests re
 - **BR-27:** Repeated seed runs are idempotent and never commit real credentials, `.env.test`, uploaded files, or secrets.
 - **BR-28:** Missing and cross-owner protected resources return the same safe `404`; response messages do not reveal whether a different owner's record exists.
 
-## 7. Data Model and Migration
+## 6. UI Specification Summary
+
+The UI specification is maintained in `ui-spec.md`. Required routes are `/login`, `/change-password`, `/tickets`, `/tickets/new`, `/tickets/:ticketNumber`, `/staff/tickets`, `/staff/tickets/:ticketNumber`, and `/admin/users`. The shell displays authenticated name/role and Logout, and exposes only role-permitted destinations. The old selector route, Change Requester action, and requester `sessionStorage` state are removed.
+
+Login, Change Password, Requester regression, Staff Queue, Staff Detail, and Administrator User Management define explicit create/view/edit modes plus loading, saving, validation, success, empty/no-results, forbidden, not-found, conflict, and safe-failure states. Existing Lab 2 Zen Green tokens, visible focus, semantic labels, non-color badges, touch targets, exact responsive breakpoints, and no horizontal page scroll remain mandatory.
+
+## 7. Data Changes
 
 All timestamps are PostgreSQL `DateTime` values stored in UTC. Prisma relation names and `onDelete` behavior must be preserved in the migration.
 
@@ -140,7 +148,7 @@ All timestamps are PostgreSQL `DateTime` values stored in UTC. Prisma relation n
 
 Seed at least four active and one inactive Requester, three active and one inactive IT Staff, one active Administrator, realistic Tickets across statuses/priorities/assignment states, and safe Public Comments/Internal Notes. Use local environment variables for initial passwords. Stable emails and deterministic fixture lookup keys make repeated runs idempotent; user-created records are not overwritten.
 
-## 8. API Contract Summary
+## 8. API Contract
 
 The exact endpoint schemas, headers, response shapes, status codes, and safe errors are in `api-spec.md`. Authentication uses the opaque cookie session and session-bound CSRF token. Lab 2 `X-Requester-Id` is removed from ownership decisions. API groups are:
 
@@ -153,13 +161,7 @@ The exact endpoint schemas, headers, response shapes, status codes, and safe err
 
 Errors use `{ error: { code, message, fieldErrors? } }`. Required statuses are `400`, `401`, `403`, `404`, `409`, `413`, `415`, `429`, and safe `500` where applicable.
 
-## 9. UI Specification Summary
-
-The UI specification is maintained in `ui-spec.md`. Required routes are `/login`, `/change-password`, `/tickets`, `/tickets/new`, `/tickets/:ticketNumber`, `/staff/tickets`, `/staff/tickets/:ticketNumber`, and `/admin/users`. The shell displays authenticated name/role and Logout, and exposes only role-permitted destinations. The old selector route, Change Requester action, and requester `sessionStorage` state are removed.
-
-Login, Change Password, Requester regression, Staff Queue, Staff Detail, and Administrator User Management define explicit create/view/edit modes plus loading, saving, validation, success, empty/no-results, forbidden, not-found, conflict, and safe-failure states. Existing Lab 2 Zen Green tokens, visible focus, semantic labels, non-color badges, touch targets, exact responsive breakpoints, and no horizontal page scroll remain mandatory.
-
-## 10. Acceptance Criteria
+## 9. Acceptance Criteria
 
 - **AC-01:** Given valid active credentials, login establishes a session and returns safe User identity/role data.
 - **AC-02:** Given invalid credentials or an inactive account, login returns the same safe failure and never establishes access.
@@ -185,7 +187,9 @@ Login, Change Password, Requester regression, Staff Queue, Staff Detail, and Adm
 - **AC-22:** Given migration and two seed runs on an isolated test database, required counts remain stable and existing data remains preserved.
 - **AC-23:** Given the release candidate and final `main`, all required test/build/E2E/evidence gates run from a recorded SHA and no required test is skipped.
 
-## 11. Product Definition of Done
+## 10. Definition of Done
+
+### 10.1 Product Definition of Done
 
 - All approved FR, BR, and AC scope is implemented without excluded features.
 - Backend validation, authentication, CSRF, ownership, role authorization, safe errors, and session invalidation are authoritative.
@@ -197,7 +201,7 @@ Login, Change Password, Requester regression, Staff Queue, Staff Detail, and Adm
 - `reviewer.md` records real identities, PRs, feedback, responses, approvals, and merge evidence.
 - README/.gitignore, screenshots, captions, repository links, Project evidence, and final-main SHA are accurate.
 
-## 12. Course-Delivery Definition of Done
+### 10.2 Course-Delivery Definition of Done
 
 - Issue #33 is approved and merged before product Issues begin.
 - Issues #33-#40 use the planned branches from the latest `lab3-staging`, with accurate Project statuses and mapped FR/BR/AC/Test IDs.
@@ -206,9 +210,9 @@ Login, Change Password, Requester regression, Staff Queue, Staff Detail, and Adm
 - All eight Issues are Done on the final Kanban board.
 - The final submission is exactly one concise PDF with `Answer Part 1` through `Answer Part 9` in order, readable captions, and working links.
 
-## 13. Assumptions and Approved Decisions
+## 11. Assumptions and Decisions
 
-- The proposed opaque PostgreSQL session, CSRF, Argon2id, password policy, queue query contract, Administrator staff access, status matrix, and confirmation rules from `PLAN_LAB3.md` are the working contract decisions for Issue #33 and remain subject to student review before implementation.
+- The opaque PostgreSQL session, CSRF, Argon2id, password policy, queue query contract, Administrator staff access, status matrix, and confirmation rules recorded in this specification and the linked API/UI contracts are the working decisions for Issue #33.
 - Protected local Attachment storage is acceptable for this coursework; shared/object storage is deferred.
 - Dates are persisted in UTC and localized only for display.
 - Real `.env.test`, credentials, secrets, uploaded files, sessions, dumps, and test reports are never committed.

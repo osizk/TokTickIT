@@ -8,11 +8,11 @@
 
 | PR | Branch | Merge commit | Reviewer verdict |
 |---|---|---|---|
-| Pending | `feature/13-Lab3Contract` | Pending | No Lab 3 PR has been opened yet; formal review and approval are pending. |
+| [#43](https://github.com/osizk/TokTickIT/pull/43) | `feature/13-Lab3Contract` | Pending | PR is open into `lab3-staging`; formal review and approval are pending. |
 
-**Reviewer verdict:** The Issue #33 contract is being prepared locally. No teammate review, comment, or GitHub **Approve** review has been recorded for a Lab 3 PR yet.
+**Reviewer verdict:** [PR #43](https://github.com/osizk/TokTickIT/pull/43) contains the Issue #33 contract and is awaiting a teammate review. No formal GitHub **Approve** review has been recorded yet.
 
-**My response:** I will request review only after the six contract documents and their traceability checks are complete. I will record the actual comment, requested changes, response, review state, and merge commit here; I will not claim approval in advance.
+**My response:** I requested review after completing the six contract documents and their traceability checks. I will record the actual comment, requested changes, response, review state, and merge commit here; I will not claim approval in advance.
 
 ## Pull Requests I reviewed for my partner
 
