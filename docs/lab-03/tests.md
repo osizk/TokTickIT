@@ -33,12 +33,12 @@ Write-Output 'PASS: all six Lab 3 contract files exist'
 Recorded passing output and exit status:
 
 ```text
-Git HEAD at test time: 8b386dfdb7ea61b2b858eee96ff468451623b1c5 (the guard ran against the working tree, including the uncommitted contract corrections)
+Git HEAD at test time: 20a7d5543f30f7a6f215d51e80d964178df1366e
 PASS: all six Lab 3 contract files exist
 Process exit status: 0
 ```
 
-The final PR-update commit must rerun this guard and record its own SHA before review is requested again.
+The guard passed on the committed correction set; the following evidence-only commit records that tested SHA.
 
 ## 3. Planned test matrix
 
