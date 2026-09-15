@@ -1,4 +1,5 @@
-// Prisma schema for TokTickIT Lab 2.
+// Prisma schema for TokTickIT Lab 3, preserving Lab 2 compatibility during
+// the staged Requester-to-User ownership migration.
 // DATABASE_URL is loaded from server/.env or server/.env.test.
 
 generator client {
@@ -19,8 +20,53 @@ model Requester {
   updatedAt          DateTime     @default(now()) @updatedAt
   tickets            Ticket[]
   removedAttachments Attachment[] @relation("AttachmentRemovedBy")
+  legacyUser         User?        @relation("LegacyRequester")
 
   @@index([isActive, name])
+}
+
+model User {
+  id                 Int        @id @default(autoincrement())
+  name               String
+  email              String     @unique
+  passwordHash       String?
+  role               UserRole   @default(REQUESTER)
+  isActive           Boolean    @default(true)
+  mustChangePassword Boolean    @default(true)
+  legacyRequesterId  Int?       @unique
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+  legacyRequester    Requester? @relation("LegacyRequester", fields: [legacyRequesterId], references: [id], onDelete: Restrict)
+  sessions           Session[]
+
+  @@index([isActive, role, name])
+}
+
+model Session {
+  id                Int       @id @default(autoincrement())
+  tokenHash         String    @unique
+  csrfTokenHash     String
+  userId            Int
+  createdAt         DateTime  @default(now())
+  lastSeenAt        DateTime  @default(now())
+  idleExpiresAt     DateTime
+  absoluteExpiresAt DateTime
+  revokedAt         DateTime?
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@index([idleExpiresAt])
+}
+
+model LoginAttemptBucket {
+  id              Int       @id @default(autoincrement())
+  keyHash         String    @unique
+  failureCount    Int       @default(0)
+  windowStartedAt DateTime
+  blockedUntil    DateTime?
+  updatedAt       DateTime  @updatedAt
+
+  @@index([blockedUntil])
 }
 
 model Category {
@@ -101,4 +147,10 @@ enum TicketPriority {
 
 enum TicketStatus {
   NEW
+}
+
+enum UserRole {
+  REQUESTER
+  IT_STAFF
+  ADMINISTRATOR
 }

@@ -8,9 +8,10 @@
 
 | PR | Branch | Merge commit | Reviewer verdict |
 |---|---|---|---|
-| [#43](https://github.com/osizk/TokTickIT/pull/43) | `feature/13-Lab3Contract` | Pending | PR is open into `lab3-staging`; formal review and approval are pending. |
+| [#43](https://github.com/osizk/TokTickIT/pull/43) | `feature/13-Lab3Contract` | `dceb6f3` | Contract PR merged into `lab3-staging`; retain the GitHub review timeline as the formal review evidence. |
+| [#44](https://github.com/osizk/TokTickIT/pull/44) | `feature/14-Lab3AuthFoundation` | Pending | Issue #34 authentication foundation PR is open into `lab3-staging`; formal review and approval are pending. |
 
-**Reviewer verdict:** [PR #43](https://github.com/osizk/TokTickIT/pull/43) contains the Issue #33 contract and is awaiting a teammate review. No formal GitHub **Approve** review has been recorded yet.
+**Reviewer verdict:** [PR #43](https://github.com/osizk/TokTickIT/pull/43) contains the Issue #33 contract and is merged into `lab3-staging`. The GitHub review timeline remains the source of truth for whether the review was a formal **Approve** or comment-only feedback.
 
 **My response:** I requested review after completing the six contract documents and their traceability checks. I will record the actual comment, requested changes, response, review state, and merge commit here; I will not claim approval in advance.
 
@@ -23,6 +24,23 @@
 **My review verdict:** There is no Lab 3 partner PR to review yet. The Lab 2 partner reviews remain in `docs/lab-02/reviewer.md` and are not repeated here.
 
 **Partner's response:** Pending a real Lab 3 PR and response. When available, record the partner's PR link, comments given and received, requested changes, response links, and whether the review was a formal GitHub **Approve** or a comment-only review.
+
+## Issue #34 review status
+
+| PR | Branch | Review status | Response/evidence |
+|---|---|---|---|
+| [#44](https://github.com/osizk/TokTickIT/pull/44) | `feature/14-Lab3AuthFoundation` | Pending teammate review | The PR documents the authentication foundation scope and passing tests. No formal **Approve** review or merge has been claimed yet. |
+
+### Inline review comments and responses
+
+| Reviewer comment | Student response and verification | Status |
+|---|---|---|
+| [P1 — backfill credentials for every migrated Requester](https://github.com/osizk/TokTickIT/pull/44#discussion_r4017577594): the migration/seed path must include non-fixture Lab 2 Requesters and preserve Ticket/Attachment ownership. | Updated the seed to derive credential backfill from every `Requester` row instead of only the five fixtures. Added a disposable-test integration case that creates a non-fixture Requester with a Ticket and Attachment, runs the idempotent seed, and verifies the User ID, credential state, Ticket requester ID, and Attachment ticket link remain correct. | Addressed in [commit `38aa06a`](https://github.com/osizk/TokTickIT/commit/38aa06a), pushed to PR #44; awaiting re-review. |
+| [P2 — refresh Issue #34 evidence](https://github.com/osizk/TokTickIT/pull/44#discussion_r4017589762): stale test counts and missing explicit idle/absolute-expiry and wrong-CSRF regression evidence. | Updated `tests.md` to the current counts and added API regressions for wrong CSRF plus idle and absolute expiry. The focused Lab 3 suite now passes 7 files/25 tests; the full server suite passes 19 files/65 tests; the server build also passes. | Addressed in [commit `38aa06a`](https://github.com/osizk/TokTickIT/commit/38aa06a), pushed to PR #44; awaiting re-review. |
+
+**Reviewer verdict:** The two inline comments are actionable and have been addressed in pushed commit `38aa06a`. PR #44 still has comment-only review events; no formal GitHub **Approve** has been claimed.
+
+**My review verdict:** I accepted both corrections because they protect real migration data and make the Issue #34 evidence match the tests actually executed. The changes remain within the authentication foundation scope; Requester/staff/admin product workflows remain deferred to their planned Issues. A new review should be requested for the pushed commit.
 
 ## Review evidence rules
 

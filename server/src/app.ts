@@ -10,10 +10,26 @@ import {
   getTicketDetail,
   removeTicketAttachment,
 } from "./ticket-detail-service.js";
+import {
+  AuthError,
+  assertAllowedOrigin,
+  assertCsrf,
+  authenticate,
+  changePassword,
+  expiredSessionCookie,
+  optionalSession,
+  requireSession,
+  safeUser,
+  sessionCookie,
+  revokeFromRequest,
+  configuredClientOrigin,
+  rotateCsrfToken,
+} from "./auth-service.js";
+import { validateEmail, validatePassword } from "./auth-validation.js";
 
 export const app = express();
 
-app.use(cors());
+app.use(cors({ origin: configuredClientOrigin(), credentials: true }));
 app.use(express.json());
 app.disable("etag");
 
@@ -29,6 +45,91 @@ function sendReferenceError(res: Response, message: string) {
     },
   });
 }
+
+function sendAuthError(res: Response, error: unknown) {
+  const details = error instanceof AuthError
+    ? error
+    : new AuthError(500, "AUTHENTICATION_FAILED", "Authentication could not be completed.");
+  markUncached(res);
+  res.status(details.statusCode).json({
+    error: {
+      code: details.code,
+      message: details.message,
+      ...(details.fieldErrors ? { fieldErrors: details.fieldErrors } : {}),
+    },
+  });
+}
+
+app.post("/api/auth/login", async (req: Request, res: Response) => {
+  try {
+    assertAllowedOrigin(req);
+    const body = req.body && typeof req.body === "object" ? req.body as Record<string, unknown> : {};
+    const emailResult = validateEmail(body.email);
+    const fieldErrors: Record<string, string> = {};
+    if (!emailResult.ok || typeof emailResult.value !== "string") fieldErrors.email = emailResult.ok ? "Enter a valid email address." : emailResult.message;
+    if (typeof body.password !== "string" || body.password.length === 0) fieldErrors.password = "Password is required.";
+    if (Object.keys(fieldErrors).length > 0) {
+      throw new AuthError(400, "VALIDATION_ERROR", "Check the highlighted fields.", fieldErrors);
+    }
+    const normalizedEmail = emailResult.ok && typeof emailResult.value === "string" ? emailResult.value : "";
+    const result = await authenticate(normalizedEmail, body.password as string, req);
+    res.setHeader("Set-Cookie", sessionCookie(result.token));
+    markUncached(res);
+    res.status(200).json({ user: safeUser(result.user), csrfToken: result.csrfToken });
+  } catch (error) {
+    sendAuthError(res, error);
+  }
+});
+
+app.get("/api/auth/me", async (req: Request, res: Response) => {
+  try {
+    const context = await requireSession(req);
+    const csrfToken = await rotateCsrfToken(context);
+    markUncached(res);
+    res.status(200).json({ user: safeUser(context.user), csrfToken });
+  } catch (error) {
+    sendAuthError(res, error);
+  }
+});
+
+app.post("/api/auth/change-password", async (req: Request, res: Response) => {
+  try {
+    assertAllowedOrigin(req);
+    const context = await requireSession(req);
+    assertCsrf(context, req);
+    const body = req.body && typeof req.body === "object" ? req.body as Record<string, unknown> : {};
+    const fieldErrors: Record<string, string> = {};
+    if (typeof body.currentPassword !== "string" || body.currentPassword.length === 0) fieldErrors.currentPassword = "Current password is required.";
+    const newPasswordResult = validatePassword(body.newPassword);
+    if (!newPasswordResult.ok) fieldErrors.newPassword = newPasswordResult.message;
+    if (body.confirmPassword !== body.newPassword) fieldErrors.confirmPassword = "Passwords must match.";
+    if (Object.keys(fieldErrors).length > 0) {
+      throw new AuthError(400, "VALIDATION_ERROR", "Check the highlighted fields.", fieldErrors);
+    }
+    const result = await changePassword(context, body.currentPassword as string, body.newPassword as string);
+    res.setHeader("Set-Cookie", sessionCookie(result.token));
+    markUncached(res);
+    res.status(200).json({ user: safeUser(result.user), csrfToken: result.csrfToken });
+  } catch (error) {
+    sendAuthError(res, error);
+  }
+});
+
+app.post("/api/auth/logout", async (req: Request, res: Response) => {
+  try {
+    assertAllowedOrigin(req);
+    const context = await optionalSession(req);
+    if (context) {
+      assertCsrf(context, req);
+      await revokeFromRequest(req);
+    }
+    res.setHeader("Set-Cookie", expiredSessionCookie());
+    markUncached(res);
+    res.status(204).send();
+  } catch (error) {
+    sendAuthError(res, error);
+  }
+});
 
 app.get("/api/health", (_req: Request, res: Response) => {
   markUncached(res);
