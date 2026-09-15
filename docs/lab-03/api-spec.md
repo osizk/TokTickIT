@@ -34,18 +34,18 @@ Never return password hashes, session/CSRF tokens except the intended client-mem
 |---:|---|
 | 200 | Successful retrieval or mutation returning a representation |
 | 201 | Ticket, Attachment, User, Comment, or Note created |
-| 204 | Successful logout with no response body |
+| 204 | Successful or idempotent logout with no response body |
 | 400 | Malformed JSON/multipart/query or field validation failure |
 | 401 | Missing/invalid/expired/revoked session or safe credential failure |
 | 403 | Wrong role, password-change restriction, invalid Origin, or CSRF failure |
 | 404 | Missing or inaccessible protected resource; same safe response for both |
-| 409 | Duplicate email, invalid/stale workflow, inactive assignee, admin safety, or state conflict |
+| 409 | Duplicate email, invalid/stale workflow, inactive assignee, User-ownership safety, admin safety, or state conflict |
 | 413 | Attachment/request exceeds the permitted size |
 | 415 | Unsupported media or extension/MIME/signature mismatch |
 | 429 | Login-attempt bucket is temporarily blocked |
 | 500 | Safe unexpected server failure; details are logged server-side only |
 
-For every protected endpoint, a missing, expired, revoked, or inactive session returns exactly `401` with `{ "error": { "code": "SESSION_REQUIRED", "message": "Authentication is required." } }`. A valid session with `mustChangePassword=true` receives exactly `403` with `{ "error": { "code": "PASSWORD_CHANGE_REQUIRED", "message": "Password change is required before using this resource." } }` on every other protected endpoint, including mixed-case path variants, before the endpoint handler runs. A wrong role receives exactly `403 FORBIDDEN` without protected-resource details. These responses never contain a session token, CSRF token, password hash, or stack trace.
+For every protected endpoint except logout, a missing, expired, revoked, or inactive session returns exactly `401` with `{ "error": { "code": "SESSION_REQUIRED", "message": "Authentication is required." } }`. Logout is the explicit idempotency exception: `POST /api/auth/logout` returns `204` and expires the cookie whether an active session exists or not, without revealing session state. A valid session with `mustChangePassword=true` receives exactly `403` with `{ "error": { "code": "PASSWORD_CHANGE_REQUIRED", "message": "Password change is required before using this resource." } }` on every other protected endpoint, including mixed-case path variants, before the endpoint handler runs. A wrong role receives exactly `403 FORBIDDEN` without protected-resource details. These responses never contain a session token, CSRF token, password hash, or stack trace.
 
 ### Normative response schemas
 
@@ -230,7 +230,7 @@ Validate the 12-128-character upper/lower/number/symbol rule, whitespace rule, c
 
 ### `POST /api/auth/logout`
 
-Requires a valid session and CSRF token. Delete/revoke the session and expire the cookie. Return `204`. Repeated logout is safe and returns `204` when no active session remains.
+Logout is idempotent. When an active session is present, require its `X-CSRF-Token`, revoke it, and expire the cookie; return `204` with no body. When no active, unexpired session is present (including repeated, expired, revoked, or inactive-session logout), expire any cookie and return the same `204` without a session-existence distinction. API-03 tests both paths.
 
 ## 3. Authenticated Reference Endpoints
 
@@ -262,7 +262,7 @@ The Requester identity is always the authenticated `User.id`; no body/header can
 
 Requester only. Use one `multipart/form-data` request with text fields `categoryId`, `relatedSystemId`, `requestedPriority`, `summary`, `description`, and repeated file field `attachments` (zero-to-five). Do not include `requesterId`.
 
-Validate existing Lab 2 limits plus active references. The server validates and buffers every field/file, stages bytes, begins the transaction, allocates the annual number, creates rows, moves staged UUID files, and commits only after every operation succeeds. Any failure compensates database and filesystem work.
+Validate these inherited constraints before any write: `categoryId` and `relatedSystemId` are positive integers for active reference rows; `requestedPriority` is exactly `LOW|MEDIUM|HIGH|URGENT`; trimmed `summary` is 5-120 characters; trimmed `description` is 10-5000 characters; initial `status` is `NEW`; `createdAt` is backend-generated; `requesterId` is not accepted; and `attachments` contains zero to five files, each no larger than 5 MiB with matching extension, MIME, and signature. The server validates and buffers every field/file, stages bytes, begins the transaction, allocates the annual number, creates rows, moves staged UUID files, and commits only after every operation succeeds. Any failure compensates database and filesystem work.
 
 Return `201`:
 
@@ -300,6 +300,8 @@ Requester only; lists only the authenticated Requester's Tickets. Query paramete
 - `order`: `asc|desc`;
 - `page`: positive integer, default `1`;
 - `pageSize`: `10|25|50`, default `10`.
+
+Requester `priority` filters and `requestedPriority` sorting operate on immutable Requested Priority. IT Priority is displayed but can be filtered/sorted independently only by the staff queue contract below.
 
 Default ordering is `updatedAt desc`, then `id desc`. Return `200`:
 
@@ -539,7 +541,7 @@ Hash the initial password and set `mustChangePassword=true`; never return it. Re
 
 ### `PATCH /api/admin/users/:userId`
 
-Administrator only. Accept only `name`, `email`, `role`, and `isActive`; reject unsupported fields. Return exactly `200 { "user": <SafeUser> }` after enforcing duplicate email, valid role, self-deactivation protection, last-active-Administrator protection, and eligible assignment/session effects. Return `400 VALIDATION_ERROR`, `404 USER_NOT_FOUND`, `409 DUPLICATE_EMAIL` or `409 ADMINISTRATOR_SAFETY_VIOLATION`, and safe `500 USER_UPDATE_FAILED` as applicable.
+Administrator only. Accept only `name`, `email`, `role`, and `isActive`; reject unsupported fields. A change from active to inactive, or a role change to `REQUESTER`, is rejected atomically with `409 USER_OWNS_TICKETS` when the target currently owns one or more Tickets; no User, Ticket, or session row changes in that response. A role change between `IT_STAFF` and `ADMINISTRATOR` is eligible, subject to the last-active-Administrator rule. On every successful `role` or `isActive` change, revoke all sessions for the affected User so a new session observes the new authorization; name/email-only changes do not revoke sessions. Return exactly `200 { "user": <SafeUser> }` after enforcing duplicate email, valid role, self-deactivation protection, last-active-Administrator protection, and these ownership/session rules. Return `400 VALIDATION_ERROR`, `404 USER_NOT_FOUND`, `409 DUPLICATE_EMAIL`, `409 USER_OWNS_TICKETS`, or `409 ADMINISTRATOR_SAFETY_VIOLATION`, and safe `500 USER_UPDATE_FAILED` as applicable.
 
 ### `POST /api/admin/users/:userId/initial-password`
 

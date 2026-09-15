@@ -48,33 +48,33 @@ All paths below are intended paths for the implementation branches. A test is no
 |---|---|---|---|---|
 | UNIT-01 | Unit | BR-02/03, AC-01/02/17 | Password, email normalization, and field-boundary validation — `server/tests/lab-03/auth-validation.unit.test.ts` | Planned |
 | UNIT-02 | Unit | BR-05/06/07, AC-03/04/20 | Session expiry, CSRF, cookie flags, rate-limit key behavior — `server/tests/lab-03/session-security.unit.test.ts` | Planned |
-| UNIT-03 | Unit | BR-21/22, AC-13 | Status-transition matrix and confirmation rules — `server/tests/lab-03/status-transition.unit.test.ts` | Planned |
+| UNIT-03 | Unit | BR-13/15/16/17, AC-13 | Status-transition, Requested/IT Priority mutation matrix, and confirmation rules — `server/tests/lab-03/status-transition.unit.test.ts` | Planned |
 | UNIT-04 | Unit | BR-18/19/20, AC-10 | Queue query parsing, defaults, ordering, and page bounds — `server/tests/lab-03/queue-query.unit.test.ts` | Planned |
 | API-01 | API | FR-01/02, AC-01/02 | Login success, safe invalid/inactive failure, and role payload — `server/tests/lab-03/auth.api.test.ts` | Planned |
 | API-02 | API | BR-05, AC-02/20 | Failed-login bucket, temporary block, and recovery — `server/tests/lab-03/auth-rate-limit.api.test.ts` | Planned |
-| API-03 | API | FR-02/03, AC-03/04/18 | First-login password change, allowed-path gate, mixed-case protected-path denial, session rotation, logout, expiry, and reset revocation — `server/tests/lab-03/auth-session.api.test.ts` | Planned |
+| API-03 | API | FR-02/03, AC-03/04/18 | First-login password change, allowed-path gate, mixed-case protected-path denial, session rotation, idempotent `204` logout (active/repeated/expired), and reset revocation — `server/tests/lab-03/auth-session.api.test.ts` | Planned |
 | API-04 | API | FR-04, AC-05/20 | Missing/wrong-role, CSRF/origin, and direct endpoint authorization including password-change-required denial — `server/tests/lab-03/authorization.api.test.ts` | Planned |
-| API-05 | Integration | FR-05/15, AC-06/22 | Migration preservation, non-fixture legacy Requester login/ownership, and repeated idempotent seed counts — `server/tests/lab-03/migration-seed.api.test.ts` | Planned |
-| API-06 | API | FR-06/07, AC-07/08/20 | Authenticated Requester Ticket/Attachment continuity, exact Lab 2 nested routes, and ownership isolation — `server/tests/lab-03/requester-regression.api.test.ts` | Planned |
-| API-07 | API | FR-09, AC-10/11 | Staff queue search/filter/sort/pagination/defaults and safe failures — `server/tests/lab-03/staff-queue.api.test.ts` | Planned |
-| API-08 | API | FR-10, AC-12/13/15 | Staff detail assignment, priority, status, and Attachment access — `server/tests/lab-03/staff-ticket-detail.api.test.ts` | Planned |
+| API-05 | Integration | FR-05/15, AC-06/22 | Migration preservation, pending-credential backfill, preservation of an already-changed password, non-fixture legacy Requester login/ownership, and repeated idempotent seed counts — `server/tests/lab-03/migration-seed.api.test.ts` | Planned |
+| API-06 | API | FR-06/07, AC-07/08/20 | Authenticated Requester Ticket/Attachment continuity, inherited Ticket field/priority validation, exact Lab 2 nested routes, and ownership isolation — `server/tests/lab-03/requester-regression.api.test.ts` | Planned |
+| API-07 | API | FR-09, AC-10/11 | Staff queue search/filter/sort/pagination/defaults, Requested/IT Priority filters and sorting, and safe failures — `server/tests/lab-03/staff-queue.api.test.ts` | Planned |
+| API-08 | API | FR-10, AC-12/13/15 | Staff detail assignment, Requested/IT Priority values and mutation, status, and Attachment access — `server/tests/lab-03/staff-ticket-detail.api.test.ts` | Planned |
 | API-09 | API | FR-08/11/12, AC-09/14 | Public Comments, stable Requester `403 FORBIDDEN` Internal Notes denial, privacy, authorship, validation, append-only behavior — `server/tests/lab-03/comments-notes.api.test.ts` | Planned |
-| API-10 | API | FR-13/14, AC-16/17/18/19 | Admin user list/create/edit/activation/reset and safety rules — `server/tests/lab-03/users-admin.api.test.ts` | Planned |
+| API-10 | API | FR-13/14, AC-16/17/18/19 | Admin user list/create/edit/activation/reset, `USER_OWNS_TICKETS` atomic rejection, session revocation after role/activation changes, and safety rules — `server/tests/lab-03/users-admin.api.test.ts` | Planned |
 | API-11 | API | FR-07/11, AC-08/15 | Active/removed Attachment metadata, download headers, exact route compatibility, and staff/requester access continuation — `server/tests/lab-03/attachment-continuity.api.test.ts` | Planned |
 | API-12 | API | FR-04/16, AC-05/20 | Exact authenticated Categories, Related Systems, and staff-assignee response/error contracts — `server/tests/lab-03/reference-data.api.test.ts` | Planned |
 | UI-01 | Component | FR-01/02/17, AC-01/02/03/21 | Login form, safe failure, busy guard, and redirect — `client/tests/lab-03/Login.test.tsx` | Planned |
 | UI-02 | Component | FR-02/03/17, AC-03/04/21 | Change-password guard, policy errors, success, and focus — `client/tests/lab-03/ChangePassword.test.tsx` | Planned |
 | UI-03 | Component | FR-06/07/08, AC-07/08/09/21 | Authenticated shell and Requester list/create/detail regression — `client/tests/lab-03/RequesterRegression.test.tsx` | Planned |
-| UI-04 | Component | FR-09/17, AC-10/11/21 | Queue controls, states, role visibility, cards/table, and pagination — `client/tests/lab-03/StaffTicketQueue.test.tsx` | Planned |
-| UI-05 | Component | FR-10/11/12, AC-12/13/14/15/21 | Staff detail actions, dialogs, comments, notes, and attachments — `client/tests/lab-03/StaffTicketDetail.test.tsx` | Planned |
-| UI-06 | Component | FR-13/14, AC-16/17/18/19/21 | User list/editor, validation, activation, and reset controls — `client/tests/lab-03/UserManagement.test.tsx` | Planned |
+| UI-04 | Component | FR-09/17, AC-10/11/21 | Queue controls, Requested/IT Priority filters and sorting, states, role visibility, cards/table, and pagination — `client/tests/lab-03/StaffTicketQueue.test.tsx` | Planned |
+| UI-05 | Component | FR-10/11/12, AC-12/13/14/15/21 | Staff detail actions, priority mutation, dialogs, comments, notes, and attachments — `client/tests/lab-03/StaffTicketDetail.test.tsx` | Planned |
+| UI-06 | Component | FR-13/14, AC-16/17/18/19/21 | User list/editor, validation, activation, `USER_OWNS_TICKETS` conflict feedback, session-effect messaging, and reset controls — `client/tests/lab-03/UserManagement.test.tsx` | Planned |
 | STYLE-01 | Style/a11y | FR-17, AC-11/21 | Labels, focus, roles, contrast, touch targets, semantic feedback — `client/tests/lab-03/Accessibility.test.tsx` | Planned |
 | STYLE-02 | Responsive | FR-17, AC-11/21 | Desktop/tablet/mobile layout and no page-wide horizontal scroll — `client/tests/lab-03/Responsive.test.tsx` | Planned |
 | REG-01 | Regression | AC-06/07/08/15 | Complete prior server suite after migration and auth integration — `server/tests/lab-01/**`, `server/tests/lab-02/**` | Planned |
 | REG-02 | Regression | AC-06/07/08/21 | Complete prior client suite after selector-to-auth migration — `client/tests/lab-01/**`, `client/tests/lab-02/**` | Planned |
 | E2E-01 | E2E | AC-01/02/03/04/05/21 | Login, first-login change, logout, guard, and role navigation — `e2e/lab-03/authentication.spec.ts` | Planned |
 | E2E-02 | E2E | AC-07/08/09/14/21 | Requester Ticket continuity, comment, resolution indication, and note privacy — `e2e/lab-03/requester-regression.spec.ts` | Planned |
-| E2E-03 | E2E | AC-10/11/12/13/14/15/21 | Staff queue/detail operations, comments, notes, attachments, and responsive views — `e2e/lab-03/staff-ticket-flow.spec.ts` | Planned |
+| E2E-03 | E2E | AC-10/11/12/13/14/15/21 | Staff queue/detail operations, priority filters/mutations, comments, notes, attachments, and responsive views — `e2e/lab-03/staff-ticket-flow.spec.ts` | Planned |
 | E2E-04 | E2E | AC-16/17/18/19/21 | Admin User Management and safety protections — `e2e/lab-03/user-administration.spec.ts` | Planned |
 | E2E-05 | E2E | AC-23 | Release evidence states and final-main evidence capture — `e2e/lab-03/release-evidence-states.spec.ts` | Planned |
 | VIS-01 | Visual | AC-11/21 | Readable desktop/tablet/mobile screenshots and visual checklist — `artifacts/lab-03/screenshots/` | Planned |
@@ -109,7 +109,11 @@ The implementation must use the following local-only keys. The real values belon
 | `LAB3_IT_STAFF_INITIAL_PASSWORD` | Seeded active and inactive IT Staff | API-01/API-04 verify a seeded staff account can complete first-login change and receives staff-only authorization afterward. |
 | `LAB3_ADMIN_INITIAL_PASSWORD` | Seeded Administrator | API-01/API-10 verify first-login change, administrator authorization, and last-active-Administrator safety. |
 
-`API-05` must run migration on a disposable `_test` database with a pre-existing non-fixture Requester/Ticket/Attachment row, then run the idempotent seed twice. It records before/after IDs and counts, proves the non-fixture row was not replaced by a fixture, and confirms that each group key is required (a missing key fails closed before any write). `API-01` uses the deterministic fixture emails from `specification.md`; it does not treat seed fixtures alone as proof of migration preservation.
+`API-05` must run migration on a disposable `_test` database with a pre-existing non-fixture Requester/Ticket/Attachment row, then run the idempotent seed twice. It records before/after IDs and counts, proves the non-fixture row was not replaced by a fixture, proves a row with an existing hash and `mustChangePassword=false` is unchanged after both runs, and confirms that each group key is required (a missing key fails closed before any write). `API-01` uses the deterministic fixture emails from `specification.md`; it does not treat seed fixtures alone as proof of migration preservation.
+
+Priority regression coverage is explicit: `API-06` tests create-time validation of all four `TicketPriority` values and inherited summary/description/reference boundaries; `API-07` tests Requested Priority and IT Priority filters and sorting; `API-08` tests that Requested Priority cannot be changed and IT Priority accepts only the shared enum; `UI-04`/`UI-05` and `E2E-03` verify the same values and controls in the queue/detail workflows.
+
+User-management safety coverage is explicit: `API-10` attempts to deactivate or demote an owner, expects `409 USER_OWNS_TICKETS`, verifies no User/Ticket/session changes occurred, then verifies an eligible role change or inactive change revokes all target sessions. `UI-06` and `E2E-04` verify the conflict message, unchanged ownership, and successful session-effect feedback.
 
 ## 5. Acceptance-criteria traceability
 

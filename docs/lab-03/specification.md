@@ -80,11 +80,11 @@ Unauthenticated requests return safe `401`. Authenticated wrong-role requests re
 - **BR-06:** Session cookies are opaque, `HttpOnly`, `SameSite=Lax`, `Path=/`, and `Secure` outside local HTTP. Tokens are never placed in browser storage.
 - **BR-07:** Authenticated unsafe requests require the session-bound `X-CSRF-Token` and accepted Origin; credentialed CORS allows only the configured client origin.
 - **BR-08:** A `mustChangePassword` User can use only current-user, change-password, and logout behavior until the change succeeds.
-- **BR-09:** Logout, password reset, password change, expiry, revocation, or deactivation invalidates the appropriate session access.
+- **BR-09:** Logout, password reset, password change, expiry, revocation, or deactivation invalidates the appropriate session access. Logout is deliberately idempotent: `POST /api/auth/logout` returns `204` even when no active session remains and always expires the cookie.
 - **BR-10:** A User has exactly one role: `REQUESTER`, `IT_STAFF`, or `ADMINISTRATOR`.
 - **BR-11:** Requester ownership comes only from the session; `requesterId` is never accepted from a Ticket body or multipart field.
-- **BR-12:** A Ticket has zero or one active primary owner, who must be an active IT Staff or Administrator.
-- **BR-13:** Requested Priority is immutable after creation; IT Priority initially copies it and is changed only by IT Staff/Administrator.
+- **BR-12:** A Ticket has zero or one active primary owner, who must be an active IT Staff or Administrator. An Administrator mutation that would deactivate or demote a User who owns one or more Tickets is rejected atomically with `409 USER_OWNS_TICKETS`; Tickets are never silently unassigned by User Management.
+- **BR-13:** `TicketPriority` values are exactly `LOW`, `MEDIUM`, `HIGH`, and `URGENT`. Requested Priority is immutable after creation; IT Priority initially copies it and is changed only by IT Staff/Administrator. Both fields use the same enum for validation, filters, sorting, seed data, and tests.
 - **BR-14:** A Requester cannot formally set `RESOLVED`, `CLOSED`, or any other staff status.
 - **BR-15:** Statuses are `NEW`, `OPEN`, `IN_PROGRESS`, `WAITING_FOR_REQUESTER`, `RESOLVED`, `CLOSED`, `REOPENED`, and `CANCELLED`.
 - **BR-16:** Allowed transitions are: `NEW` -> `OPEN|CANCELLED`; `OPEN` -> `IN_PROGRESS|WAITING_FOR_REQUESTER|RESOLVED|CANCELLED`; `IN_PROGRESS` -> `WAITING_FOR_REQUESTER|RESOLVED|CANCELLED`; `WAITING_FOR_REQUESTER` -> `IN_PROGRESS|RESOLVED|CANCELLED`; `RESOLVED` -> `CLOSED|REOPENED`; `CLOSED` -> `REOPENED`; `REOPENED` -> `IN_PROGRESS|WAITING_FOR_REQUESTER|RESOLVED|CANCELLED`; `CANCELLED` has no next state.
@@ -95,7 +95,7 @@ Unauthenticated requests return safe `401`. Authenticated wrong-role requests re
 - **BR-21:** Search text is trimmed and at most 100 characters. Queue page sizes are 10, 25, or 50; default is page 1, size 10, `updatedAt desc` then `id desc`.
 - **BR-22:** Invalid query values return `400`; a valid page beyond the end returns an empty list with pagination metadata.
 - **BR-23:** An inactive User cannot authenticate, be assigned a new Ticket, post content, or continue using an existing session.
-- **BR-24:** An Administrator cannot deactivate their own account, and the system must retain at least one active Administrator during every role/activation mutation.
+- **BR-24:** An Administrator cannot deactivate their own account, and the system must retain at least one active Administrator during every role/activation mutation. Any successful `role` or `isActive` change revokes all sessions for the affected User; name/email-only changes do not.
 - **BR-25:** Deactivation is used instead of User deletion. Initial-password reset sets `mustChangePassword=true` and revokes all sessions for that User.
 - **BR-26:** Existing Lab 2 Tickets, Attachments, Ticket Numbers, protected bytes, Categories, and Related Systems are not discarded by migration.
 - **BR-27:** Repeated seed runs are idempotent and never commit real credentials, `.env.test`, uploaded files, or secrets.
@@ -129,6 +129,18 @@ All timestamps are PostgreSQL `DateTime` values stored in UTC. Prisma relation n
 | `InternalNote` | `id Int @id @default(autoincrement())`; `ticketId Int`; `authorId Int`; `content String`; `createdAt DateTime @default(now())` | `ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Restrict)`; `author User @relation(fields: [authorId], references: [id], onDelete: Restrict)`; index `@@index([ticketId, createdAt, id])`; never included in Requester serializers. |
 | `TicketStatus` | Enum `NEW`, `OPEN`, `IN_PROGRESS`, `WAITING_FOR_REQUESTER`, `RESOLVED`, `CLOSED`, `REOPENED`, `CANCELLED` | Transition validity is a service rule enforced transactionally. |
 
+### Shared priority and inherited Lab 2 Ticket constraints
+
+`TicketPriority` is the shared enum inherited from Lab 2: `LOW`, `MEDIUM`, `HIGH`, and `URGENT`. `requestedPriority` is the Requester-selected Requested Priority and is immutable after creation. `itPriority` is the staff-controlled IT Priority, initialized from `requestedPriority`; both are persisted as `TicketPriority` and may be filtered and sorted independently in the corresponding list APIs.
+
+The inherited Ticket constraints remain exact: `ticketNumber` matches `TKT-YYYY-######` and is backend allocated; `summary` is trimmed to 5-120 characters; `description` is trimmed to 10-5000 characters; `categoryId` and `relatedSystemId` are positive integers referencing active records; initial `status` is `NEW`; `createdAt` is backend-generated Ticket Date; `requesterId` comes from the authenticated session; and a create request contains zero to five attachments, each no larger than 5 MiB and accepted only when extension, MIME, and file signature agree. These constraints are validated by the frontend for feedback and authoritatively by the backend.
+
+| Priority use | Contract and traceability |
+|---|---|
+| Requested Priority | `requestedPriority` on create; immutable thereafter; requester/staff filters and `requestedPriority` sorting; seeded across all four enum values. |
+| IT Priority | `itPriority` starts equal to Requested Priority; only staff/admin mutation may change it; staff filters and `itPriority` sorting; seeded across all four enum values. |
+| Validation and tests | Reject any other value with `400 VALIDATION_ERROR`; cover enum boundaries and mutation rules in `UNIT-03`, `API-06`, `API-07`, `API-08`, `UI-04`, `UI-05`, and `E2E-03`. |
+
 ### Preserved reference and Attachment models
 
 | Model | Fields and types | Relations/constraints |
@@ -142,14 +154,15 @@ All timestamps are PostgreSQL `DateTime` values stored in UTC. Prisma relation n
 
 1. Rename/evolve the `Requester` table to `User` while preserving integer IDs and existing foreign-key values.
 2. Add role, password hash, activation, and first-login fields in a backfillable state; backfill former Requesters as `REQUESTER`.
-3. Hash configured local initial passwords and set migrated users to `mustChangePassword=true`; never commit plaintext credentials.
+3. During the backfill, `passwordHash` is temporarily nullable. A legacy User is considered pending credentials only when `passwordHash IS NULL`; hash the configured role-group initial password and set `mustChangePassword=true` only for that pending row. If a hash already exists, preserve it and preserve its current `mustChangePassword` value, including `false`. A rerun fills no non-null hash and changes no existing credential flag; never commit plaintext credentials.
 4. Add sessions and login-attempt buckets.
 5. Expand the status enum without truncating Tickets.
 6. Add nullable owner and resolution-indication relations.
 7. Add `itPriority`, backfill from `requestedPriority`, then enforce non-null.
 8. Add PublicComment/InternalNote tables and indexes.
 9. Validate row counts, IDs, Ticket ownership, Attachment metadata/files, and Ticket Numbers before final constraints/indexes.
-10. Run the complete migration and rollback/recovery checks on the disposable test database before development use. Never reset or delete Lab 2 data.
+10. After pending-credential rows are backfilled and preservation checks pass, enforce the final non-null `passwordHash` constraint; never use a fixture email to decide whether a hash may be overwritten.
+11. Run the complete migration and rollback/recovery checks on the disposable test database before development use. Never reset or delete Lab 2 data.
 
 ### Seed and initial-password mapping
 
@@ -163,7 +176,7 @@ The seed and migration scripts read these local-only variables (the real values 
 | `LAB3_IT_STAFF_INITIAL_PASSWORD` | Every seeded IT Staff account | `michael.staff@example.test`, `priya.staff@example.test`, `jon.staff@example.test`, and `inactive.staff@example.test` |
 | `LAB3_ADMIN_INITIAL_PASSWORD` | The seeded Administrator account | `admin@example.test` |
 
-Migration must hash the selected group value with Argon2id, set `mustChangePassword=true`, and reject a missing variable before changing rows. The migration test creates a non-fixture legacy Requester such as `legacy.owner@example.test` with an existing Ticket and Attachment, then proves that the same ID, ownership, metadata/file link, non-plaintext password hash, and first-login gate survive migration. The seed test logs in each deterministic fixture with the mapped key, runs the seed twice, and verifies that counts and IDs remain stable. User-created accounts and records are never overwritten.
+Migration must hash the selected group value with Argon2id only for pending-credential rows, reject a missing variable before changing rows, and never overwrite a non-null hash or an existing `mustChangePassword=false` value. The migration test creates a non-fixture legacy Requester such as `legacy.owner@example.test` with an existing Ticket and Attachment and a second legacy Requester with an existing hash and `mustChangePassword=false`; it runs migration twice and proves that IDs, ownership, metadata/file links, the changed password hash, and the first-login flags are preserved. The seed test logs in each deterministic fixture with the mapped key, runs the seed twice, and verifies that counts and IDs remain stable. User-created accounts and records are never overwritten.
 
 ## 8. API Contract
 
