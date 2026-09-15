@@ -57,7 +57,9 @@ ALTER TABLE "User" ADD CONSTRAINT "User_legacyRequesterId_fkey"
 ALTER TABLE "Session" ADD CONSTRAINT "Session_userId_fkey"
   FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
--- Preserve every existing Requester identity and ID. ON CONFLICT keeps a
+-- Preserve every existing Requester identity and ID. The SELECT deliberately
+-- includes every legacy Requester, including rows that are not seed fixtures.
+-- Credentials are supplied later by the idempotent seed; ON CONFLICT keeps a
 -- rerun from replacing a password hash or first-login flag.
 INSERT INTO "User" ("id", "name", "email", "role", "isActive", "mustChangePassword", "legacyRequesterId", "createdAt", "updatedAt")
 SELECT "id", "name", lower(trim("email")), 'REQUESTER', "isActive", true, "id", "createdAt", "updatedAt"

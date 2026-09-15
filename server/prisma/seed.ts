@@ -67,9 +67,15 @@ async function main() {
       });
     }
 
-    for (const requester of requesters) {
-      const source = await tx.requester.findUnique({ where: { email: requester.email } });
-      if (!source) continue;
+    // Credentials are backfilled for every legacy Requester row, not only the
+    // five deterministic fixtures above. This keeps Requesters created during
+    // Lab 2 usable after the identity migration while ensureUser preserves any
+    // existing password hash and completed first-login flag.
+    const allRequesters = await tx.requester.findMany({
+      select: { id: true, name: true, email: true, isActive: true },
+      orderBy: { id: "asc" },
+    });
+    for (const source of allRequesters) {
       await ensureUser(tx, {
         id: source.id,
         name: source.name,
@@ -100,8 +106,9 @@ async function main() {
     });
   });
 
+  const totalRequesters = await prisma.requester.count();
   console.log(
-    `Seeded ${categories.length} categories, ${relatedSystems.length} related systems, and ${requesters.length} requesters.`,
+    `Seeded ${categories.length} categories, ${relatedSystems.length} related systems, and ${totalRequesters} requesters; all existing Requesters received idempotent credential backfill.`,
   );
 }
 
@@ -135,7 +142,12 @@ type SeedUser = {
 };
 
 async function ensureUser(tx: Prisma.TransactionClient, user: SeedUser) {
-  const existing = await tx.user.findUnique({ where: { email: user.email } });
+  // A migrated Requester may later have a User email edited by an
+  // Administrator. Prefer the immutable legacy link so a rerun cannot create
+  // a second User or overwrite that user-managed email.
+  const existing = user.legacyRequesterId
+    ? await tx.user.findUnique({ where: { legacyRequesterId: user.legacyRequesterId } })
+    : await tx.user.findUnique({ where: { email: user.email } });
   if (!existing) {
     await tx.user.create({
       data: {

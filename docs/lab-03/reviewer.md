@@ -31,6 +31,17 @@
 |---|---|---|---|
 | [#44](https://github.com/osizk/TokTickIT/pull/44) | `feature/14-Lab3AuthFoundation` | Pending teammate review | The PR documents the authentication foundation scope and passing tests. No formal **Approve** review or merge has been claimed yet. |
 
+### Inline review comments and responses
+
+| Reviewer comment | Student response and verification | Status |
+|---|---|---|
+| [P1 — backfill credentials for every migrated Requester](https://github.com/osizk/TokTickIT/pull/44#discussion_r4017577594): the migration/seed path must include non-fixture Lab 2 Requesters and preserve Ticket/Attachment ownership. | Updated the seed to derive credential backfill from every `Requester` row instead of only the five fixtures. Added a disposable-test integration case that creates a non-fixture Requester with a Ticket and Attachment, runs the idempotent seed, and verifies the User ID, credential state, Ticket requester ID, and Attachment ticket link remain correct. | Addressed locally; the fix is awaiting commit/push to PR #44. |
+| [P2 — refresh Issue #34 evidence](https://github.com/osizk/TokTickIT/pull/44#discussion_r4017589762): stale test counts and missing explicit idle/absolute-expiry and wrong-CSRF regression evidence. | Updated `tests.md` to the current counts and added API regressions for wrong CSRF plus idle and absolute expiry. The focused Lab 3 suite now passes 7 files/25 tests; the full server suite passes 19 files/65 tests; the server build also passes. | Addressed locally; the fix is awaiting commit/push to PR #44. |
+
+**Reviewer verdict:** The two inline comments are actionable and have been addressed in the working tree. PR #44 still has comment-only review events; no formal GitHub **Approve** has been claimed.
+
+**My review verdict:** I accepted both corrections because they protect real migration data and make the Issue #34 evidence match the tests actually executed. The changes remain within the authentication foundation scope; Requester/staff/admin product workflows remain deferred to their planned Issues. I will request another review after the authorized commit and push.
+
 ## Review evidence rules
 
 - Record the exact PR, branch, Issue, review, response, and merge links after they exist.
