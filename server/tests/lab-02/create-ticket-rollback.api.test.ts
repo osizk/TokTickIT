@@ -22,12 +22,15 @@ vi.mock("node:fs/promises", async () => {
 
 import { app } from "../../src/app.js";
 import { getPrisma } from "../../src/prisma.js";
+import { loginRequesterByLegacyId, restoreRequesterFirstLogin } from "../lab-03/requester-test-auth.js";
 
 describe("POST /api/tickets filesystem compensation", () => {
   let storageDir: string;
   let requesterId: number;
   let categoryId: number;
   let relatedSystemId: number;
+  let requesterAgent: ReturnType<typeof request.agent>;
+  let csrfToken: string;
 
   beforeAll(async () => {
     storageDir = await mkdtemp(path.join(os.tmpdir(), "toktickit-lab2-rollback-"));
@@ -44,6 +47,7 @@ describe("POST /api/tickets filesystem compensation", () => {
     requesterId = requester.id;
     categoryId = category.id;
     relatedSystemId = relatedSystem.id;
+    ({ agent: requesterAgent, csrfToken } = await loginRequesterByLegacyId(requesterId));
   });
 
   beforeEach(() => {
@@ -51,6 +55,7 @@ describe("POST /api/tickets filesystem compensation", () => {
   });
 
   afterAll(async () => {
+    await restoreRequesterFirstLogin(requesterId);
     await rm(storageDir, { recursive: true, force: true });
     await getPrisma().$disconnect();
   });
@@ -60,9 +65,9 @@ describe("POST /api/tickets filesystem compensation", () => {
     const beforeCount = await prisma.ticket.count();
     const beforeFiles = await readdir(storageDir);
 
-    const response = await request(app)
+    const response = await requesterAgent
       .post("/api/tickets")
-      .set("X-Requester-Id", String(requesterId))
+      .set("X-CSRF-Token", csrfToken)
       .field("categoryId", String(categoryId))
       .field("relatedSystemId", String(relatedSystemId))
       .field("requestedPriority", "HIGH")

@@ -327,8 +327,8 @@ async function createTicketInTransaction(
   });
 }
 
-export async function createTicketFromMultipart(request: Request) {
-  const requesterId = parseRequesterId(request);
+export async function createTicketFromMultipart(request: Request, authenticatedRequesterId?: number) {
+  const requesterId = authenticatedRequesterId ?? parseRequesterId(request);
   const { fields, files } = await parseMultipart(request);
   const fieldResult = validateTicketFields(fields);
   if (!fieldResult.ok) {

@@ -77,7 +77,6 @@ async function main() {
     });
     for (const source of allRequesters) {
       await ensureUser(tx, {
-        id: source.id,
         name: source.name,
         email: source.email,
         role: "REQUESTER",
@@ -86,6 +85,12 @@ async function main() {
         passwordHash: await passwordHashFor(requesterPassword),
       });
     }
+
+    // Explicitly preserved legacy IDs can be higher than PostgreSQL's
+    // sequence value. Synchronize it before creating role fixtures so an
+    // auto-generated staff/admin ID cannot collide with those preserved rows.
+    const highestUser = await tx.user.aggregate({ _max: { id: true } });
+    await tx.$executeRaw`SELECT setval(pg_get_serial_sequence('"User"', 'id'), COALESCE(${highestUser._max.id ?? 1}, 1), true)`;
 
     for (const staff of staffUsers) {
       await ensureUser(tx, {
@@ -149,18 +154,23 @@ async function ensureUser(tx: Prisma.TransactionClient, user: SeedUser) {
     ? await tx.user.findUnique({ where: { legacyRequesterId: user.legacyRequesterId } })
     : await tx.user.findUnique({ where: { email: user.email } });
   if (!existing) {
-    await tx.user.create({
-      data: {
-        ...(user.id ? { id: user.id } : {}),
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        isActive: user.isActive,
-        passwordHash: user.passwordHash,
-        mustChangePassword: true,
-        ...(user.legacyRequesterId ? { legacyRequesterId: user.legacyRequesterId } : {}),
-      },
-    });
+    const data = {
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      isActive: user.isActive,
+      passwordHash: user.passwordHash,
+      mustChangePassword: true,
+      ...(user.legacyRequesterId ? { legacyRequesterId: user.legacyRequesterId } : {}),
+    };
+    // Preserve the legacy integer identity whenever the target User id is
+    // free. A later-created Requester can collide with an unrelated User;
+    // inspect first instead of provoking a failed INSERT inside the current
+    // transaction (PostgreSQL would mark that transaction aborted).
+    const occupiedId = user.legacyRequesterId
+      ? await tx.user.findUnique({ where: { id: user.legacyRequesterId }, select: { id: true } })
+      : null;
+    await tx.user.create({ data: { ...(!occupiedId && user.legacyRequesterId ? { id: user.legacyRequesterId } : {}), ...data } });
     return;
   }
   // Only a pending-credential row may receive the configured initial hash.

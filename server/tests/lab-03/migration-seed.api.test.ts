@@ -10,6 +10,7 @@ const preservedEmail = `lab3-preserved-${process.pid}@example.test`;
 const preservedPassword = "Already-Changed!Password-2026";
 const legacyEmail = `lab3-legacy-owner-${process.pid}@example.test`;
 const legacyTicketNumber = `TKT-2099-${String(process.pid % 1_000_000).padStart(6, "0")}`;
+const legacyIdentityId = 900_000 + (process.pid % 50_000);
 let preservedUserId: number;
 let legacyRequesterId: number;
 let legacyTicketId: number;
@@ -50,12 +51,24 @@ describe("Lab 3 migration and seed preservation", () => {
     const relatedSystem = await prisma.relatedSystem.findFirstOrThrow({ orderBy: { id: "asc" } });
     const legacyRequester = await prisma.requester.create({
       data: {
+        id: legacyIdentityId,
         name: "Legacy Ticket Owner",
         email: legacyEmail,
         isActive: true,
       },
     });
     legacyRequesterId = legacyRequester.id;
+    await prisma.user.create({
+      data: {
+        id: legacyIdentityId,
+        name: legacyRequester.name,
+        email: legacyRequester.email,
+        role: "REQUESTER",
+        isActive: true,
+        mustChangePassword: true,
+        legacyRequesterId: legacyRequester.id,
+      },
+    });
     const legacyTicket = await prisma.ticket.create({
       data: {
         ticketNumber: legacyTicketNumber,
