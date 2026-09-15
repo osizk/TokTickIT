@@ -14,9 +14,15 @@ The table records real prompts used while planning and beginning Issue #33. It i
 ## Verification and human decisions
 
 - The assistant's proposed session, CSRF, password, migration, role, queue, status-transition, and User Management decisions remain explicitly marked as contract decisions in `specification.md`; implementation must not silently expand them.
-- The student retained authority over branch creation, commits, pushes, PRs, reviews, Project status, and merges. Issue creation was separately authorized; Issue #33 implementation mutations are not yet authorized.
-- Planned test IDs and paths in `tests.md` are not claimed as passing. They will be replaced or confirmed with actual paths and complete output as each Issue is implemented.
+- The student retained authority over branch creation, commits, pushes, PRs, reviews, Project status, and merges. Issue #34 implementation work is limited to this local feature branch; commit, push, PR, review, Project, and merge mutations remain separately authorized actions.
+- Remaining planned test IDs and paths in `tests.md` are not claimed as passing. They will be replaced or confirmed with actual paths and complete output as each Issue is implemented.
 - The real failing-first output is preserved in `tests.md`; no successful result is inferred merely from document creation.
+
+## Issue #34 prompt record
+
+| # | Prompt | Purpose | What the AI suggested | Student decision/correction | Verification |
+|---|---|---|---|---|---|
+| 3 | “Finished merging the Lab 3 contract; start Issue #34 authentication foundation from the latest `lab3-staging`, using the approved branch and failing-first workflow.” | Start the next implementation Issue only after the contract merge and begin with planned authentication tests. | Created `feature/14-Lab3AuthFoundation` from the merged staging baseline, ran the planned missing-module red phase, then implemented validation, session-security primitives, additive auth schema/migration, seed safeguards, and initial auth API routes. | Accepted the bounded Issue #34 foundation scope, preserved Lab 2 routes for later authenticated ownership migration, and did not commit, push, or open a PR. | The red-phase failure was recorded in `tests.md`; focused Lab 3 tests (22/22), full server regression (62/62), server build, disposable migration, two seed runs, seeded login, and credential-preservation checks passed. Client and later feature Issues remain deferred. |
 
 ## Reflection
 

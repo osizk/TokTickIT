@@ -40,21 +40,65 @@ Process exit status: 0
 
 The guard passed on the committed correction set; the following evidence-only commit records that tested SHA.
 
+### Issue #34 red/green evidence
+
+The first planned Issue #34 test was run before its implementation and failed for the intended reason:
+
+```text
+Command: cd server; npm.cmd test -- --run tests/lab-03/auth-validation.unit.test.ts
+Expected red phase: Failed to load url ../../src/auth-validation.js because auth-validation.ts did not exist.
+Result: failed before assertions (implementation file missing)
+```
+
+After the authentication foundation and database-backed checks were implemented, the focused Lab 3 command passed:
+
+```text
+Command: cd server; npm.cmd test -- --run tests/lab-03
+Test Files  7 passed (7)
+Tests       22 passed (22)
+Result      exit status 0
+```
+
+The complete server regression command was then run on branch `feature/14-Lab3AuthFoundation`:
+
+```text
+Command: cd server; npm.cmd test -- --run
+Test Files  19 passed (19)
+Tests       62 passed (62)
+Result      exit status 0
+```
+
+The server build also passed (`npm.cmd run build`). The documented disposable-database commands were run with process-only credentials and Lab 3 seed values (the values are intentionally not recorded):
+
+```text
+Command: cd server; npm.cmd run prisma:test:migrate
+Using server/.env.test for Prisma migrate against database toktickit_lab2_test.
+3 migrations found in prisma/migrations
+No pending migrations to apply.
+
+Command: cd server; npm.cmd run prisma:test:seed
+Seeded 4 categories, 7 related systems, and 5 requesters.
+Command repeated: cd server; npm.cmd run prisma:test:seed
+Seeded 4 categories, 7 related systems, and 5 requesters.
+```
+
+Client work, E2E coverage, and later authenticated Requester/staff/admin feature Issues remain outside Issue #34.
+
 ## 3. Planned test matrix
 
 All paths below are intended paths for the implementation branches. A test is not marked passed until its real command and output are recorded here.
 
 | Test ID | Type | Covers | Planned test/path | Status |
 |---|---|---|---|---|
-| UNIT-01 | Unit | BR-02/03, AC-01/02/17 | Password, email normalization, and field-boundary validation — `server/tests/lab-03/auth-validation.unit.test.ts` | Planned |
-| UNIT-02 | Unit | BR-05/06/07, AC-03/04/20 | Session expiry, CSRF, cookie flags, rate-limit key behavior — `server/tests/lab-03/session-security.unit.test.ts` | Planned |
+| UNIT-01 | Unit | BR-02/03, AC-01/02/17 | Password, email normalization, and field-boundary validation — `server/tests/lab-03/auth-validation.unit.test.ts` | Passed: 4 tests |
+| UNIT-02 | Unit | BR-05/06/07, AC-03/04/20 | Session expiry, CSRF, cookie flags, rate-limit key behavior — `server/tests/lab-03/session-security.unit.test.ts` | Passed: 3 tests |
 | UNIT-03 | Unit | BR-13/15/16/17, AC-13 | Status-transition, Requested/IT Priority mutation matrix, and confirmation rules — `server/tests/lab-03/status-transition.unit.test.ts` | Planned |
 | UNIT-04 | Unit | BR-18/19/20, AC-10 | Queue query parsing, defaults, ordering, and page bounds — `server/tests/lab-03/queue-query.unit.test.ts` | Planned |
-| API-01 | API | FR-01/02, AC-01/02 | Login success, safe invalid/inactive failure, and role payload — `server/tests/lab-03/auth.api.test.ts` | Planned |
-| API-02 | API | BR-05, AC-02/20 | Failed-login bucket, temporary block, and recovery — `server/tests/lab-03/auth-rate-limit.api.test.ts` | Planned |
-| API-03 | API | FR-02/03, AC-03/04/18 | First-login password change, allowed-path gate, mixed-case protected-path denial, session rotation, idempotent `204` logout (active/repeated/expired), and reset revocation — `server/tests/lab-03/auth-session.api.test.ts` | Planned |
-| API-04 | API | FR-04, AC-05/20 | Missing/wrong-role, CSRF/origin, and direct endpoint authorization including password-change-required denial — `server/tests/lab-03/authorization.api.test.ts` | Planned |
-| API-05 | Integration | FR-05/15, AC-06/22 | Migration preservation, pending-credential backfill, preservation of an already-changed password, non-fixture legacy Requester login/ownership, and repeated idempotent seed counts — `server/tests/lab-03/migration-seed.api.test.ts` | Planned |
+| API-01 | API | FR-01/02, AC-01/02 | Login validation, seeded/temporary active login, safe inactive/unknown failure, and role payload — `server/tests/lab-03/auth.api.test.ts` | Passed: 6 tests |
+| API-02 | API | BR-05, AC-02/20 | Failed-login bucket, temporary block, and recovery — `server/tests/lab-03/auth-rate-limit.api.test.ts` | Passed: 1 test |
+| API-03 | API | FR-02/03, AC-03/04/18 | First-login password change, session rotation, idempotent logout, and old-session revocation — `server/tests/lab-03/auth-session.api.test.ts` | Passed: 3 tests; later protected-route gates remain in Issue #35 |
+| API-04 | API | FR-04, AC-05/20 | Origin and wrong-role helper safety; full direct endpoint authorization remains with later protected APIs — `server/tests/lab-03/authorization.api.test.ts` | Passed: 2 tests |
+| API-05 | Integration | FR-05/15, AC-06/22 | Applied migration User-ID/credential preservation, changed-password preservation, and repeated idempotent seed counts — `server/tests/lab-03/migration-seed.api.test.ts` | Passed: 3 tests; pre-migration Ticket/Attachment fixture audit remains part of the release migration evidence |
 | API-06 | API | FR-06/07, AC-07/08/20 | Authenticated Requester Ticket/Attachment continuity, inherited Ticket field/priority validation, exact Lab 2 nested routes, and ownership isolation — `server/tests/lab-03/requester-regression.api.test.ts` | Planned |
 | API-07 | API | FR-09, AC-10/11 | Staff queue search/filter/sort/pagination/defaults, Requested/IT Priority filters and sorting, and safe failures — `server/tests/lab-03/staff-queue.api.test.ts` | Planned |
 | API-08 | API | FR-10, AC-12/13/15 | Staff detail assignment, Requested/IT Priority values and mutation, status, and Attachment access — `server/tests/lab-03/staff-ticket-detail.api.test.ts` | Planned |
@@ -215,7 +259,21 @@ The following mapping makes the business-rule coverage explicit. Each implementa
 - [ ] Teammate submits an actual GitHub **Approve** review.
 - [ ] Student explicitly authorizes merge; card moves to Done only after merge.
 
-## 9. Visual and evidence checklist
+## 9. Issue #34 evidence checklist
+
+- [x] Branch `feature/14-Lab3AuthFoundation` was created from the latest merged `lab3-staging`.
+- [x] Planned authentication validation test was run red before implementation.
+- [x] Authentication validation, session-security primitives, session gates, and authorization safety tests pass (14 focused tests).
+- [x] Server build and the complete server regression suite pass (17 files, 54 tests).
+- [x] Additive Prisma schema and migration files define User, Session, LoginAttemptBucket, UserRole, and preserved legacy Requester links.
+- [x] Seed code fails closed when local Lab 3 initial-password variables are missing and preserves non-null credentials/changed-password flags on reruns.
+- [x] Disposable database migration has been run successfully against `toktickit_lab2_test`.
+- [x] Seeded login, first-password change, rate-limit recovery, session rotation/revocation, and origin/role safety have been verified against the migrated test database.
+- [x] Migration preservation and repeated-seed integration tests are complete; a changed non-fixture credential remained unchanged.
+- [ ] Teammate submits an actual GitHub **Approve** review.
+- [ ] Student explicitly authorizes commit, push, PR, and merge; card moves to Done only after merge.
+
+## 10. Visual and evidence checklist
 
 - [ ] Final `main` SHA and merge graph show the Lab 3 branch sequence.
 - [ ] Contract PR is visibly approved and merged before product PRs.

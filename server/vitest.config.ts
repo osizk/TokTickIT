@@ -16,6 +16,15 @@ if (!fs.existsSync(testEnvPath)) {
 
 const testEnv = readEnvFile(testEnvPath);
 const validatedDatabase = assertDisposableDatabaseUrl(testEnv.DATABASE_URL);
+const requestedDatabaseUrl = process.env.DATABASE_URL?.trim();
+const effectiveDatabase = requestedDatabaseUrl
+  ? assertDisposableDatabaseUrl(requestedDatabaseUrl)
+  : validatedDatabase;
+if (effectiveDatabase.databaseName !== validatedDatabase.databaseName) {
+  throw new Error(
+    `Vitest DATABASE_URL must use the disposable database configured in server/.env.test (${validatedDatabase.databaseName}).`,
+  );
+}
 const protectedStorageRoot = path.resolve(process.cwd(), ".test-attachments");
 const configuredStorage = path.resolve(process.cwd(), testEnv.ATTACHMENT_STORAGE_DIR?.trim() || ".test-attachments");
 if (configuredStorage !== protectedStorageRoot && !configuredStorage.startsWith(`${protectedStorageRoot}${path.sep}`)) {
@@ -23,7 +32,7 @@ if (configuredStorage !== protectedStorageRoot && !configuredStorage.startsWith(
 }
 
 Object.assign(process.env, testEnv, {
-  DATABASE_URL: validatedDatabase.baseDatabaseUrl,
+  DATABASE_URL: effectiveDatabase.baseDatabaseUrl,
   ATTACHMENT_STORAGE_DIR: configuredStorage,
 });
 
