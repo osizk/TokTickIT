@@ -54,7 +54,7 @@ All paths below are intended paths for the implementation branches. A test is no
 | API-02 | API | BR-05, AC-02/20 | Failed-login bucket, temporary block, and recovery — `server/tests/lab-03/auth-rate-limit.api.test.ts` | Planned |
 | API-03 | API | FR-02/03, AC-03/04/18 | First-login password change, allowed-path gate, mixed-case protected-path denial, session rotation, logout, expiry, and reset revocation — `server/tests/lab-03/auth-session.api.test.ts` | Planned |
 | API-04 | API | FR-04, AC-05/20 | Missing/wrong-role, CSRF/origin, and direct endpoint authorization including password-change-required denial — `server/tests/lab-03/authorization.api.test.ts` | Planned |
-| API-05 | Integration | FR-05/15, AC-06/22 | Migration preservation and repeated idempotent seed counts — `server/tests/lab-03/migration-seed.api.test.ts` | Planned |
+| API-05 | Integration | FR-05/15, AC-06/22 | Migration preservation, non-fixture legacy Requester login/ownership, and repeated idempotent seed counts — `server/tests/lab-03/migration-seed.api.test.ts` | Planned |
 | API-06 | API | FR-06/07, AC-07/08/20 | Authenticated Requester Ticket/Attachment continuity, exact Lab 2 nested routes, and ownership isolation — `server/tests/lab-03/requester-regression.api.test.ts` | Planned |
 | API-07 | API | FR-09, AC-10/11 | Staff queue search/filter/sort/pagination/defaults and safe failures — `server/tests/lab-03/staff-queue.api.test.ts` | Planned |
 | API-08 | API | FR-10, AC-12/13/15 | Staff detail assignment, priority, status, and Attachment access — `server/tests/lab-03/staff-ticket-detail.api.test.ts` | Planned |
@@ -98,6 +98,18 @@ npx playwright test
 ```
 
 Migration/seed evidence must show successful migration and stable counts after two seed runs. Playwright evidence must show all required Lab 3 tests passing with no required test skipped. Release evidence must be rerun from the recorded final `main` SHA, not from an unmerged feature branch.
+
+### Initial-password migration and seed test mapping
+
+The implementation must use the following local-only keys. The real values belong only in ignored `server/.env` or `server/.env.test`; no password value is recorded in this document.
+
+| Environment key | Seed/migration population | Required verification |
+|---|---|---|
+| `LAB3_REQUESTER_INITIAL_PASSWORD` | Seeded active/inactive Requesters and every migrated former Lab 2 Requester | API-01 logs in the seeded Requester; API-05 creates `legacy.owner@example.test` as a non-fixture legacy Requester before migration, then proves the same User ID, Ticket requester ID, Attachment link, Argon2id hash, and `mustChangePassword=true` survive. |
+| `LAB3_IT_STAFF_INITIAL_PASSWORD` | Seeded active and inactive IT Staff | API-01/API-04 verify a seeded staff account can complete first-login change and receives staff-only authorization afterward. |
+| `LAB3_ADMIN_INITIAL_PASSWORD` | Seeded Administrator | API-01/API-10 verify first-login change, administrator authorization, and last-active-Administrator safety. |
+
+`API-05` must run migration on a disposable `_test` database with a pre-existing non-fixture Requester/Ticket/Attachment row, then run the idempotent seed twice. It records before/after IDs and counts, proves the non-fixture row was not replaced by a fixture, and confirms that each group key is required (a missing key fails closed before any write). `API-01` uses the deterministic fixture emails from `specification.md`; it does not treat seed fixtures alone as proof of migration preservation.
 
 ## 5. Acceptance-criteria traceability
 

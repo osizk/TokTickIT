@@ -115,21 +115,28 @@ All timestamps are PostgreSQL `DateTime` values stored in UTC. Prisma relation n
 
 | Model | Fields and types | Relations/constraints |
 |---|---|---|
-| `User` | `id Int @id @default(autoincrement())`; `name String`; `email String @unique`; `passwordHash String`; `role UserRole`; `isActive Boolean @default(true)`; `mustChangePassword Boolean @default(true)`; `createdAt DateTime @default(now())`; `updatedAt DateTime @updatedAt` | Has many submitted Tickets, owned Tickets, Sessions, PublicComments, InternalNotes, and resolution indications. Index `[isActive, role, name]`. Existing Requester IDs are preserved. |
-| `Session` | `id Int`; `tokenHash String @unique`; `csrfTokenHash String`; `userId Int`; `createdAt DateTime`; `lastSeenAt DateTime`; `idleExpiresAt DateTime`; `absoluteExpiresAt DateTime`; `revokedAt DateTime?` | Belongs to User with `onDelete: Cascade`; indexes `[userId, revokedAt]` and `[idleExpiresAt]`. |
-| `LoginAttemptBucket` | `id Int`; `keyHash String @unique`; `failureCount Int`; `windowStartedAt DateTime`; `blockedUntil DateTime?`; `updatedAt DateTime @updatedAt` | No raw email/IP is stored. Index `[blockedUntil]`. |
+| `User` | `id Int @id @default(autoincrement())`; `name String`; `email String @unique`; `passwordHash String`; `role UserRole`; `isActive Boolean @default(true)`; `mustChangePassword Boolean @default(true)`; `createdAt DateTime @default(now())`; `updatedAt DateTime @updatedAt` | `Ticket.requesterId` -> User `onDelete: Restrict`; `Ticket.ticketOwnerId` -> User `onDelete: SetNull`; Sessions -> User `onDelete: Cascade`; comments/notes -> User `onDelete: Restrict`; resolution and Attachment-removal actor -> User `onDelete: Restrict`. Index `@@index([isActive, role, name])`. Existing Requester IDs are preserved. |
+| `Session` | `id Int @id @default(autoincrement())`; `tokenHash String @unique`; `csrfTokenHash String`; `userId Int`; `createdAt DateTime @default(now())`; `lastSeenAt DateTime`; `idleExpiresAt DateTime`; `absoluteExpiresAt DateTime`; `revokedAt DateTime?` | `user User @relation(fields: [userId], references: [id], onDelete: Cascade)`. Indexes `@@index([userId, revokedAt])` and `@@index([idleExpiresAt])`. |
+| `LoginAttemptBucket` | `id Int @id @default(autoincrement())`; `keyHash String @unique`; `failureCount Int @default(0)`; `windowStartedAt DateTime`; `blockedUntil DateTime?`; `updatedAt DateTime @updatedAt` | No raw email/IP is stored. Index `@@index([blockedUntil])`. |
 | `UserRole` | Enum `REQUESTER`, `IT_STAFF`, `ADMINISTRATOR` | Exactly one role per User. |
 
 ### Ticket and entry models
 
 | Model | Fields and types | Relations/constraints |
 |---|---|---|
-| `Ticket` | Existing `id Int`, `ticketNumber String @unique`, `requesterId Int`, references, `requestedPriority TicketPriority`, `summary String`, `description String`, timestamps; add `ticketOwnerId Int?`, `itPriority TicketPriority`, expanded `status TicketStatus`, `resolutionIndicatedAt DateTime?`, `resolutionIndicatedByUserId Int?` | `requesterId` belongs to User; `ticketOwnerId` is nullable User relation and must reference active staff/admin at service level; Category/RelatedSystem use Restrict. Index requester and queue filter/order combinations. |
-| `PublicComment` | `id Int`; `ticketId Int`; `authorId Int`; `content String`; `createdAt DateTime @default(now())` | Ticket/User relations with Restrict; index `[ticketId, createdAt, id]`. |
-| `InternalNote` | `id Int`; `ticketId Int`; `authorId Int`; `content String`; `createdAt DateTime @default(now())` | Ticket/User relations with Restrict; index `[ticketId, createdAt, id]`; never included in Requester serializers. |
+| `Ticket` | `id Int @id @default(autoincrement())`; `ticketNumber String @unique`; `requesterId Int`; `categoryId Int`; `relatedSystemId Int`; `requestedPriority TicketPriority`; `itPriority TicketPriority`; `status TicketStatus @default(NEW)`; `summary String`; `description String`; `ticketOwnerId Int?`; `resolutionIndicatedAt DateTime?`; `resolutionIndicatedByUserId Int?`; `createdAt DateTime @default(now())`; `updatedAt DateTime @updatedAt` | `requester User @relation("SubmittedTickets", fields: [requesterId], references: [id], onDelete: Restrict)`; `category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)`; `relatedSystem RelatedSystem @relation(fields: [relatedSystemId], references: [id], onDelete: Restrict)`; `ticketOwner User? @relation("OwnedTickets", fields: [ticketOwnerId], references: [id], onDelete: SetNull)`; `resolutionIndicatedBy User? @relation("ResolutionIndications", fields: [resolutionIndicatedByUserId], references: [id], onDelete: Restrict)`. Indexes: `@@index([requesterId, updatedAt, id])`, `@@index([requesterId, createdAt, id])`, `@@index([status, itPriority, ticketOwnerId, updatedAt, id])`, `@@index([ticketOwnerId, updatedAt, id])`, and `@@index([categoryId, relatedSystemId, requestedPriority, status, updatedAt, id])`. |
+| `PublicComment` | `id Int @id @default(autoincrement())`; `ticketId Int`; `authorId Int`; `content String`; `createdAt DateTime @default(now())` | `ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Restrict)`; `author User @relation(fields: [authorId], references: [id], onDelete: Restrict)`; index `@@index([ticketId, createdAt, id])`. |
+| `InternalNote` | `id Int @id @default(autoincrement())`; `ticketId Int`; `authorId Int`; `content String`; `createdAt DateTime @default(now())` | `ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Restrict)`; `author User @relation(fields: [authorId], references: [id], onDelete: Restrict)`; index `@@index([ticketId, createdAt, id])`; never included in Requester serializers. |
 | `TicketStatus` | Enum `NEW`, `OPEN`, `IN_PROGRESS`, `WAITING_FOR_REQUESTER`, `RESOLVED`, `CLOSED`, `REOPENED`, `CANCELLED` | Transition validity is a service rule enforced transactionally. |
 
-`Category`, `RelatedSystem`, `TicketCounter`, and `Attachment` remain. Attachment storage metadata stays in PostgreSQL and bytes stay in the protected configured local root. The legacy `removedByRequesterId` relation is evolved or mapped to User without changing stored values. No stored path or filename is exposed.
+### Preserved reference and Attachment models
+
+| Model | Fields and types | Relations/constraints |
+|---|---|---|
+| `Category` | `id Int @id @default(autoincrement())`; `name String @unique`; `isActive Boolean @default(true)`; `createdAt DateTime @default(now())`; `updatedAt DateTime @updatedAt` | `tickets Ticket[]`; index `@@index([isActive, name])`. |
+| `RelatedSystem` | `id Int @id @default(autoincrement())`; `name String @unique`; `isActive Boolean @default(true)`; `createdAt DateTime @default(now())`; `updatedAt DateTime @updatedAt` | `tickets Ticket[]`; index `@@index([isActive, name])`. |
+| `TicketCounter` | `id Int @id @default(autoincrement())`; `year Int @unique`; `lastIssued Int @default(0)`; `createdAt DateTime @default(now())`; `updatedAt DateTime @updatedAt` | Annual counter row is locked/updated atomically while allocating a Ticket Number. |
+| `Attachment` | `id Int @id @default(autoincrement())`; `ticketId Int`; `originalName String`; `mimeType String`; `sizeBytes Int`; `storedFilename String @unique`; `uploadedAt DateTime @default(now())`; `removedAt DateTime?`; `removalReason String?`; `removedByUserId Int? @map("removedByRequesterId")` | `ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Restrict)`; `removedByUser User? @relation("AttachmentRemovedBy", fields: [removedByUserId], references: [id], onDelete: Restrict)`; index `@@index([ticketId, removedAt])`. The legacy column name is retained and its foreign key is repointed to `User`; metadata is in PostgreSQL and bytes are under the protected local root; stored paths/names are never serialized. |
 
 ### Migration sequence
 
@@ -144,9 +151,19 @@ All timestamps are PostgreSQL `DateTime` values stored in UTC. Prisma relation n
 9. Validate row counts, IDs, Ticket ownership, Attachment metadata/files, and Ticket Numbers before final constraints/indexes.
 10. Run the complete migration and rollback/recovery checks on the disposable test database before development use. Never reset or delete Lab 2 data.
 
-### Seed
+### Seed and initial-password mapping
 
-Seed at least four active and one inactive Requester, three active and one inactive IT Staff, one active Administrator, realistic Tickets across statuses/priorities/assignment states, and safe Public Comments/Internal Notes. Use local environment variables for initial passwords. Stable emails and deterministic fixture lookup keys make repeated runs idempotent; user-created records are not overwritten.
+Seed at least four active and one inactive Requester, three active and one inactive IT Staff, one active Administrator, realistic Tickets across statuses/priorities/assignment states, and safe Public Comments/Internal Notes. Stable emails and deterministic fixture lookup keys make repeated runs idempotent; user-created records are not overwritten.
+
+The seed and migration scripts read these local-only variables (the real values are never committed):
+
+| Environment key | Applied to | Deterministic fixture accounts |
+|---|---|---|
+| `LAB3_REQUESTER_INITIAL_PASSWORD` | Every seeded Requester and every migrated former Lab 2 Requester, including inactive Requesters | `amina@example.test`, `somchai@example.test`, `nina@example.test`, `david@example.test`, and `inactive.requester@example.test` |
+| `LAB3_IT_STAFF_INITIAL_PASSWORD` | Every seeded IT Staff account | `michael.staff@example.test`, `priya.staff@example.test`, `jon.staff@example.test`, and `inactive.staff@example.test` |
+| `LAB3_ADMIN_INITIAL_PASSWORD` | The seeded Administrator account | `admin@example.test` |
+
+Migration must hash the selected group value with Argon2id, set `mustChangePassword=true`, and reject a missing variable before changing rows. The migration test creates a non-fixture legacy Requester such as `legacy.owner@example.test` with an existing Ticket and Attachment, then proves that the same ID, ownership, metadata/file link, non-plaintext password hash, and first-login gate survive migration. The seed test logs in each deterministic fixture with the mapped key, runs the seed twice, and verifies that counts and IDs remain stable. User-created accounts and records are never overwritten.
 
 ## 8. API Contract
 
