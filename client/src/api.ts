@@ -11,6 +11,116 @@ export interface Requester {
   email: string;
 }
 
+export interface AuthUser {
+  id: number;
+  name: string;
+  email: string;
+  role: "REQUESTER" | "IT_STAFF" | "ADMINISTRATOR";
+  isActive: boolean;
+  mustChangePassword: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  /** Legacy Lab 2 link used only to render compatibility data, never client ownership. */
+  legacyRequesterId?: number | null;
+}
+
+export interface AuthResponse {
+  user: AuthUser;
+  csrfToken: string;
+}
+
+let csrfToken: string | null = null;
+
+function authenticatedHeaders(includeCsrf = false): HeadersInit {
+  const headers: Record<string, string> = {};
+  if (includeCsrf && csrfToken) headers["X-CSRF-Token"] = csrfToken;
+  return headers;
+}
+
+function rememberAuth(body: unknown): AuthResponse {
+  const candidate = body as { user?: AuthUser; csrfToken?: unknown } | null;
+  if (!candidate?.user || typeof candidate.csrfToken !== "string") {
+    throw new ApiClientError("Authentication response was invalid.", 200);
+  }
+  csrfToken = candidate.csrfToken;
+  return { user: candidate.user, csrfToken: candidate.csrfToken };
+}
+
+async function parseResponseBody(response: Response): Promise<unknown> {
+  try {
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function login(email: string, password: string): Promise<AuthResponse> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}/api/auth/login`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+  } catch {
+    throw new ApiClientError("Unable to sign in.", 0);
+  }
+  const body = await parseResponseBody(response);
+  if (!response.ok) {
+    const details = readApiError(body);
+    throw new ApiClientError("Email or password is incorrect.", response.status, details.code, details.fieldErrors);
+  }
+  return rememberAuth(body);
+}
+
+export async function currentUser(): Promise<AuthResponse> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}/api/auth/me`, { credentials: "include" });
+  } catch {
+    throw new ApiClientError("Unable to verify the session.", 0);
+  }
+  const body = await parseResponseBody(response);
+  if (!response.ok) {
+    const details = readApiError(body);
+    throw new ApiClientError("Authentication is required.", response.status, details.code, details.fieldErrors);
+  }
+  return rememberAuth(body);
+}
+
+export async function changePassword(currentPassword: string, newPassword: string, confirmPassword: string): Promise<AuthResponse> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}/api/auth/change-password`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json", ...authenticatedHeaders(true) },
+      body: JSON.stringify({ currentPassword, newPassword, confirmPassword }),
+    });
+  } catch {
+    throw new ApiClientError("Unable to change password.", 0);
+  }
+  const body = await parseResponseBody(response);
+  if (!response.ok) {
+    const details = readApiError(body);
+    throw new ApiClientError("Unable to change password.", response.status, details.code, details.fieldErrors);
+  }
+  return rememberAuth(body);
+}
+
+export async function logout(): Promise<void> {
+  try {
+    await fetch(`${API_URL}/api/auth/logout`, {
+      method: "POST",
+      credentials: "include",
+      headers: authenticatedHeaders(true),
+    });
+  } finally {
+    csrfToken = null;
+  }
+}
+
 export interface RelatedSystem {
   id: number;
   name: string;
@@ -39,6 +149,18 @@ export interface TicketAttachment {
   removedByRequesterId: number | null;
 }
 
+export interface PublicComment {
+  id: number;
+  content: string;
+  author: Pick<AuthUser, "id" | "name" | "email" | "role">;
+  createdAt: string;
+}
+
+export interface ResolutionIndication {
+  indicatedAt: string;
+  indicatedBy: Pick<AuthUser, "id" | "name" | "email" | "role">;
+}
+
 export interface CreatedTicket {
   id: number;
   ticketNumber: string;
@@ -54,7 +176,7 @@ export interface CreatedTicket {
   attachments: TicketAttachment[];
 }
 
-export type TicketDetail = Omit<CreatedTicket, "attachments">;
+export type TicketDetail = Omit<CreatedTicket, "attachments"> & { resolutionIndication?: ResolutionIndication | null };
 
 export interface CreateTicketInput {
   categoryId: number;
@@ -170,7 +292,7 @@ async function fetchReferenceList<T extends Category | RelatedSystem>(
   let response: Response;
 
   try {
-    response = await fetch(`${API_URL}${endpoint}`);
+    response = await fetch(`${API_URL}${endpoint}`, { credentials: "include" });
   } catch {
     throw new Error(`Unable to load ${label}.`);
   }
@@ -202,7 +324,7 @@ export async function fetchRequesters(): Promise<Requester[]> {
   let response: Response;
 
   try {
-    response = await fetch(`${API_URL}/api/requesters`);
+    response = await fetch(`${API_URL}/api/requesters`, { credentials: "include" });
   } catch {
     throw new Error("Unable to load Development Requesters.");
   }
@@ -368,9 +490,13 @@ function isTicketListResponse(value: unknown): value is TicketListResponse {
 }
 
 export async function createTicket(
-  requesterId: number,
-  input: CreateTicketInput,
+  requesterOrInput: number | CreateTicketInput,
+  optionalInput?: CreateTicketInput,
 ): Promise<CreateTicketResponse> {
+  // The numeric argument remains source-compatible with Lab 2 components but
+  // is intentionally ignored. Lab 3 derives ownership from the session.
+  const input = typeof requesterOrInput === "number" ? optionalInput : requesterOrInput;
+  if (!input) throw new ApiClientError("Unable to create Ticket.", 400);
   const formData = new FormData();
   formData.append("categoryId", String(input.categoryId));
   formData.append("relatedSystemId", String(input.relatedSystemId));
@@ -385,7 +511,8 @@ export async function createTicket(
   try {
     response = await fetch(`${API_URL}/api/tickets`, {
       method: "POST",
-      headers: { "X-Requester-Id": String(requesterId) },
+      credentials: "include",
+      headers: authenticatedHeaders(true),
       body: formData,
     });
   } catch {
@@ -433,9 +560,11 @@ export async function createTicket(
 }
 
 export async function fetchTickets(
-  requesterId: number,
-  query: TicketListQuery,
+  requesterOrQuery: number | TicketListQuery,
+  optionalQuery?: TicketListQuery,
 ): Promise<TicketListResponse> {
+  const query = typeof requesterOrQuery === "number" ? optionalQuery : requesterOrQuery;
+  if (!query) throw new ApiClientError("Unable to load My Tickets.", 400);
   const params = new URLSearchParams();
   if (query.search?.trim()) params.set("search", query.search.trim());
   if (query.categoryId !== undefined) params.set("categoryId", String(query.categoryId));
@@ -450,7 +579,8 @@ export async function fetchTickets(
   let response: Response;
   try {
     response = await fetch(`${API_URL}/api/tickets?${params.toString()}`, {
-      headers: { "X-Requester-Id": String(requesterId) },
+      credentials: "include",
+      headers: authenticatedHeaders(),
     });
   } catch {
     throw new ApiClientError("Unable to load My Tickets.", 0);
@@ -470,11 +600,14 @@ export async function fetchTickets(
   return body;
 }
 
-export async function fetchTicket(requesterId: number, ticketNumber: string): Promise<TicketDetail> {
+export async function fetchTicket(requesterOrTicketNumber: number | string, optionalTicketNumber?: string): Promise<TicketDetail> {
+  const ticketNumber = typeof requesterOrTicketNumber === "number" ? optionalTicketNumber : requesterOrTicketNumber;
+  if (!ticketNumber) throw new ApiClientError("Unable to load Ticket.", 400);
   let response: Response;
   try {
     response = await fetch(`${API_URL}/api/tickets/${encodeURIComponent(ticketNumber)}`, {
-      headers: { "X-Requester-Id": String(requesterId) },
+      credentials: "include",
+      headers: authenticatedHeaders(),
     });
   } catch {
     throw new ApiClientError("Unable to load Ticket.", 0);
@@ -498,13 +631,16 @@ export async function fetchTicket(requesterId: number, ticketNumber: string): Pr
 }
 
 export async function fetchTicketAttachments(
-  requesterId: number,
-  ticketNumber: string,
+  requesterOrTicketNumber: number | string,
+  optionalTicketNumber?: string,
 ): Promise<TicketAttachment[]> {
+  const ticketNumber = typeof requesterOrTicketNumber === "number" ? optionalTicketNumber : requesterOrTicketNumber;
+  if (!ticketNumber) throw new ApiClientError("Unable to load Attachments.", 400);
   let response: Response;
   try {
     response = await fetch(`${API_URL}/api/tickets/${encodeURIComponent(ticketNumber)}/attachments`, {
-      headers: { "X-Requester-Id": String(requesterId) },
+      credentials: "include",
+      headers: authenticatedHeaders(),
     });
   } catch {
     throw new ApiClientError("Unable to load Attachments.", 0);
@@ -527,18 +663,74 @@ export async function fetchTicketAttachments(
   return result.attachments;
 }
 
+function isPublicComment(value: unknown): value is PublicComment {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  const author = candidate.author as Record<string, unknown> | null;
+  return Boolean(
+    typeof candidate.id === "number" && Number.isSafeInteger(candidate.id) && candidate.id > 0 &&
+    typeof candidate.content === "string" && typeof candidate.createdAt === "string" &&
+    author && typeof author.id === "number" && typeof author.name === "string" && typeof author.email === "string" &&
+    ["REQUESTER", "IT_STAFF", "ADMINISTRATOR"].includes(author.role as string),
+  );
+}
+
+export async function fetchTicketComments(requesterOrTicketNumber: number | string, optionalTicketNumber?: string): Promise<PublicComment[]> {
+  const ticketNumber = typeof requesterOrTicketNumber === "number" ? optionalTicketNumber : requesterOrTicketNumber;
+  if (!ticketNumber) throw new ApiClientError("Unable to load Public Comments.", 400);
+  let response: Response;
+  try { response = await fetch(`${API_URL}/api/tickets/${encodeURIComponent(ticketNumber)}/comments`, { credentials: "include", headers: authenticatedHeaders() }); }
+  catch { throw new ApiClientError("Unable to load Public Comments.", 0); }
+  const body = await parseResponseBody(response);
+  if (!response.ok) { const details = readApiError(body); throw new ApiClientError("Unable to load Public Comments.", response.status, details.code, details.fieldErrors); }
+  const result = body as { comments?: unknown } | null;
+  if (!result || !Array.isArray(result.comments) || !result.comments.every(isPublicComment)) throw new ApiClientError("Unable to load Public Comments.", response.status);
+  return result.comments;
+}
+
+export async function addPublicComment(requesterOrTicketNumber: number | string, ticketNumberOrContent: string, optionalContent?: string): Promise<PublicComment> {
+  const ticketNumber = typeof requesterOrTicketNumber === "number" ? ticketNumberOrContent : requesterOrTicketNumber;
+  const content = typeof requesterOrTicketNumber === "number" ? optionalContent : ticketNumberOrContent;
+  if (!content || !ticketNumber) throw new ApiClientError("Unable to add Public Comment.", 400);
+  let response: Response;
+  try { response = await fetch(`${API_URL}/api/tickets/${encodeURIComponent(ticketNumber)}/comments`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json", ...authenticatedHeaders(true) }, body: JSON.stringify({ content }) }); }
+  catch { throw new ApiClientError("Unable to add Public Comment.", 0); }
+  const body = await parseResponseBody(response);
+  if (!response.ok) { const details = readApiError(body); throw new ApiClientError("Unable to add Public Comment.", response.status, details.code, details.fieldErrors); }
+  const result = body as { comment?: unknown } | null;
+  if (!result || !isPublicComment(result.comment)) throw new ApiClientError("Unable to add Public Comment.", response.status);
+  return result.comment;
+}
+
+export async function indicateTicketResolution(requesterOrTicketNumber: number | string, optionalTicketNumber?: string): Promise<ResolutionIndication> {
+  const ticketNumber = typeof requesterOrTicketNumber === "number" ? optionalTicketNumber : requesterOrTicketNumber;
+  if (!ticketNumber) throw new ApiClientError("Unable to record the resolution indication.", 400);
+  let response: Response;
+  try { response = await fetch(`${API_URL}/api/tickets/${encodeURIComponent(ticketNumber)}/resolution-indication`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json", ...authenticatedHeaders(true) }, body: "{}" }); }
+  catch { throw new ApiClientError("Unable to record the resolution indication.", 0); }
+  const body = await parseResponseBody(response);
+  if (!response.ok) { const details = readApiError(body); throw new ApiClientError("Unable to record the resolution indication.", response.status, details.code, details.fieldErrors); }
+  const indication = (body as { resolutionIndication?: unknown } | null)?.resolutionIndication;
+  if (typeof indication !== "object" || indication === null || typeof (indication as Record<string, unknown>).indicatedAt !== "string") throw new ApiClientError("Unable to record the resolution indication.", response.status);
+  return indication as ResolutionIndication;
+}
+
 export async function addTicketAttachment(
-  requesterId: number,
-  ticketNumber: string,
-  file: File,
+  requesterOrTicketNumber: number | string,
+  ticketNumberOrFile: string | File,
+  optionalFile?: File,
 ): Promise<TicketAttachment> {
+  const ticketNumber = typeof requesterOrTicketNumber === "number" ? ticketNumberOrFile as string : requesterOrTicketNumber;
+  const file = typeof requesterOrTicketNumber === "number" ? optionalFile : ticketNumberOrFile as File;
+  if (!file || typeof ticketNumber !== "string") throw new ApiClientError("Unable to upload Attachment.", 400);
   const formData = new FormData();
   formData.append("file", file, file.name);
   let response: Response;
   try {
     response = await fetch(`${API_URL}/api/tickets/${encodeURIComponent(ticketNumber)}/attachments`, {
       method: "POST",
-      headers: { "X-Requester-Id": String(requesterId) },
+      credentials: "include",
+      headers: authenticatedHeaders(true),
       body: formData,
     });
   } catch {
@@ -563,15 +755,18 @@ export async function addTicketAttachment(
 }
 
 export async function downloadTicketAttachment(
-  requesterId: number,
-  ticketNumber: string,
-  attachmentId: number,
+  requesterOrTicketNumber: number | string,
+  ticketNumberOrAttachmentId: string | number,
+  optionalAttachmentId?: number,
 ): Promise<Blob> {
+  const ticketNumber = typeof requesterOrTicketNumber === "number" ? ticketNumberOrAttachmentId as string : requesterOrTicketNumber;
+  const attachmentId = typeof requesterOrTicketNumber === "number" ? optionalAttachmentId : ticketNumberOrAttachmentId as number;
+  if (typeof ticketNumber !== "string" || typeof attachmentId !== "number") throw new ApiClientError("Unable to download Attachment.", 400);
   let response: Response;
   try {
     response = await fetch(
       `${API_URL}/api/tickets/${encodeURIComponent(ticketNumber)}/attachments/${attachmentId}/download`,
-      { headers: { "X-Requester-Id": String(requesterId) } },
+      { credentials: "include", headers: authenticatedHeaders() },
     );
   } catch {
     throw new ApiClientError("Unable to download Attachment.", 0);
@@ -594,19 +789,24 @@ export async function downloadTicketAttachment(
 }
 
 export async function removeTicketAttachment(
-  requesterId: number,
-  ticketNumber: string,
-  attachmentId: number,
-  removalReason: string,
+  requesterOrTicketNumber: number | string,
+  ticketNumberOrAttachmentId: string | number,
+  attachmentOrReason: number | string,
+  optionalReason?: string,
 ): Promise<TicketAttachment> {
+  const ticketNumber = typeof requesterOrTicketNumber === "number" ? ticketNumberOrAttachmentId as string : requesterOrTicketNumber;
+  const attachmentId = typeof requesterOrTicketNumber === "number" ? attachmentOrReason as number : ticketNumberOrAttachmentId as number;
+  const removalReason = typeof requesterOrTicketNumber === "number" ? optionalReason : attachmentOrReason as string;
+  if (typeof ticketNumber !== "string" || typeof attachmentId !== "number" || typeof removalReason !== "string") throw new ApiClientError("Unable to remove Attachment.", 400);
   let response: Response;
   try {
     response = await fetch(
       `${API_URL}/api/tickets/${encodeURIComponent(ticketNumber)}/attachments/${attachmentId}`,
       {
         method: "DELETE",
+        credentials: "include",
         headers: {
-          "X-Requester-Id": String(requesterId),
+          ...authenticatedHeaders(true),
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ removalReason }),

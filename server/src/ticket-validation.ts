@@ -46,7 +46,7 @@ export function validateTicketFields(input: Record<string, unknown>): TicketVali
   }
 
   if (Object.prototype.hasOwnProperty.call(input, "requesterId")) {
-    fieldErrors.requesterId = "Requester context must be supplied by X-Requester-Id, not the body.";
+    fieldErrors.requesterId = "Requester identity must come from the authenticated session, not the body.";
   }
 
   const categoryId = parsePositiveInteger(input.categoryId);

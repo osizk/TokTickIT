@@ -47,6 +47,7 @@ describe("Ticket Detail Attachments", () => {
   beforeEach(() => {
     vi.spyOn(api, "fetchTicket").mockResolvedValue(ticket);
     vi.spyOn(api, "fetchTicketAttachments").mockResolvedValue([active, removed]);
+    vi.spyOn(api, "fetchTicketComments").mockResolvedValue([]);
     vi.spyOn(api, "addTicketAttachment").mockResolvedValue({
       ...active,
       id: 23,

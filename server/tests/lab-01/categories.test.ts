@@ -2,14 +2,18 @@ import { afterAll, describe, expect, it } from "vitest";
 import request from "supertest";
 import { app } from "../../src/app.js";
 import { getPrisma } from "../../src/prisma.js";
+import { loginSeedRequester, restoreRequesterFirstLogin } from "../lab-03/requester-test-auth.js";
 
 describe("GET /api/categories", () => {
   afterAll(async () => {
+    const requester = await getPrisma().requester.findFirstOrThrow({ where: { isActive: true }, orderBy: { id: "asc" } });
+    await restoreRequesterFirstLogin(requester.id);
     await getPrisma().$disconnect();
   });
 
   it("returns the four seeded categories in id order", async () => {
-    const res = await request(app).get("/api/categories");
+    const { agent } = await loginSeedRequester();
+    const res = await agent.get("/api/categories");
 
     expect(res.status).toBe(200);
     expect(res.body).toHaveLength(4);

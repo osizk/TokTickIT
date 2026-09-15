@@ -84,6 +84,66 @@ Seeded 4 categories, 7 related systems, and 5 fixture requesters; all existing R
 
 Client work, E2E coverage, and later authenticated Requester/staff/admin feature Issues remain outside Issue #34.
 
+### Issue #35 red/green evidence (authenticated Requester regression)
+
+The planned failing tests were run before the authenticated ownership implementation. These failures are retained as the red-phase record, not counted as passing evidence:
+
+```text
+Command: cd server; npm.cmd test -- --run tests/lab-03/requester-regression.api.test.ts
+Result: failed 3 tests as expected:
+- unauthenticated GET /api/categories returned 200 instead of the required 401;
+- Ticket creation trusted a spoofed X-Requester-Id header and stored Requester B instead of the session Requester A;
+- cross-owner Ticket detail returned the old header-context validation response instead of safe 404 TICKET_NOT_FOUND.
+
+Command: cd client; npm.cmd test -- --run tests/lab-03/RequesterRegression.test.tsx
+Result: failed 2 tests as expected because the legacy health/selector app had no Sign in page or Email field.
+
+Command: cd client; npx playwright test e2e/lab-03/requester-regression.spec.ts --project=desktop
+Result: failed 1 test as expected: /tickets resolved to /select-requester instead of /login after the global test seed completed.
+```
+
+The E2E red run initially exposed a separate test-isolation seed defect: a preserved Requester ID could collide with the User sequence. The seed now checks occupied IDs before creating a User and synchronizes the User sequence before staff/admin fixtures; the migration/seed regression was rerun from a clean disposable `toktickit_lab2_test` database.
+
+Focused green results after implementation:
+
+```text
+Command: cd server; npm.cmd run prisma:test:migrate
+Result: 4 migrations found; 20260916100000_lab3_requester_regression applied successfully.
+
+Command: cd server; npm.cmd test -- --run tests/lab-03/requester-regression.api.test.ts
+Test Files  1 passed (1)
+Tests       3 passed (3)
+
+Command: cd server; npm.cmd test -- --run tests/lab-03/migration-seed.api.test.ts
+Test Files  1 passed (1)
+Tests       4 passed (4)
+
+Command: cd server; npm.cmd run build
+Result: TypeScript build passed.
+
+Command: cd client; npm.cmd test -- --run tests/lab-03/RequesterRegression.test.tsx
+Test Files  1 passed (1)
+Tests       3 passed (3)
+
+Command: cd client; npm.cmd run build
+Result: production TypeScript/Vite build passed.
+
+Command: cd client; npx playwright test e2e/lab-03/requester-regression.spec.ts --project=desktop
+Result: 1 passed, 0 skipped.
+
+Inherited regression results after adapting Lab 2 tests to authenticated session fixtures:
+
+Command: cd server; (local test-only password environment variables supplied in the process); npm.cmd test -- --run
+Test Files  20 passed (20)
+Tests       68 passed (68)
+
+Command: cd client; npm.cmd test -- --run
+Test Files  8 passed (8)
+Tests       29 passed (29)
+```
+
+Issue #35 implementation evidence currently covers authenticated reference access, session-derived Ticket listing/creation/detail/Attachment ownership, safe cross-owner 404, Public Comment creation, idempotent resolution indication, removal of the selector/header from the client flow, login shell, legacy-storage cleanup, route guard, adapted inherited server/client regression, and the protected E2E route. Full authenticated Requester workflow E2E and release screenshots remain later release-gate evidence.
+
 ## 3. Planned test matrix
 
 All paths below are intended paths for the implementation branches. A test is not marked passed until its real command and output are recorded here.
@@ -96,10 +156,10 @@ All paths below are intended paths for the implementation branches. A test is no
 | UNIT-04 | Unit | BR-18/19/20, AC-10 | Queue query parsing, defaults, ordering, and page bounds — `server/tests/lab-03/queue-query.unit.test.ts` | Planned |
 | API-01 | API | FR-01/02, AC-01/02 | Login validation, seeded/temporary active login, safe inactive/unknown failure, and role payload — `server/tests/lab-03/auth.api.test.ts` | Passed: 6 tests |
 | API-02 | API | BR-05, AC-02/20 | Failed-login bucket, temporary block, and recovery — `server/tests/lab-03/auth-rate-limit.api.test.ts` | Passed: 1 test |
-| API-03 | API | FR-02/03, AC-03/04/18 | First-login password change, session rotation, idempotent logout, old-session revocation, wrong-CSRF rejection, and idle/absolute expiry — `server/tests/lab-03/auth-session.api.test.ts` | Passed: 5 tests; later protected-route gates remain in Issue #35 |
+| API-03 | API | FR-02/03, AC-03/04/18 | First-login password change, session rotation, idempotent logout, old-session revocation, wrong-CSRF rejection, and idle/absolute expiry — `server/tests/lab-03/auth-session.api.test.ts` | Passed: 5 tests; staff/admin protected-route coverage remains in later Issues |
 | API-04 | API | FR-04, AC-05/20 | Origin and wrong-role helper safety; full direct endpoint authorization remains with later protected APIs — `server/tests/lab-03/authorization.api.test.ts` | Passed: 2 tests |
 | API-05 | Integration | FR-05/15, AC-06/22 | Applied migration User-ID/credential preservation, non-fixture Requester credential backfill with Ticket/Attachment ownership, changed-password preservation, and repeated idempotent seed counts — `server/tests/lab-03/migration-seed.api.test.ts` | Passed: 4 tests; pre-migration Ticket/Attachment fixture audit remains part of the release migration evidence |
-| API-06 | API | FR-06/07, AC-07/08/20 | Authenticated Requester Ticket/Attachment continuity, inherited Ticket field/priority validation, exact Lab 2 nested routes, and ownership isolation — `server/tests/lab-03/requester-regression.api.test.ts` | Planned |
+| API-06 | API | FR-06/07, AC-07/08/20 | Authenticated Requester Ticket/Attachment continuity, inherited Ticket field/priority validation, exact Lab 2 nested routes, and ownership isolation — `server/tests/lab-03/requester-regression.api.test.ts` | Passed: 3 focused tests plus inherited Lab 2 Ticket/Attachment/list/detail regressions |
 | API-07 | API | FR-09, AC-10/11 | Staff queue search/filter/sort/pagination/defaults, Requested/IT Priority filters and sorting, and safe failures — `server/tests/lab-03/staff-queue.api.test.ts` | Planned |
 | API-08 | API | FR-10, AC-12/13/15 | Staff detail assignment, Requested/IT Priority values and mutation, status, and Attachment access — `server/tests/lab-03/staff-ticket-detail.api.test.ts` | Planned |
 | API-09 | API | FR-08/11/12, AC-09/14 | Public Comments, stable Requester `403 FORBIDDEN` Internal Notes denial, privacy, authorship, validation, append-only behavior — `server/tests/lab-03/comments-notes.api.test.ts` | Planned |
@@ -108,16 +168,16 @@ All paths below are intended paths for the implementation branches. A test is no
 | API-12 | API | FR-04/16, AC-05/20 | Exact authenticated Categories, Related Systems, and staff-assignee response/error contracts — `server/tests/lab-03/reference-data.api.test.ts` | Planned |
 | UI-01 | Component | FR-01/02/17, AC-01/02/03/21 | Login form, safe failure, busy guard, and redirect — `client/tests/lab-03/Login.test.tsx` | Planned |
 | UI-02 | Component | FR-02/03/17, AC-03/04/21 | Change-password guard, policy errors, success, and focus — `client/tests/lab-03/ChangePassword.test.tsx` | Planned |
-| UI-03 | Component | FR-06/07/08, AC-07/08/09/21 | Authenticated shell and Requester list/create/detail regression — `client/tests/lab-03/RequesterRegression.test.tsx` | Planned |
+| UI-03 | Component | FR-06/07/08, AC-07/08/09/21 | Authenticated shell and Requester list/create/detail regression — `client/tests/lab-03/RequesterRegression.test.tsx` | Passed: 3 focused shell/login/legacy-route tests plus inherited Lab 2 list/create/detail/attachment UI regressions |
 | UI-04 | Component | FR-09/17, AC-10/11/21 | Queue controls, Requested/IT Priority filters and sorting, states, role visibility, cards/table, and pagination — `client/tests/lab-03/StaffTicketQueue.test.tsx` | Planned |
 | UI-05 | Component | FR-10/11/12, AC-12/13/14/15/21 | Staff detail actions, priority mutation, dialogs, comments, notes, and attachments — `client/tests/lab-03/StaffTicketDetail.test.tsx` | Planned |
 | UI-06 | Component | FR-13/14, AC-16/17/18/19/21 | User list/editor, validation, activation, `USER_OWNS_TICKETS` conflict feedback, session-effect messaging, and reset controls — `client/tests/lab-03/UserManagement.test.tsx` | Planned |
 | STYLE-01 | Style/a11y | FR-17, AC-11/21 | Labels, focus, roles, contrast, touch targets, semantic feedback — `client/tests/lab-03/Accessibility.test.tsx` | Planned |
 | STYLE-02 | Responsive | FR-17, AC-11/21 | Desktop/tablet/mobile layout and no page-wide horizontal scroll — `client/tests/lab-03/Responsive.test.tsx` | Planned |
-| REG-01 | Regression | AC-06/07/08/15 | Complete prior server suite after migration and auth integration — `server/tests/lab-01/**`, `server/tests/lab-02/**` | Planned |
-| REG-02 | Regression | AC-06/07/08/21 | Complete prior client suite after selector-to-auth migration — `client/tests/lab-01/**`, `client/tests/lab-02/**` | Planned |
+| REG-01 | Regression | AC-06/07/08/15 | Complete prior server suite after migration and auth integration — `server/tests/lab-01/**`, `server/tests/lab-02/**` | Passed: 20 files, 68 tests |
+| REG-02 | Regression | AC-06/07/08/21 | Complete prior client suite after selector-to-auth migration — `client/tests/lab-01/**`, `client/tests/lab-02/**` | Passed: 8 files, 29 tests |
 | E2E-01 | E2E | AC-01/02/03/04/05/21 | Login, first-login change, logout, guard, and role navigation — `e2e/lab-03/authentication.spec.ts` | Planned |
-| E2E-02 | E2E | AC-07/08/09/14/21 | Requester Ticket continuity, comment, resolution indication, and note privacy — `e2e/lab-03/requester-regression.spec.ts` | Planned |
+| E2E-02 | E2E | AC-07/08/09/14/21 | Requester Ticket continuity, comment, resolution indication, and note privacy — `e2e/lab-03/requester-regression.spec.ts` | Passed: 1 route-guard test; full requester E2E continuation remains release-gate work |
 | E2E-03 | E2E | AC-10/11/12/13/14/15/21 | Staff queue/detail operations, priority filters/mutations, comments, notes, attachments, and responsive views — `e2e/lab-03/staff-ticket-flow.spec.ts` | Planned |
 | E2E-04 | E2E | AC-16/17/18/19/21 | Admin User Management and safety protections — `e2e/lab-03/user-administration.spec.ts` | Planned |
 | E2E-05 | E2E | AC-23 | Release evidence states and final-main evidence capture — `e2e/lab-03/release-evidence-states.spec.ts` | Planned |
@@ -274,7 +334,22 @@ The following mapping makes the business-rule coverage explicit. Each implementa
 - [ ] Teammate submits an actual GitHub **Approve** review.
 - [ ] Student explicitly authorizes commit, push, PR, and merge; card moves to Done only after merge.
 
-## 10. Visual and evidence checklist
+## 10. Issue #35 evidence checklist
+
+- [x] Branch `feature/15-Lab3RequesterAuthRegression` was created from the merged `lab3-staging` baseline.
+- [x] Planned API, UI, and E2E red-phase tests were run before implementation and their observed failures are recorded above.
+- [x] Authenticated session ownership ignores a spoofed `X-Requester-Id` header and rejects unauthenticated protected reference access.
+- [x] Authenticated Requester Ticket list/create/detail and nested Attachment access pass the focused API regression; cross-owner detail returns safe `404 TICKET_NOT_FOUND`.
+- [x] Public Comment creation and idempotent resolution indication pass in the focused API regression.
+- [x] Login shell, selector removal, legacy requester-storage cleanup, and protected route redirect pass the focused UI/E2E checks.
+- [x] The new PublicComment/resolution migration applies successfully to the disposable test database.
+- [x] Server and client builds pass for this Issue.
+- [x] Full Lab 2 server/client regression suites were adapted to authenticated session fixtures and pass (server 20 files/68 tests; client 8 files/29 tests).
+- [ ] Full Requester comments/attachments E2E and release screenshots remain future release-gate evidence.
+- [ ] Teammate submits an actual GitHub **Approve** review.
+- [ ] Student explicitly authorizes commit, push, PR, and merge; card moves to Done only after merge.
+
+## 11. Visual and evidence checklist
 
 - [ ] Final `main` SHA and merge graph show the Lab 3 branch sequence.
 - [ ] Contract PR is visibly approved and merged before product PRs.

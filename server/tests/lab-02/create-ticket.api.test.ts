@@ -5,12 +5,15 @@ import os from "node:os";
 import path from "node:path";
 import { app } from "../../src/app.js";
 import { getPrisma } from "../../src/prisma.js";
+import { loginRequesterByLegacyId, restoreRequesterFirstLogin } from "../lab-03/requester-test-auth.js";
 
 describe("POST /api/tickets", () => {
   let storageDir: string;
   let requesterId: number;
   let categoryId: number;
   let relatedSystemId: number;
+  let requesterAgent: ReturnType<typeof request.agent>;
+  let csrfToken: string;
   const createdTicketNumbers: string[] = [];
 
   beforeAll(async () => {
@@ -28,6 +31,9 @@ describe("POST /api/tickets", () => {
     requesterId = requester.id;
     categoryId = category.id;
     relatedSystemId = relatedSystem.id;
+    const authenticated = await loginRequesterByLegacyId(requesterId);
+    requesterAgent = authenticated.agent;
+    csrfToken = authenticated.csrfToken;
   });
 
   afterAll(async () => {
@@ -40,6 +46,7 @@ describe("POST /api/tickets", () => {
       await prisma.attachment.deleteMany({ where: { ticketId: { in: tickets.map((ticket) => ticket.id) } } });
       await prisma.ticket.deleteMany({ where: { id: { in: tickets.map((ticket) => ticket.id) } } });
     }
+    await restoreRequesterFirstLogin(requesterId);
     await rm(storageDir, { recursive: true, force: true });
     await prisma.$disconnect();
   });
@@ -53,11 +60,12 @@ describe("POST /api/tickets", () => {
       .field("summary", "A valid summary")
       .field("description", "A valid description for the ticket.");
 
-    expect(missingContext.status).toBe(400);
+    expect(missingContext.status).toBe(401);
+    expect(missingContext.body.error.code).toBe("SESSION_REQUIRED");
 
-    const bodyRequester = await request(app)
+    const bodyRequester = await requesterAgent
       .post("/api/tickets")
-      .set("X-Requester-Id", String(requesterId))
+      .set("X-CSRF-Token", csrfToken)
       .field("requesterId", String(requesterId))
       .field("categoryId", String(categoryId))
       .field("relatedSystemId", String(relatedSystemId))
@@ -70,9 +78,9 @@ describe("POST /api/tickets", () => {
   });
 
   it("creates a Ticket with the official number, createdAt Ticket Date, NEW status, and attachments atomically", async () => {
-    const response = await request(app)
+    const response = await requesterAgent
       .post("/api/tickets")
-      .set("X-Requester-Id", String(requesterId))
+      .set("X-CSRF-Token", csrfToken)
       .field("categoryId", String(categoryId))
       .field("relatedSystemId", String(relatedSystemId))
       .field("requestedPriority", "HIGH")
@@ -105,9 +113,9 @@ describe("POST /api/tickets", () => {
   it("rejects a signature-mismatched attachment without creating a Ticket", async () => {
     const beforeCount = await getPrisma().ticket.count();
     const beforeFiles = await readdir(storageDir);
-    const response = await request(app)
+    const response = await requesterAgent
       .post("/api/tickets")
-      .set("X-Requester-Id", String(requesterId))
+      .set("X-CSRF-Token", csrfToken)
       .field("categoryId", String(categoryId))
       .field("relatedSystemId", String(relatedSystemId))
       .field("requestedPriority", "LOW")
@@ -127,9 +135,9 @@ describe("POST /api/tickets", () => {
   it("rejects more than five attachments before persistence", async () => {
     const beforeCount = await getPrisma().ticket.count();
     const beforeFiles = await readdir(storageDir);
-    const form = request(app)
+    const form = requesterAgent
       .post("/api/tickets")
-      .set("X-Requester-Id", String(requesterId))
+      .set("X-CSRF-Token", csrfToken)
       .field("categoryId", String(categoryId))
       .field("relatedSystemId", String(relatedSystemId))
       .field("requestedPriority", "LOW")
@@ -153,9 +161,9 @@ describe("POST /api/tickets", () => {
   it("compensates staged files when a reference check aborts the transaction", async () => {
     const beforeCount = await getPrisma().ticket.count();
     const beforeFiles = await readdir(storageDir);
-    const response = await request(app)
+    const response = await requesterAgent
       .post("/api/tickets")
-      .set("X-Requester-Id", String(requesterId))
+      .set("X-CSRF-Token", csrfToken)
       .field("categoryId", "999999")
       .field("relatedSystemId", String(relatedSystemId))
       .field("requestedPriority", "LOW")
@@ -182,9 +190,9 @@ describe("POST /api/tickets", () => {
     process.env.ATTACHMENT_STORAGE_DIR = blockedStoragePath;
 
     try {
-      const response = await request(app)
+      const response = await requesterAgent
         .post("/api/tickets")
-        .set("X-Requester-Id", String(requesterId))
+        .set("X-CSRF-Token", csrfToken)
         .field("categoryId", String(categoryId))
         .field("relatedSystemId", String(relatedSystemId))
         .field("requestedPriority", "LOW")
@@ -216,9 +224,9 @@ describe("POST /api/tickets", () => {
   it("allocates unique annual Ticket Numbers for concurrent creates", async () => {
     const responses = await Promise.all(
       Array.from({ length: 4 }, (_, index) =>
-        request(app)
+        requesterAgent
           .post("/api/tickets")
-          .set("X-Requester-Id", String(requesterId))
+          .set("X-CSRF-Token", csrfToken)
           .field("categoryId", String(categoryId))
           .field("relatedSystemId", String(relatedSystemId))
           .field("requestedPriority", "MEDIUM")

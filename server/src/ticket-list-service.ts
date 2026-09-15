@@ -238,8 +238,8 @@ function serializeTicketListItem(
   };
 }
 
-export async function listTickets(request: Request): Promise<TicketListResponse> {
-  const requesterId = parseRequesterId(request);
+export async function listTickets(request: Request, authenticatedRequesterId?: number): Promise<TicketListResponse> {
+  const requesterId = authenticatedRequesterId ?? parseRequesterId(request);
   const query = parseTicketListQuery(request.query);
   const prisma = getPrisma();
 
