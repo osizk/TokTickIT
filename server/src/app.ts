@@ -30,6 +30,7 @@ import {
 } from "./auth-service.js";
 import { validateEmail, validatePassword } from "./auth-validation.js";
 import { createPublicComment, indicateResolution, listPublicComments } from "./comment-service.js";
+import { listStaffAssignees, listStaffTickets } from "./staff-queue-service.js";
 
 export const app = express();
 
@@ -88,6 +89,12 @@ async function requireRequester(req: Request) {
   const context = await requireUsableSession(req);
   requireRole(context, "REQUESTER");
   return { context, requesterId: requesterIdForContext(context) };
+}
+
+async function requireStaff(req: Request) {
+  const context = await requireUsableSession(req);
+  requireRole(context, "IT_STAFF", "ADMINISTRATOR");
+  return context;
 }
 
 app.post("/api/auth/login", async (req: Request, res: Response) => {
@@ -214,6 +221,28 @@ app.get("/api/requesters", async (req: Request, res: Response) => {
   } catch (error) {
     if (error instanceof AuthError) sendAuthError(res, error);
     else sendReferenceError(res, "Unable to load requesters.");
+  }
+});
+
+app.get("/api/staff/tickets", async (req: Request, res: Response) => {
+  try {
+    const context = await requireStaff(req);
+    const result = await listStaffTickets(req, context.user.id);
+    markUncached(res);
+    res.status(200).json(result);
+  } catch (error) {
+    sendTicketError(res, error);
+  }
+});
+
+app.get("/api/staff/assignees", async (req: Request, res: Response) => {
+  try {
+    await requireStaff(req);
+    const result = await listStaffAssignees();
+    markUncached(res);
+    res.status(200).json(result);
+  } catch (error) {
+    sendTicketError(res, error);
   }
 });
 
