@@ -652,6 +652,29 @@ export async function fetchStaffTickets(query: StaffTicketQuery): Promise<StaffT
   return body;
 }
 
+export async function fetchStaffTicket(ticketNumber: string): Promise<StaffTicket> {
+  if (!ticketNumber) throw new ApiClientError("Unable to load Staff Ticket.", 400);
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}/api/staff/tickets/${encodeURIComponent(ticketNumber)}`, {
+      credentials: "include",
+      headers: authenticatedHeaders(),
+    });
+  } catch {
+    throw new ApiClientError("Unable to load Staff Ticket.", 0);
+  }
+  const body = await parseResponseBody(response);
+  if (!response.ok) {
+    const details = readApiError(body);
+    throw new ApiClientError("Unable to load Staff Ticket.", response.status, details.code, details.fieldErrors);
+  }
+  const result = body as { ticket?: unknown } | null;
+  if (!result || !isStaffTicket(result.ticket)) {
+    throw new ApiClientError("Unable to load Staff Ticket.", response.status);
+  }
+  return result.ticket;
+}
+
 export async function fetchStaffAssignees(): Promise<StaffAssignee[]> {
   let response: Response;
   try {

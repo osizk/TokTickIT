@@ -16,6 +16,7 @@ const SORT_FIELDS = [
 const ORDERS = ["asc", "desc"] as const;
 const PAGE_SIZES = [10, 25, 50] as const;
 const PRIORITIES = ["LOW", "MEDIUM", "HIGH", "URGENT"] as const;
+const TICKET_NUMBER_PATTERN = /^TKT-\d{4}-\d{6}$/;
 const STATUSES = [
   "NEW",
   "OPEN",
@@ -100,6 +101,13 @@ function validationError(field: string, message: string): TicketApiError {
     message: "Please correct the query parameters.",
     fieldErrors: { [field]: message },
   });
+}
+
+function ensureTicketNumber(ticketNumber: string): string {
+  if (!TICKET_NUMBER_PATTERN.test(ticketNumber)) {
+    throw new TicketApiError({ statusCode: 404, code: "TICKET_NOT_FOUND", message: "Ticket was not found." });
+  }
+  return ticketNumber;
 }
 
 function getSingleQueryValue(query: Request["query"], key: string): string | undefined {
@@ -323,6 +331,26 @@ export async function listStaffTickets(request: Request, authenticatedUserId: nu
   } catch (error) {
     if (error instanceof TicketApiError) throw error;
     throw new TicketApiError({ statusCode: 500, code: "STAFF_QUEUE_FAILED", message: "Staff Tickets could not be loaded." });
+  }
+}
+
+export async function getStaffTicket(ticketNumber: string): Promise<{ ticket: StaffTicket }> {
+  try {
+    const ticket = await getPrisma().ticket.findUnique({
+      where: { ticketNumber: ensureTicketNumber(ticketNumber) },
+      select: staffTicketSelect,
+    });
+    if (!ticket) {
+      throw new TicketApiError({ statusCode: 404, code: "TICKET_NOT_FOUND", message: "Ticket was not found." });
+    }
+    return { ticket: serializeStaffTicket(ticket) };
+  } catch (error) {
+    if (error instanceof TicketApiError) throw error;
+    throw new TicketApiError({
+      statusCode: 500,
+      code: "STAFF_TICKET_DETAIL_FAILED",
+      message: "Staff Ticket could not be loaded.",
+    });
   }
 }
 

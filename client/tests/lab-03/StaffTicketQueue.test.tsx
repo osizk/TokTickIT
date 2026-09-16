@@ -79,6 +79,7 @@ describe("Lab 3 Staff Ticket Queue", () => {
     vi.spyOn(api, "fetchRelatedSystems").mockResolvedValue(systems);
     vi.spyOn(api, "fetchStaffAssignees").mockResolvedValue(assignees);
     vi.spyOn(api, "fetchStaffTickets").mockResolvedValue(queueResponse);
+    vi.spyOn(api, "fetchStaffTicket").mockResolvedValue(queueResponse.items[0]);
   });
 
   afterEach(() => {
@@ -129,6 +130,18 @@ describe("Lab 3 Staff Ticket Queue", () => {
     expect(fetchSpy).toHaveBeenLastCalledWith(expect.objectContaining({
       search: "Amina", categoryId: 10, requestedPriority: "HIGH", itPriority: "URGENT", status: "IN_PROGRESS", owner: "unassigned", sort: "itPriority", order: "asc", page: 1, pageSize: 25,
     }));
+  });
+
+  it("opens a queue Ticket in the staff detail route", async () => {
+    const user = userEvent.setup();
+    await openQueue(user);
+
+    await user.click(screen.getAllByRole("link", { name: "Open" })[0]);
+
+    expect(await screen.findByRole("heading", { name: "Staff Ticket Detail" })).toBeInTheDocument();
+    expect(screen.getByText("Campus Wi-Fi disconnects")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Back to Ticket Queue" })).toHaveAttribute("href", "/staff/tickets");
+    expect(api.fetchStaffTicket).toHaveBeenCalledWith("TKT-2026-000001");
   });
 
   it("distinguishes an empty queue from filtered no-results and can clear filters", async () => {

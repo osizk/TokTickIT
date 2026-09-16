@@ -30,7 +30,7 @@ import {
 } from "./auth-service.js";
 import { validateEmail, validatePassword } from "./auth-validation.js";
 import { createPublicComment, indicateResolution, listPublicComments } from "./comment-service.js";
-import { listStaffAssignees, listStaffTickets } from "./staff-queue-service.js";
+import { getStaffTicket, listStaffAssignees, listStaffTickets } from "./staff-queue-service.js";
 
 export const app = express();
 
@@ -228,6 +228,17 @@ app.get("/api/staff/tickets", async (req: Request, res: Response) => {
   try {
     const context = await requireStaff(req);
     const result = await listStaffTickets(req, context.user.id);
+    markUncached(res);
+    res.status(200).json(result);
+  } catch (error) {
+    sendTicketError(res, error);
+  }
+});
+
+app.get("/api/staff/tickets/:ticketNumber", async (req: Request, res: Response) => {
+  try {
+    await requireStaff(req);
+    const result = await getStaffTicket(req.params.ticketNumber);
     markUncached(res);
     res.status(200).json(result);
   } catch (error) {

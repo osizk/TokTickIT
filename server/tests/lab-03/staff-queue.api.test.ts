@@ -180,6 +180,31 @@ describe("Lab 3 IT Staff Ticket Queue API", () => {
     }
   });
 
+  it("opens a queue Ticket through the staff detail endpoint with safe role and not-found responses", async () => {
+    const response = await staffA.get(`/api/staff/tickets/${createdTicketNumbers[0]}`);
+    expect(response.status).toBe(200);
+    expect(response.body.ticket).toMatchObject({
+      ticketNumber: createdTicketNumbers[0],
+      requester: { id: requesterId, name: "Queue Requester", email: requesterEmail },
+      category: { id: categoryId },
+      relatedSystem: { id: relatedSystemId },
+      requestedPriority: "LOW",
+      itPriority: "URGENT",
+      status: "NEW",
+      ticketOwner: null,
+    });
+    expect(Object.keys(response.body.ticket).sort()).toEqual([
+      "category", "createdAt", "description", "id", "itPriority", "relatedSystem", "requester",
+      "requestedPriority", "resolutionIndication", "status", "summary", "ticketNumber", "ticketOwner", "updatedAt",
+    ].sort());
+
+    const missing = await staffA.get("/api/staff/tickets/TKT-2096-999999");
+    expect(missing.status).toBe(404);
+    expect(missing.body).toEqual({ error: { code: "TICKET_NOT_FOUND", message: "Ticket was not found." } });
+    expect((await requester.get(`/api/staff/tickets/${createdTicketNumbers[0]}`)).status).toBe(403);
+    expect((await request(app).get(`/api/staff/tickets/${createdTicketNumbers[0]}`)).status).toBe(401);
+  });
+
   it("rejects unknown, malformed, inactive, and ineligible query values safely", async () => {
     const queries = [
       { unknown: "value" },
