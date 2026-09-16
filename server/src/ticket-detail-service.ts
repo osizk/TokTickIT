@@ -22,6 +22,7 @@ type TicketDetailPayload = Prisma.TicketGetPayload<{
     requester: true;
     category: true;
     relatedSystem: true;
+    resolutionIndicatedBy: true;
   };
 }>;
 
@@ -72,7 +73,7 @@ async function findOwnedTicket(
   const normalizedNumber = ensureTicketNumber(ticketNumber);
   const ticket = await db.ticket.findFirst({
     where: { ticketNumber: normalizedNumber, requesterId },
-    include: { requester: true, category: true, relatedSystem: true },
+    include: { requester: true, category: true, relatedSystem: true, resolutionIndicatedBy: true },
   });
   if (!ticket) {
     throw apiError(404, "TICKET_NOT_FOUND", "Ticket was not found.");
@@ -95,21 +96,32 @@ function serializeTicketDetail(ticket: TicketDetailPayload) {
     status: ticket.status,
     summary: ticket.summary,
     description: ticket.description,
+    resolutionIndication: ticket.resolutionIndicatedAt && ticket.resolutionIndicatedBy
+      ? {
+          indicatedAt: ticket.resolutionIndicatedAt,
+          indicatedBy: {
+            id: ticket.resolutionIndicatedBy.id,
+            name: ticket.resolutionIndicatedBy.name,
+            email: ticket.resolutionIndicatedBy.email,
+            role: ticket.resolutionIndicatedBy.role,
+          },
+        }
+      : null,
     createdAt: ticket.createdAt,
     updatedAt: ticket.updatedAt,
   };
 }
 
-export async function getTicketDetail(request: Request, ticketNumber: string) {
-  const requesterId = parseRequesterId(request);
+export async function getTicketDetail(request: Request, ticketNumber: string, authenticatedRequesterId?: number) {
+  const requesterId = authenticatedRequesterId ?? parseRequesterId(request);
   const db = getPrisma();
   await requireActiveRequester(db, requesterId);
   const ticket = await findOwnedTicket(db, requesterId, ticketNumber);
   return { ticket: serializeTicketDetail(ticket) };
 }
 
-export async function getTicketAttachments(request: Request, ticketNumber: string) {
-  const requesterId = parseRequesterId(request);
+export async function getTicketAttachments(request: Request, ticketNumber: string, authenticatedRequesterId?: number) {
+  const requesterId = authenticatedRequesterId ?? parseRequesterId(request);
   const db = getPrisma();
   await requireActiveRequester(db, requesterId);
   const ticket = await findOwnedTicket(db, requesterId, ticketNumber);
@@ -169,8 +181,8 @@ async function createAttachmentInTransaction(
   });
 }
 
-export async function addTicketAttachment(request: Request, ticketNumber: string) {
-  const requesterId = parseRequesterId(request);
+export async function addTicketAttachment(request: Request, ticketNumber: string, authenticatedRequesterId?: number) {
+  const requesterId = authenticatedRequesterId ?? parseRequesterId(request);
   const db = getPrisma();
   await requireActiveRequester(db, requesterId);
   // Resolve ownership before parsing/staging bytes so cross-requester Tickets
@@ -207,8 +219,9 @@ export async function downloadTicketAttachment(
   request: Request,
   ticketNumber: string,
   rawAttachmentId: string,
+  authenticatedRequesterId?: number,
 ) {
-  const requesterId = parseRequesterId(request);
+  const requesterId = authenticatedRequesterId ?? parseRequesterId(request);
   const db = getPrisma();
   await requireActiveRequester(db, requesterId);
   const ticket = await findOwnedTicket(db, requesterId, ticketNumber);
@@ -266,8 +279,9 @@ export async function removeTicketAttachment(
   request: Request,
   ticketNumber: string,
   rawAttachmentId: string,
+  authenticatedRequesterId?: number,
 ) {
-  const requesterId = parseRequesterId(request);
+  const requesterId = authenticatedRequesterId ?? parseRequesterId(request);
   const db = getPrisma();
   await requireActiveRequester(db, requesterId);
   // Check the owner before validating the requested row/body so inaccessible

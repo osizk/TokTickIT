@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent, FormEvent, KeyboardEvent } from "react";
 import {
   ApiClientError,
+  PublicComment,
   Requester,
   TicketAttachment,
   TicketDetail as TicketDetailData,
@@ -9,6 +10,9 @@ import {
   downloadTicketAttachment,
   fetchTicket,
   fetchTicketAttachments,
+  fetchTicketComments,
+  addPublicComment,
+  indicateTicketResolution,
   removeTicketAttachment,
 } from "./api.js";
 
@@ -139,6 +143,14 @@ export default function TicketDetail({ requester, ticketNumber, navigate }: Tick
   const [attachmentState, setAttachmentState] = useState<LoadState>("loading");
   const [ticketRetry, setTicketRetry] = useState(0);
   const [attachmentRetry, setAttachmentRetry] = useState(0);
+  const [comments, setComments] = useState<PublicComment[]>([]);
+  const [commentState, setCommentState] = useState<LoadState>("loading");
+  const [commentRetry, setCommentRetry] = useState(0);
+  const [commentText, setCommentText] = useState("");
+  const [commentError, setCommentError] = useState<string | null>(null);
+  const [commentSubmitting, setCommentSubmitting] = useState(false);
+  const [resolutionSubmitting, setResolutionSubmitting] = useState(false);
+  const [resolutionMessage, setResolutionMessage] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -189,6 +201,15 @@ export default function TicketDetail({ requester, ticketNumber, navigate }: Tick
       cancelled = true;
     };
   }, [requester.id, ticketNumber, attachmentRetry]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setCommentState("loading");
+    void fetchTicketComments(requester.id, ticketNumber)
+      .then((loaded) => { if (!cancelled) { setComments(loaded); setCommentState("success"); } })
+      .catch(() => { if (!cancelled) { setComments([]); setCommentState("error"); } });
+    return () => { cancelled = true; };
+  }, [requester.id, ticketNumber, commentRetry]);
 
   useEffect(() => {
     if (removalTarget) {
@@ -300,6 +321,29 @@ export default function TicketDetail({ requester, ticketNumber, navigate }: Tick
     }
   }
 
+  async function handleCommentSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const content = commentText.trim();
+    if (commentSubmitting || content.length < 1 || content.length > 2000) {
+      if (content.length < 1 || content.length > 2000) setCommentError("Comment must be 1–2,000 characters after trimming.");
+      return;
+    }
+    setCommentSubmitting(true); setCommentError(null);
+    try {
+      const created = await addPublicComment(requester.id, ticketNumber, content);
+      setComments((current) => [...current, created]); setCommentText(""); setCommentState("success");
+    } catch (error) { setCommentError(actionErrorMessage(error, "Unable to add Public Comment.")); }
+    finally { setCommentSubmitting(false); }
+  }
+
+  async function handleResolutionIndication() {
+    if (resolutionSubmitting) return;
+    setResolutionSubmitting(true); setResolutionMessage(null);
+    try { await indicateTicketResolution(requester.id, ticketNumber); setResolutionMessage("Problem marked as appearing resolved. Ticket status is unchanged."); }
+    catch (error) { setResolutionMessage(actionErrorMessage(error, "Unable to record the resolution indication.")); }
+    finally { setResolutionSubmitting(false); }
+  }
+
   return (
     <section className="zen-card zen-detail-card" aria-labelledby="ticket-detail-heading">
       <div className="zen-detail-heading">
@@ -331,6 +375,19 @@ export default function TicketDetail({ requester, ticketNumber, navigate }: Tick
           <ReadOnlyField label="Description" value={ticket.description} multiline />
         </div>
       )}
+
+      <section className="zen-comment-section" aria-labelledby="public-comments-heading">
+        <div className="zen-section-heading"><div><p className="zen-eyebrow">Requester communication</p><h2 id="public-comments-heading">Public Comments</h2></div></div>
+        {commentState === "loading" && <p className="zen-state zen-state-info" role="status">Loading Public Comments...</p>}
+        {commentState === "error" && <div className="zen-state zen-state-error" role="alert"><p>Unable to load Public Comments.</p><button className="zen-button zen-button-secondary" type="button" onClick={() => setCommentRetry((value) => value + 1)}>Retry</button></div>}
+        {commentState === "success" && comments.length === 0 && <p className="zen-state zen-state-info" role="status">No Public Comments yet.</p>}
+        {comments.length > 0 && <ol className="zen-comment-list" aria-label="Public Comment timeline">{comments.map((comment) => <li key={comment.id}><div><strong>{comment.author.name}</strong><span>{formatDate(comment.createdAt)}</span></div><p>{comment.content}</p></li>)}</ol>}
+        <form className="zen-comment-form" onSubmit={(event) => void handleCommentSubmit(event)}>
+          <div className="zen-field"><label htmlFor="public-comment">Add Public Comment</label><textarea id="public-comment" className="zen-input zen-textarea" value={commentText} maxLength={2000} onChange={(event) => setCommentText(event.target.value)} aria-describedby={commentError ? "public-comment-error" : undefined} /><span className="zen-help">1–2,000 characters. Comments are append-only.</span>{commentError && <p id="public-comment-error" className="zen-field-error" role="alert">{commentError}</p>}</div>
+          <button className="zen-button zen-button-primary" type="submit" disabled={commentSubmitting || commentText.trim().length < 1 || commentText.trim().length > 2000}>{commentSubmitting ? "Posting Comment..." : "Post Comment"}</button>
+        </form>
+        <div className="zen-resolution-action"><button className="zen-button zen-button-secondary" type="button" onClick={() => void handleResolutionIndication()} disabled={resolutionSubmitting}>{resolutionSubmitting ? "Saving..." : "Problem appears resolved"}</button>{resolutionMessage && <p className="zen-state zen-state-success" role="status">{resolutionMessage}</p>}</div>
+      </section>
 
       <section className="zen-attachment-section" aria-labelledby="ticket-attachments-heading">
         <div className="zen-section-heading">

@@ -2,9 +2,12 @@ import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import request from "supertest";
 import { app } from "../../src/app.js";
 import * as prismaModule from "../../src/prisma.js";
+import { loginSeedRequester, restoreRequesterFirstLogin } from "../lab-03/requester-test-auth.js";
 
 describe("Lab 2 reference-data APIs", () => {
   afterAll(async () => {
+    const requester = await prismaModule.getPrisma().requester.findFirstOrThrow({ where: { isActive: true }, orderBy: { id: "asc" } });
+    await restoreRequesterFirstLogin(requester.id);
     await prismaModule.getPrisma().$disconnect();
   });
 
@@ -13,7 +16,8 @@ describe("Lab 2 reference-data APIs", () => {
   });
 
   it("returns only active categories in stable id order", async () => {
-    const res = await request(app).get("/api/categories");
+    const { agent } = await loginSeedRequester();
+    const res = await agent.get("/api/categories");
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual([
@@ -26,7 +30,8 @@ describe("Lab 2 reference-data APIs", () => {
   });
 
   it("returns only active related systems in stable id/name order", async () => {
-    const res = await request(app).get("/api/related-systems");
+    const { agent } = await loginSeedRequester();
+    const res = await agent.get("/api/related-systems");
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual([
@@ -41,7 +46,8 @@ describe("Lab 2 reference-data APIs", () => {
   });
 
   it("returns only active requesters with safe public fields", async () => {
-    const res = await request(app).get("/api/requesters");
+    const { agent } = await loginSeedRequester();
+    const res = await agent.get("/api/requesters");
 
     expect(res.status).toBe(200);
     expect(res.body).toHaveLength(4);
@@ -60,7 +66,8 @@ describe("Lab 2 reference-data APIs", () => {
     const prisma = prismaModule.getPrisma();
     const total = await prisma.requester.count();
     const inactive = await prisma.requester.count({ where: { isActive: false } });
-    const res = await request(app).get("/api/requesters");
+    const { agent } = await loginSeedRequester();
+    const res = await agent.get("/api/requesters");
 
     expect(total).toBe(5);
     expect(inactive).toBe(1);
@@ -68,12 +75,15 @@ describe("Lab 2 reference-data APIs", () => {
   });
 
   it("returns a structured safe error when a reference query fails", async () => {
+    const { agent } = await loginSeedRequester();
     const findMany = vi.fn().mockRejectedValue(new Error("database details must not escape"));
+    const originalPrisma = prismaModule.getPrisma();
     vi.spyOn(prismaModule, "getPrisma").mockReturnValue({
-      category: { findMany },
+      ...originalPrisma,
+      category: { ...originalPrisma.category, findMany },
     } as never);
 
-    const res = await request(app).get("/api/categories");
+    const res = await agent.get("/api/categories");
 
     expect(res.status).toBe(500);
     expect(res.body).toEqual({

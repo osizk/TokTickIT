@@ -22,11 +22,14 @@ vi.mock("node:fs/promises", async () => {
 
 import { app } from "../../src/app.js";
 import { getPrisma } from "../../src/prisma.js";
+import { loginRequesterByLegacyId, restoreRequesterFirstLogin } from "../lab-03/requester-test-auth.js";
 
 describe("POST /api/tickets/:ticketNumber/attachments filesystem compensation", () => {
   let storageDir: string;
   let requesterId: number;
   let ticketNumber: string;
+  let requesterAgent: ReturnType<typeof request.agent>;
+  let csrfToken: string;
 
   beforeAll(async () => {
     storageDir = await mkdtemp(path.join(os.tmpdir(), "toktickit-lab2-attachment-rollback-"));
@@ -39,6 +42,7 @@ describe("POST /api/tickets/:ticketNumber/attachments filesystem compensation", 
       throw new Error("Lab 2 seed data is required before running attachment rollback tests.");
     }
     requesterId = requester.id;
+    ({ agent: requesterAgent, csrfToken } = await loginRequesterByLegacyId(requesterId));
     ticketNumber = `TKT-${new Date().getUTCFullYear()}-${String(Date.now() % 1_000_000).padStart(6, "0")}`;
     await prisma.ticket.create({
       data: {
@@ -60,6 +64,7 @@ describe("POST /api/tickets/:ticketNumber/attachments filesystem compensation", 
   afterAll(async () => {
     const prisma = getPrisma();
     await prisma.ticket.deleteMany({ where: { ticketNumber } });
+    await restoreRequesterFirstLogin(requesterId);
     await rm(storageDir, { recursive: true, force: true });
     await prisma.$disconnect();
   });
@@ -67,9 +72,9 @@ describe("POST /api/tickets/:ticketNumber/attachments filesystem compensation", 
   it("rolls back Attachment metadata and removes staged/final files when the move fails", async () => {
     const prisma = getPrisma();
     const beforeFiles = await readdir(storageDir);
-    const response = await request(app)
+    const response = await requesterAgent
       .post(`/api/tickets/${ticketNumber}/attachments`)
-      .set("X-Requester-Id", String(requesterId))
+      .set("X-CSRF-Token", csrfToken)
       .attach("file", Buffer.from("%PDF-1.7\nrollback"), { filename: "rollback.pdf", contentType: "application/pdf" });
 
     expect(response.status).toBe(500);

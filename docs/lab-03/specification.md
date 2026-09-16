@@ -89,7 +89,7 @@ Unauthenticated requests return safe `401`. Authenticated wrong-role requests re
 - **BR-15:** Statuses are `NEW`, `OPEN`, `IN_PROGRESS`, `WAITING_FOR_REQUESTER`, `RESOLVED`, `CLOSED`, `REOPENED`, and `CANCELLED`.
 - **BR-16:** Allowed transitions are: `NEW` -> `OPEN|CANCELLED`; `OPEN` -> `IN_PROGRESS|WAITING_FOR_REQUESTER|RESOLVED|CANCELLED`; `IN_PROGRESS` -> `WAITING_FOR_REQUESTER|RESOLVED|CANCELLED`; `WAITING_FOR_REQUESTER` -> `IN_PROGRESS|RESOLVED|CANCELLED`; `RESOLVED` -> `CLOSED|REOPENED`; `CLOSED` -> `REOPENED`; `REOPENED` -> `IN_PROGRESS|WAITING_FOR_REQUESTER|RESOLVED|CANCELLED`; `CANCELLED` has no next state.
 - **BR-17:** Confirmation is required for reassigning away from an owner, unassigning, or moving to `RESOLVED`, `CLOSED`, `REOPENED`, or `CANCELLED`.
-- **BR-18:** A Requester indication is metadata only, is allowed on an owned active non-terminal Ticket, and is idempotent; it does not change formal status.
+- **BR-18:** A Requester indication is metadata only, is allowed on an owned Ticket unless its status is `CLOSED` or `CANCELLED`, and is idempotent; it does not change formal status. `RESOLVED` remains reopenable and may receive an indication.
 - **BR-19:** Public Comments and Internal Notes are trimmed plain text of 1-2,000 characters and are append-only.
 - **BR-20:** Internal Note content is never serialized to Requester responses, even when a Ticket is otherwise visible.
 - **BR-21:** Search text is trimmed and at most 100 characters. Queue page sizes are 10, 25, or 50; default is page 1, size 10, `updatedAt desc` then `id desc`.

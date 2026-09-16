@@ -38,6 +38,8 @@ model User {
   updatedAt          DateTime   @updatedAt
   legacyRequester    Requester? @relation("LegacyRequester", fields: [legacyRequesterId], references: [id], onDelete: Restrict)
   sessions           Session[]
+  resolutionIndications Ticket[] @relation("ResolutionIndications")
+  publicComments    PublicComment[]
 
   @@index([isActive, role, name])
 }
@@ -109,16 +111,33 @@ model Ticket {
   status            TicketStatus   @default(NEW)
   summary           String
   description       String
+  resolutionIndicatedAt       DateTime?
+  resolutionIndicatedByUserId Int?
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @default(now()) @updatedAt
   requester         Requester      @relation(fields: [requesterId], references: [id], onDelete: Restrict)
   category          Category       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   relatedSystem     RelatedSystem  @relation(fields: [relatedSystemId], references: [id], onDelete: Restrict)
+  resolutionIndicatedBy User?      @relation("ResolutionIndications", fields: [resolutionIndicatedByUserId], references: [id], onDelete: Restrict)
   attachments       Attachment[]
+  publicComments    PublicComment[]
 
   @@index([requesterId, updatedAt, id])
   @@index([requesterId, createdAt, id])
   @@index([requesterId, categoryId, relatedSystemId, requestedPriority, status])
+  @@index([resolutionIndicatedByUserId])
+}
+
+model PublicComment {
+  id        Int      @id @default(autoincrement())
+  ticketId  Int
+  authorId  Int
+  content   String
+  createdAt DateTime @default(now())
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Restrict)
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@index([ticketId, createdAt, id])
 }
 
 model Attachment {

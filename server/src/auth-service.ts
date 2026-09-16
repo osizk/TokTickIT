@@ -227,6 +227,18 @@ export async function requireUsableSession(req: Request): Promise<AuthContext> {
   return context;
 }
 
+/**
+ * Lab 3 Requester ownership is derived from the authenticated User's legacy
+ * identity link. The client may still send the old Lab 2 header, but it is
+ * deliberately ignored by every authenticated route.
+ */
+export function requesterIdForContext(context: AuthContext): number {
+  if (context.user.role !== "REQUESTER" || context.user.legacyRequesterId === null) {
+    throw new AuthError(403, "FORBIDDEN", "You do not have permission to perform this action.");
+  }
+  return context.user.legacyRequesterId;
+}
+
 export function requireRole(context: AuthContext, ...roles: User["role"][]): void {
   if (!roles.includes(context.user.role)) {
     throw new AuthError(403, "FORBIDDEN", "You do not have permission to perform this action.");
