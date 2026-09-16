@@ -10,7 +10,7 @@
 |---|---|---|---|
 | [#43](https://github.com/osizk/TokTickIT/pull/43) | `feature/13-Lab3Contract` | `dceb6f3` | Contract PR merged into `lab3-staging`; retain the GitHub review timeline as the formal review evidence. |
 | [#44](https://github.com/osizk/TokTickIT/pull/44) | `feature/14-Lab3AuthFoundation` | Pending | Issue #34 authentication foundation PR is open into `lab3-staging`; formal review and approval are pending. |
-| [#45](https://github.com/osizk/TokTickIT/pull/45) | `feature/15-Lab3RequesterAuthRegression` | Pending | Issue #35 Requester continuity PR received four actionable review comments; fixes are being verified before requesting re-review. |
+| [#45](https://github.com/osizk/TokTickIT/pull/45) | `feature/15-Lab3RequesterAuthRegression` | Pending | Issue #35 Requester continuity PR received six actionable review comments; the latest stale-restore and role-route fixes are being verified before requesting re-review. |
 
 **Reviewer verdict:** [PR #43](https://github.com/osizk/TokTickIT/pull/43) contains the Issue #33 contract and is merged into `lab3-staging`. The GitHub review timeline remains the source of truth for whether the review was a formal **Approve** or comment-only feedback.
 
@@ -47,7 +47,7 @@
 
 | PR | Branch | Review status | Response/evidence |
 |---|---|---|---|
-| [#45](https://github.com/osizk/TokTickIT/pull/45) | `feature/15-Lab3RequesterAuthRegression` | Changes requested by partner; fixes in progress | The partner identified failed-logout handling, post-session-expiry `401` routing, resolution terminal-status coverage, and direct `/change-password` guarding. The findings are within Issue #35 and are being addressed with failing-first client/server regressions. |
+| [#45](https://github.com/osizk/TokTickIT/pull/45) | `feature/15-Lab3RequesterAuthRegression` | Changes requested by partner; fixes in progress | The partner identified six findings: failed-logout handling, post-session-expiry `401` routing, resolution terminal-status coverage, direct `/change-password` guarding, stale initial session restoration, and missing Staff/Admin role-route guards. The findings are within Issue #35 and are being addressed with failing-first client regressions. |
 
 ### Partner comments and student responses
 
@@ -57,10 +57,12 @@
 | Protected `401 SESSION_REQUIRED` responses must redirect to Login after session restoration. | Added a shared API-to-App session-expiry handler and a regression where the Ticket list returns `401` after sign-in. | Addressed locally; focused test passes. |
 | Resolution indication must reject the deterministic terminal statuses. | Defined `CLOSED` and `CANCELLED` as the only terminal statuses for this indication, aligned the specification/API contract, and added unit coverage. | Addressed locally; focused test passes. |
 | Direct `/change-password` access must be guarded when unauthenticated. | Added `/change-password` to the protected route predicate and a direct-access regression. | Addressed locally; focused test passes. |
+| [P1 — slow initial session restore](https://github.com/osizk/TokTickIT/pull/45#discussion_r4028034803) must not overwrite a successful Login or trigger stale session-expiry handling. | Added an auth-generation guard, ignored stale restore results after Login/logout/session expiry, suppressed the initial restore's stale `401` notification, and added a delayed-response regression. | Addressed locally; focused suite passes 10 tests; not yet committed or pushed. |
+| [P2 — role landing routes](https://github.com/osizk/TokTickIT/pull/45#discussion_r4028067621) `/staff/tickets`, `/staff/tickets/:ticketNumber`, and `/admin/users` must redirect to Login when unauthenticated. | Added all role landing routes to the protected-path predicate and a parameterized direct-access regression for each route. | Addressed locally; focused suite passes 10 tests; not yet committed or pushed. |
 
-**Reviewer verdict:** The four comments are actionable and within Issue #35. Re-review is requested only after the fixes are committed and pushed; no approval is claimed yet.
+**Reviewer verdict:** All six comments are actionable and within Issue #35. Re-review is requested only after the latest fixes are committed and pushed; no approval is claimed yet.
 
-**My review verdict:** I accepted all four findings. They address real authentication continuity and contract determinism rather than optional polish. The focused and complete test/build results are recorded in `tests.md`; full authenticated Requester E2E remains a later release gate.
+**My review verdict:** I accepted all six findings. They address real authentication continuity, route protection, and contract determinism rather than optional polish. The focused and complete client test/build results are recorded in `tests.md`; full authenticated Requester E2E remains a later release gate.
 
 ## Review evidence rules
 

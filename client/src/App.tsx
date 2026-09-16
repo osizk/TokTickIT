@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent, type MouseEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type MouseEvent } from "react";
 import {
   ApiClientError,
   AuthUser,
@@ -22,7 +22,7 @@ function currentPath(): string {
 }
 
 function isProtectedPath(path: string): boolean {
-  return path === "/select-requester" || path === "/change-password" || path === "/tickets" || path === "/tickets/new" || /^\/tickets\/[^/]+$/.test(path);
+  return path === "/select-requester" || path === "/change-password" || path === "/tickets" || path === "/tickets/new" || /^\/tickets\/[^/]+$/.test(path) || path === "/admin/users" || /^\/staff\/tickets(?:\/[^/]+)?$/.test(path);
 }
 
 function landingPath(user: AuthUser): string {
@@ -166,9 +166,11 @@ export default function App() {
   const [authState, setAuthState] = useState<"loading" | "authenticated" | "unauthenticated">("loading");
   const [logoutError, setLogoutError] = useState<string | null>(null);
   const [logoutPending, setLogoutPending] = useState(false);
+  const authGeneration = useRef(0);
   const navigate = useCallback((nextPath: string) => { navigateTo(nextPath); setPath(new URL(nextPath, window.location.origin).pathname); }, []);
 
   const handleSessionExpired = useCallback(() => {
+    authGeneration.current += 1;
     setSessionExpiredHandler(null);
     setLogoutError(null);
     setUser(null);
@@ -178,6 +180,7 @@ export default function App() {
 
   const handleLogout = useCallback(async () => {
     if (logoutPending) return;
+    authGeneration.current += 1;
     setLogoutPending(true);
     setLogoutError(null);
     try {
@@ -194,12 +197,19 @@ export default function App() {
   }, [logoutPending, navigate]);
 
   useEffect(() => {
+    const restoreGeneration = authGeneration.current;
     setSessionExpiredHandler(null);
     try { window.sessionStorage.removeItem(REQUESTER_STORAGE_KEY); } catch { /* no storage identity in Lab 3 */ }
     const onPopState = () => setPath(currentPath());
     window.addEventListener("popstate", onPopState);
-    void currentUser().then((result) => { setSessionExpiredHandler(handleSessionExpired); setLogoutError(null); setUser(result.user); setAuthState("authenticated"); }).catch(() => { setUser(null); setAuthState("unauthenticated"); });
-    return () => { setSessionExpiredHandler(null); window.removeEventListener("popstate", onPopState); };
+    void currentUser({ notifySessionExpiry: false }).then((result) => {
+      if (authGeneration.current !== restoreGeneration) return;
+      setSessionExpiredHandler(handleSessionExpired); setLogoutError(null); setUser(result.user); setAuthState("authenticated");
+    }).catch(() => {
+      if (authGeneration.current !== restoreGeneration) return;
+      setUser(null); setAuthState("unauthenticated");
+    });
+    return () => { authGeneration.current += 1; setSessionExpiredHandler(null); window.removeEventListener("popstate", onPopState); };
   }, [handleSessionExpired]);
 
   useEffect(() => {
@@ -209,7 +219,7 @@ export default function App() {
   }, [authState, navigate, path, user]);
 
   if (path === "/" && !user) return <LegacyHealthPage />;
-  if (path === "/login" && !user) return <LoginPage onSuccess={(result) => { setSessionExpiredHandler(handleSessionExpired); setLogoutError(null); setUser(result.user); setAuthState("authenticated"); navigate(result.user.mustChangePassword ? "/change-password" : landingPath(result.user)); }} />;
+  if (path === "/login" && !user) return <LoginPage onSuccess={(result) => { authGeneration.current += 1; setSessionExpiredHandler(handleSessionExpired); setLogoutError(null); setUser(result.user); setAuthState("authenticated"); navigate(result.user.mustChangePassword ? "/change-password" : landingPath(result.user)); }} />;
   if (user?.mustChangePassword && path === "/change-password") return <ChangePasswordPage user={user} onSuccess={(next) => { setUser(next); navigate(landingPath(next)); }} onLogout={handleLogout} logoutError={logoutError} logoutPending={logoutPending} />;
   if (!user) return <div className="zen-page"><main className="zen-main"><p className="zen-state zen-state-info" role="status">Checking your session...</p></main></div>;
   return <AppShell path={path} user={user} navigate={navigate} onLogout={handleLogout} logoutError={logoutError} logoutPending={logoutPending} />;

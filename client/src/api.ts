@@ -85,7 +85,7 @@ export async function login(email: string, password: string): Promise<AuthRespon
   return rememberAuth(body);
 }
 
-export async function currentUser(): Promise<AuthResponse> {
+export async function currentUser(options: { notifySessionExpiry?: boolean } = {}): Promise<AuthResponse> {
   let response: Response;
   try {
     response = await fetch(`${API_URL}/api/auth/me`, { credentials: "include" });
@@ -95,7 +95,7 @@ export async function currentUser(): Promise<AuthResponse> {
   const body = await parseResponseBody(response);
   if (!response.ok) {
     const details = readApiError(body);
-    throw new ApiClientError("Authentication is required.", response.status, details.code, details.fieldErrors);
+    throw new ApiClientError("Authentication is required.", response.status, details.code, details.fieldErrors, options.notifySessionExpiry ?? true);
   }
   return rememberAuth(body);
 }

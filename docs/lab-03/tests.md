@@ -108,6 +108,11 @@ Result: 3 newly added review-fix tests failed as expected: failed logout had no 
 
 Command: cd server; npm.cmd test -- --run tests/lab-03/resolution-indication.unit.test.ts
 Result: 1 test failed as expected because the terminal-status helper was not implemented.
+
+PR #45 follow-up review red phase:
+
+Command: cd client; npm.cmd test -- --run tests/lab-03/RequesterRegression.test.tsx
+Result: 4 newly added tests failed as expected: a delayed initial session restore returned the UI to `/login`, and unauthenticated `/staff/tickets`, `/staff/tickets/:ticketNumber`, and `/admin/users` remained on the session-checking state.
 ```
 
 The E2E red run initially exposed a separate test-isolation seed defect: a preserved Requester ID could collide with the User sequence. The seed now checks occupied IDs before creating a User and synchronizes the User sequence before staff/admin fixtures; the migration/seed regression was rerun from a clean disposable `toktickit_lab2_test` database.
@@ -131,7 +136,7 @@ Result: TypeScript build passed.
 
 Command: cd client; npm.cmd test -- --run tests/lab-03/RequesterRegression.test.tsx
 Test Files  1 passed (1)
-Tests       6 passed (6)
+Tests       10 passed (10)
 
 Command: cd server; npm.cmd test -- --run tests/lab-03/resolution-indication.unit.test.ts
 Test Files  1 passed (1)
@@ -151,10 +156,10 @@ Tests       69 passed (69)
 
 Command: cd client; npm.cmd test -- --run
 Test Files  8 passed (8)
-Tests       32 passed (32)
+Tests       36 passed (36)
 ```
 
-The first parallel full-server run encountered a migration-test hook timeout; the migration test passed in isolation, and the subsequent complete server run passed 21 files/69 tests. Issue #35 implementation evidence now also covers failed-logout preservation and retry, shared SESSION_REQUIRED redirect handling, terminal resolution-status rules, and direct /change-password guarding. Full authenticated Requester workflow E2E and release screenshots remain later release-gate evidence.
+The first parallel full-server run encountered a migration-test hook timeout; the migration test passed in isolation, and the subsequent complete server run passed 21 files/69 tests. Issue #35 implementation evidence now also covers failed-logout preservation and retry, shared SESSION_REQUIRED redirect handling, terminal resolution-status rules, direct /change-password guarding, stale session-restore suppression after Login, and role landing-route guards. Full authenticated Requester workflow E2E and release screenshots remain later release-gate evidence.
 
 ## 3. Planned test matrix
 
@@ -181,14 +186,14 @@ All paths below are intended paths for the implementation branches. A test is no
 | API-12 | API | FR-04/16, AC-05/20 | Exact authenticated Categories, Related Systems, and staff-assignee response/error contracts — `server/tests/lab-03/reference-data.api.test.ts` | Planned |
 | UI-01 | Component | FR-01/02/17, AC-01/02/03/21 | Login form, safe failure, busy guard, and redirect — `client/tests/lab-03/Login.test.tsx` | Planned |
 | UI-02 | Component | FR-02/03/17, AC-03/04/21 | Change-password guard, policy errors, success, and focus — `client/tests/lab-03/ChangePassword.test.tsx` | Planned |
-| UI-03 | Component | FR-06/07/08, AC-07/08/09/21 | Authenticated shell, logout retry, session-expiry redirect, direct Change Password guard, and Requester list/create/detail regression — `client/tests/lab-03/RequesterRegression.test.tsx` | Passed: 6 focused tests plus inherited Lab 2 list/create/detail/attachment UI regressions |
+| UI-03 | Component | FR-06/07/08, AC-07/08/09/21 | Authenticated shell, logout retry, session-expiry redirect, stale session-restore suppression, role-route guards, direct Change Password guard, and Requester list/create/detail regression — `client/tests/lab-03/RequesterRegression.test.tsx` | Passed: 10 focused tests plus inherited Lab 2 list/create/detail/attachment UI regressions |
 | UI-04 | Component | FR-09/17, AC-10/11/21 | Queue controls, Requested/IT Priority filters and sorting, states, role visibility, cards/table, and pagination — `client/tests/lab-03/StaffTicketQueue.test.tsx` | Planned |
 | UI-05 | Component | FR-10/11/12, AC-12/13/14/15/21 | Staff detail actions, priority mutation, dialogs, comments, notes, and attachments — `client/tests/lab-03/StaffTicketDetail.test.tsx` | Planned |
 | UI-06 | Component | FR-13/14, AC-16/17/18/19/21 | User list/editor, validation, activation, `USER_OWNS_TICKETS` conflict feedback, session-effect messaging, and reset controls — `client/tests/lab-03/UserManagement.test.tsx` | Planned |
 | STYLE-01 | Style/a11y | FR-17, AC-11/21 | Labels, focus, roles, contrast, touch targets, semantic feedback — `client/tests/lab-03/Accessibility.test.tsx` | Planned |
 | STYLE-02 | Responsive | FR-17, AC-11/21 | Desktop/tablet/mobile layout and no page-wide horizontal scroll — `client/tests/lab-03/Responsive.test.tsx` | Planned |
 | REG-01 | Regression | AC-06/07/08/15 | Complete prior server suite after migration and auth integration — `server/tests/lab-01/**`, `server/tests/lab-02/**`, `server/tests/lab-03/**` | Passed: 21 files, 69 tests |
-| REG-02 | Regression | AC-06/07/08/21 | Complete prior client suite after selector-to-auth migration — `client/tests/lab-01/**`, `client/tests/lab-02/**`, `client/tests/lab-03/**` | Passed: 8 files, 32 tests |
+| REG-02 | Regression | AC-06/07/08/21 | Complete prior client suite after selector-to-auth migration — `client/tests/lab-01/**`, `client/tests/lab-02/**`, `client/tests/lab-03/**` | Passed: 8 files, 36 tests |
 | E2E-01 | E2E | AC-01/02/03/04/05/21 | Login, first-login change, logout, guard, and role navigation — `e2e/lab-03/authentication.spec.ts` | Planned |
 | E2E-02 | E2E | AC-07/08/09/14/21 | Requester Ticket continuity, comment, resolution indication, and note privacy — `e2e/lab-03/requester-regression.spec.ts` | Passed: 1 route-guard test; full requester E2E continuation remains release-gate work |
 | E2E-03 | E2E | AC-10/11/12/13/14/15/21 | Staff queue/detail operations, priority filters/mutations, comments, notes, attachments, and responsive views — `e2e/lab-03/staff-ticket-flow.spec.ts` | Planned |
@@ -357,8 +362,9 @@ The following mapping makes the business-rule coverage explicit. Each implementa
 - [x] Login shell, selector removal, legacy requester-storage cleanup, and protected route redirect pass the focused UI/E2E checks.
 - [x] The new PublicComment/resolution migration applies successfully to the disposable test database.
 - [x] Review fixes pass: failed logout preserves the workspace with retry, protected `SESSION_REQUIRED` requests redirect to Login, `CLOSED`/`CANCELLED` resolution rules are covered, and direct `/change-password` access is guarded.
+- [x] Follow-up review fixes pass: stale initial session restoration is ignored after Login, its delayed `401` cannot redirect the authenticated user, and unauthenticated `/staff/tickets`, `/staff/tickets/:ticketNumber`, and `/admin/users` redirect to Login.
 - [x] Server and client builds pass for this Issue.
-- [x] Full server/client regression suites pass (server 21 files/69 tests; client 8 files/32 tests).
+- [x] Full server/client regression suites pass (server 21 files/69 tests; client 8 files/36 tests).
 - [ ] Full Requester comments/attachments E2E and release screenshots remain future release-gate evidence.
 - [ ] Teammate submits an actual GitHub **Approve** review.
 - [ ] Student explicitly authorizes commit, push, PR, and merge; card moves to Done only after merge.
