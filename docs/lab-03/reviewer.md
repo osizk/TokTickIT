@@ -10,6 +10,7 @@
 |---|---|---|---|
 | [#43](https://github.com/osizk/TokTickIT/pull/43) | `feature/13-Lab3Contract` | `dceb6f3` | Contract PR merged into `lab3-staging`; retain the GitHub review timeline as the formal review evidence. |
 | [#44](https://github.com/osizk/TokTickIT/pull/44) | `feature/14-Lab3AuthFoundation` | Pending | Issue #34 authentication foundation PR is open into `lab3-staging`; formal review and approval are pending. |
+| [#45](https://github.com/osizk/TokTickIT/pull/45) | `feature/15-Lab3RequesterAuthRegression` | Pending | Issue #35 Requester continuity PR received four actionable review comments; fixes are being verified before requesting re-review. |
 
 **Reviewer verdict:** [PR #43](https://github.com/osizk/TokTickIT/pull/43) contains the Issue #33 contract and is merged into `lab3-staging`. The GitHub review timeline remains the source of truth for whether the review was a formal **Approve** or comment-only feedback.
 
@@ -41,6 +42,25 @@
 **Reviewer verdict:** The two inline comments are actionable and have been addressed in pushed commit `38aa06a`. PR #44 still has comment-only review events; no formal GitHub **Approve** has been claimed.
 
 **My review verdict:** I accepted both corrections because they protect real migration data and make the Issue #34 evidence match the tests actually executed. The changes remain within the authentication foundation scope; Requester/staff/admin product workflows remain deferred to their planned Issues. A new review should be requested for the pushed commit.
+
+## Issue #35 review status
+
+| PR | Branch | Review status | Response/evidence |
+|---|---|---|---|
+| [#45](https://github.com/osizk/TokTickIT/pull/45) | `feature/15-Lab3RequesterAuthRegression` | Changes requested by partner; fixes in progress | The partner identified failed-logout handling, post-session-expiry `401` routing, resolution terminal-status coverage, and direct `/change-password` guarding. The findings are within Issue #35 and are being addressed with failing-first client/server regressions. |
+
+### Partner comments and student responses
+
+| Partner comment | Student response and verification | Status |
+|---|---|---|
+| Logout failures must not clear the authenticated UI and must provide retry. | Updated the API client to throw on failed logout responses and the shell to preserve the workspace with a retryable error. Added a UI regression covering a failed attempt followed by a successful retry. | Addressed locally; focused test passes. |
+| Protected `401 SESSION_REQUIRED` responses must redirect to Login after session restoration. | Added a shared API-to-App session-expiry handler and a regression where the Ticket list returns `401` after sign-in. | Addressed locally; focused test passes. |
+| Resolution indication must reject the deterministic terminal statuses. | Defined `CLOSED` and `CANCELLED` as the only terminal statuses for this indication, aligned the specification/API contract, and added unit coverage. | Addressed locally; focused test passes. |
+| Direct `/change-password` access must be guarded when unauthenticated. | Added `/change-password` to the protected route predicate and a direct-access regression. | Addressed locally; focused test passes. |
+
+**Reviewer verdict:** The four comments are actionable and within Issue #35. Re-review is requested only after the fixes are committed and pushed; no approval is claimed yet.
+
+**My review verdict:** I accepted all four findings. They address real authentication continuity and contract determinism rather than optional polish. The focused and complete test/build results are recorded in `tests.md`; full authenticated Requester E2E remains a later release gate.
 
 ## Review evidence rules
 

@@ -30,6 +30,17 @@ export interface AuthResponse {
 }
 
 let csrfToken: string | null = null;
+let sessionExpiredHandler: (() => void) | null = null;
+
+export function setSessionExpiredHandler(handler: (() => void) | null): void {
+  sessionExpiredHandler = handler;
+}
+
+function notifySessionExpired(status: number, code?: string): void {
+  if (status !== 401 || code !== "SESSION_REQUIRED") return;
+  csrfToken = null;
+  sessionExpiredHandler?.();
+}
 
 function authenticatedHeaders(includeCsrf = false): HeadersInit {
   const headers: Record<string, string> = {};
@@ -110,15 +121,23 @@ export async function changePassword(currentPassword: string, newPassword: strin
 }
 
 export async function logout(): Promise<void> {
+  let response: Response;
   try {
-    await fetch(`${API_URL}/api/auth/logout`, {
+    response = await fetch(`${API_URL}/api/auth/logout`, {
       method: "POST",
       credentials: "include",
       headers: authenticatedHeaders(true),
     });
-  } finally {
-    csrfToken = null;
+  } catch {
+    throw new ApiClientError("Unable to sign out. Please try again.", 0);
   }
+
+  const body = await parseResponseBody(response);
+  if (!response.ok) {
+    const details = readApiError(body);
+    throw new ApiClientError("Unable to sign out. Please try again.", response.status, details.code, details.fieldErrors, false);
+  }
+  csrfToken = null;
 }
 
 export interface RelatedSystem {
@@ -236,9 +255,11 @@ export class ApiClientError extends Error {
     public readonly status: number,
     public readonly code?: string,
     public readonly fieldErrors?: Record<string, string>,
+    notifySessionExpiry = true,
   ) {
     super(message);
     this.name = "ApiClientError";
+    if (notifySessionExpiry) notifySessionExpired(status, code);
   }
 }
 
@@ -294,15 +315,16 @@ async function fetchReferenceList<T extends Category | RelatedSystem>(
   try {
     response = await fetch(`${API_URL}${endpoint}`, { credentials: "include" });
   } catch {
-    throw new Error(`Unable to load ${label}.`);
+    throw new ApiClientError(`Unable to load ${label}.`, 0);
   }
 
+  const body = await parseResponseBody(response);
   if (!response.ok) {
-    throw new Error(`Unable to load ${label}.`);
+    const details = readApiError(body);
+    throw new ApiClientError(`Unable to load ${label}.`, response.status, details.code, details.fieldErrors);
   }
 
   try {
-    const body = (await response.json()) as unknown;
     if (!Array.isArray(body) || !body.every(isNamedReference)) {
       throw new Error("Invalid reference response.");
     }
@@ -326,15 +348,16 @@ export async function fetchRequesters(): Promise<Requester[]> {
   try {
     response = await fetch(`${API_URL}/api/requesters`, { credentials: "include" });
   } catch {
-    throw new Error("Unable to load Development Requesters.");
+    throw new ApiClientError("Unable to load Development Requesters.", 0);
   }
 
+  const body = await parseResponseBody(response);
   if (!response.ok) {
-    throw new Error("Unable to load Development Requesters.");
+    const details = readApiError(body);
+    throw new ApiClientError("Unable to load Development Requesters.", response.status, details.code, details.fieldErrors);
   }
 
   try {
-    const body = (await response.json()) as unknown;
     if (!Array.isArray(body) || !body.every(isRequester)) {
       throw new Error("Invalid requester response.");
     }
@@ -593,7 +616,11 @@ export async function fetchTickets(
     body = null;
   }
 
-  if (!response.ok || !isTicketListResponse(body)) {
+  if (!response.ok) {
+    const details = readApiError(body);
+    throw new ApiClientError("Unable to load My Tickets.", response.status, details.code, details.fieldErrors);
+  }
+  if (!isTicketListResponse(body)) {
     throw new ApiClientError("Unable to load My Tickets.", response.status);
   }
 

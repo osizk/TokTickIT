@@ -427,7 +427,7 @@ Requester owner only. No client timestamp or status is accepted. Return exactly 
 { "resolutionIndication": <ResolutionIndication> }
 ```
 
-Repeated indication returns the same stored metadata and is idempotent. Empty/terminal or otherwise invalid requests return `400 RESOLUTION_INDICATION_NOT_ALLOWED`; missing/cross-owner Tickets return `404 TICKET_NOT_FOUND`; unexpected writes return `500 RESOLUTION_INDICATION_FAILED`. A Requester cannot set formal `RESOLVED` or `CLOSED`.
+Repeated indication returns the same stored metadata and is idempotent. A Ticket in `CLOSED` or `CANCELLED` status returns `400 RESOLUTION_INDICATION_NOT_ALLOWED`; `RESOLVED` remains reopenable and may receive an indication. Missing/cross-owner Tickets return `404 TICKET_NOT_FOUND`; unexpected writes return `500 RESOLUTION_INDICATION_FAILED`. A Requester cannot set formal `RESOLVED` or `CLOSED`.
 
 ## 6. IT Staff Queue and Operations
 

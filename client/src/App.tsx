@@ -8,6 +8,7 @@ import {
   checkSystem,
   login,
   logout,
+  setSessionExpiredHandler,
 } from "./api.js";
 import CreateTicketPage from "./CreateTicket.js";
 import MyTickets from "./MyTickets.js";
@@ -21,7 +22,7 @@ function currentPath(): string {
 }
 
 function isProtectedPath(path: string): boolean {
-  return path === "/select-requester" || path === "/tickets" || path === "/tickets/new" || /^\/tickets\/[^/]+$/.test(path);
+  return path === "/select-requester" || path === "/change-password" || path === "/tickets" || path === "/tickets/new" || /^\/tickets\/[^/]+$/.test(path);
 }
 
 function landingPath(user: AuthUser): string {
@@ -100,7 +101,12 @@ function LoginPage({ onSuccess }: { onSuccess: (result: { user: AuthUser }) => v
   );
 }
 
-function ChangePasswordPage({ user, onSuccess, onLogout }: { user: AuthUser; onSuccess: (next: AuthUser) => void; onLogout: () => void }) {
+function LogoutFeedback({ message, onRetry, pending }: { message: string | null; onRetry: () => void; pending: boolean }) {
+  if (!message) return null;
+  return <div className="zen-state zen-state-error" role="alert"><p>{message}</p><button className="zen-button zen-button-secondary" type="button" onClick={onRetry} disabled={pending}>{pending ? "Retrying logout..." : "Retry logout"}</button></div>;
+}
+
+function ChangePasswordPage({ user, onSuccess, onLogout, logoutError, logoutPending }: { user: AuthUser; onSuccess: (next: AuthUser) => void; onLogout: () => void; logoutError: string | null; logoutPending: boolean }) {
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -116,8 +122,8 @@ function ChangePasswordPage({ user, onSuccess, onLogout }: { user: AuthUser; onS
   }
   return (
     <div className="zen-page">
-      <header className="zen-public-header"><div className="zen-header-inner"><span className="zen-brand"><span className="zen-brand-mark" aria-hidden="true">T</span><span><strong>TokTickIT</strong><small>IT Service Desk</small></span></span><button className="zen-button zen-button-link" type="button" onClick={onLogout}>Logout</button></div></header>
-      <main className="zen-main" id="main-content"><section className="zen-card zen-selection-card" aria-labelledby="change-password-heading">
+      <header className="zen-public-header"><div className="zen-header-inner"><span className="zen-brand"><span className="zen-brand-mark" aria-hidden="true">T</span><span><strong>TokTickIT</strong><small>IT Service Desk</small></span></span><button className="zen-button zen-button-link" type="button" onClick={onLogout} disabled={logoutPending}>{logoutPending ? "Signing out..." : "Logout"}</button></div></header>
+      <main className="zen-main" id="main-content"><LogoutFeedback message={logoutError} onRetry={onLogout} pending={logoutPending} /><section className="zen-card zen-selection-card" aria-labelledby="change-password-heading">
         <p className="zen-eyebrow">First-login security</p><h1 id="change-password-heading">Change Password</h1><p className="zen-lead">{user.name}, change the initial password before entering the application.</p>
         <form onSubmit={(event) => void submit(event)} noValidate><div className="zen-form-grid">
           <div className="zen-field"><label htmlFor="current-password">Current password</label><input id="current-password" className="zen-input" type="password" value={current} onChange={(event) => setCurrent(event.target.value)} autoComplete="current-password" required /></div>
@@ -129,17 +135,17 @@ function ChangePasswordPage({ user, onSuccess, onLogout }: { user: AuthUser; onS
   );
 }
 
-interface ShellProps { path: string; user: AuthUser; navigate: (path: string) => void; onLogout: () => void; }
+interface ShellProps { path: string; user: AuthUser; navigate: (path: string) => void; onLogout: () => void; logoutError: string | null; logoutPending: boolean; }
 
-function AppShell({ path, user, navigate, onLogout }: ShellProps) {
+function AppShell({ path, user, navigate, onLogout, logoutError, logoutPending }: ShellProps) {
   const requester = useMemo(() => toRequester(user), [user]);
   const goTo = (event: MouseEvent<HTMLAnchorElement>, nextPath: string) => { event.preventDefault(); navigate(nextPath); };
   return (
     <div className="zen-page"><header className="zen-app-header"><div className="zen-header-inner">
       <a className="zen-brand" href={landingPath(user)} onClick={(event) => goTo(event, landingPath(user))}><span className="zen-brand-mark" aria-hidden="true">T</span><span><strong>TokTickIT</strong><small>IT Service Desk</small></span></a>
       {user.role === "REQUESTER" && <nav className="zen-nav" aria-label="Primary navigation"><a href="/tickets" className={path === "/tickets" ? "is-active" : undefined} aria-current={path === "/tickets" ? "page" : undefined} onClick={(event) => goTo(event, "/tickets")}>My Tickets</a><a href="/tickets/new" className={path === "/tickets/new" ? "is-active" : undefined} aria-current={path === "/tickets/new" ? "page" : undefined} onClick={(event) => goTo(event, "/tickets/new")}>Create Ticket</a></nav>}
-      <div className="zen-identity" aria-label="Current user"><span className="zen-identity-label">{user.role.replace("_", " ")}</span><strong>{user.name}</strong><button className="zen-button zen-button-link" type="button" onClick={onLogout}>Logout</button></div>
-    </div></header><main className="zen-main" id="main-content"><RouteContent path={path} user={user} requester={requester} navigate={navigate} /></main></div>
+      <div className="zen-identity" aria-label="Current user"><span className="zen-identity-label">{user.role.replace("_", " ")}</span><strong>{user.name}</strong><button className="zen-button zen-button-link" type="button" onClick={onLogout} disabled={logoutPending}>{logoutPending ? "Signing out..." : "Logout"}</button></div>
+    </div></header><main className="zen-main" id="main-content"><LogoutFeedback message={logoutError} onRetry={onLogout} pending={logoutPending} /><RouteContent path={path} user={user} requester={requester} navigate={navigate} /></main></div>
   );
 }
 
@@ -158,15 +164,43 @@ export default function App() {
   const [path, setPath] = useState(currentPath);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [authState, setAuthState] = useState<"loading" | "authenticated" | "unauthenticated">("loading");
+  const [logoutError, setLogoutError] = useState<string | null>(null);
+  const [logoutPending, setLogoutPending] = useState(false);
   const navigate = useCallback((nextPath: string) => { navigateTo(nextPath); setPath(new URL(nextPath, window.location.origin).pathname); }, []);
 
+  const handleSessionExpired = useCallback(() => {
+    setSessionExpiredHandler(null);
+    setLogoutError(null);
+    setUser(null);
+    setAuthState("unauthenticated");
+    navigate("/login");
+  }, [navigate]);
+
+  const handleLogout = useCallback(async () => {
+    if (logoutPending) return;
+    setLogoutPending(true);
+    setLogoutError(null);
+    try {
+      await logout();
+      setSessionExpiredHandler(null);
+      setUser(null);
+      setAuthState("unauthenticated");
+      navigate("/login");
+    } catch (error) {
+      setLogoutError(error instanceof ApiClientError ? error.message : "Unable to sign out. Please try again.");
+    } finally {
+      setLogoutPending(false);
+    }
+  }, [logoutPending, navigate]);
+
   useEffect(() => {
+    setSessionExpiredHandler(null);
     try { window.sessionStorage.removeItem(REQUESTER_STORAGE_KEY); } catch { /* no storage identity in Lab 3 */ }
     const onPopState = () => setPath(currentPath());
     window.addEventListener("popstate", onPopState);
-    void currentUser().then((result) => { setUser(result.user); setAuthState("authenticated"); }).catch(() => { setUser(null); setAuthState("unauthenticated"); });
-    return () => window.removeEventListener("popstate", onPopState);
-  }, []);
+    void currentUser().then((result) => { setSessionExpiredHandler(handleSessionExpired); setLogoutError(null); setUser(result.user); setAuthState("authenticated"); }).catch(() => { setUser(null); setAuthState("unauthenticated"); });
+    return () => { setSessionExpiredHandler(null); window.removeEventListener("popstate", onPopState); };
+  }, [handleSessionExpired]);
 
   useEffect(() => {
     if (!user) { if (isProtectedPath(path) && authState === "unauthenticated") navigate("/login"); return; }
@@ -175,8 +209,8 @@ export default function App() {
   }, [authState, navigate, path, user]);
 
   if (path === "/" && !user) return <LegacyHealthPage />;
-  if (path === "/login" && !user) return <LoginPage onSuccess={(result) => { setUser(result.user); setAuthState("authenticated"); navigate(result.user.mustChangePassword ? "/change-password" : landingPath(result.user)); }} />;
-  if (user?.mustChangePassword && path === "/change-password") return <ChangePasswordPage user={user} onSuccess={(next) => { setUser(next); navigate(landingPath(next)); }} onLogout={() => { void logout(); setUser(null); setAuthState("unauthenticated"); navigate("/login"); }} />;
+  if (path === "/login" && !user) return <LoginPage onSuccess={(result) => { setSessionExpiredHandler(handleSessionExpired); setLogoutError(null); setUser(result.user); setAuthState("authenticated"); navigate(result.user.mustChangePassword ? "/change-password" : landingPath(result.user)); }} />;
+  if (user?.mustChangePassword && path === "/change-password") return <ChangePasswordPage user={user} onSuccess={(next) => { setUser(next); navigate(landingPath(next)); }} onLogout={handleLogout} logoutError={logoutError} logoutPending={logoutPending} />;
   if (!user) return <div className="zen-page"><main className="zen-main"><p className="zen-state zen-state-info" role="status">Checking your session...</p></main></div>;
-  return <AppShell path={path} user={user} navigate={navigate} onLogout={() => { void logout(); setUser(null); setAuthState("unauthenticated"); navigate("/login"); }} />;
+  return <AppShell path={path} user={user} navigate={navigate} onLogout={handleLogout} logoutError={logoutError} logoutPending={logoutPending} />;
 }

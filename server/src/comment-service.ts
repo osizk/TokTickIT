@@ -85,9 +85,13 @@ export async function createPublicComment(context: AuthContext, ticketNumber: st
   }
 }
 
+export function canIndicateResolution(status: string): boolean {
+  return !["CLOSED", "CANCELLED"].includes(status);
+}
+
 export async function indicateResolution(context: AuthContext, ticketNumber: string) {
   const { ticket } = await findOwnedTicket(context, ticketNumber);
-  if (["RESOLVED", "CLOSED"].includes(ticket.status)) {
+  if (!canIndicateResolution(ticket.status)) {
     throw apiError(400, "RESOLUTION_INDICATION_NOT_ALLOWED", "This Ticket cannot receive a resolution indication.");
   }
   try {
