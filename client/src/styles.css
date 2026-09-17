@@ -677,6 +677,39 @@ textarea:focus-visible {
   font-size: 0.88rem;
 }
 
+.zen-staff-table {
+  table-layout: auto;
+}
+
+.zen-staff-table th,
+.zen-staff-table td {
+  min-width: 7rem;
+}
+
+.zen-staff-table th:first-child,
+.zen-staff-table td:first-child,
+.zen-staff-table th:last-child,
+.zen-staff-table td:last-child {
+  white-space: nowrap;
+}
+
+.zen-table-secondary {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--zen-muted);
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
+
+.zen-staff-filter-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.zen-staff-queue-card .zen-list-summary {
+  border-top: 1px solid #dce8e1;
+  padding-top: 1rem;
+}
+
 .zen-ticket-table tbody tr:last-child td {
   border-bottom: 0;
 }
@@ -822,6 +855,10 @@ textarea:focus-visible {
 
 @media (max-width: 991px) {
   .zen-filter-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .zen-staff-filter-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 

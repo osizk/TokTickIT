@@ -93,6 +93,7 @@ function serializeTicketDetail(ticket: TicketDetailPayload) {
     category: { id: ticket.category.id, name: ticket.category.name },
     relatedSystem: { id: ticket.relatedSystem.id, name: ticket.relatedSystem.name },
     requestedPriority: ticket.requestedPriority,
+    itPriority: ticket.itPriority,
     status: ticket.status,
     summary: ticket.summary,
     description: ticket.description,

@@ -11,6 +11,7 @@
 | [#43](https://github.com/osizk/TokTickIT/pull/43) | `feature/13-Lab3Contract` | `dceb6f3` | Contract PR merged into `lab3-staging`; retain the GitHub review timeline as the formal review evidence. |
 | [#44](https://github.com/osizk/TokTickIT/pull/44) | `feature/14-Lab3AuthFoundation` | Pending | Issue #34 authentication foundation PR is open into `lab3-staging`; formal review and approval are pending. |
 | [#45](https://github.com/osizk/TokTickIT/pull/45) | `feature/15-Lab3RequesterAuthRegression` | Pending | Issue #35 Requester continuity PR received six actionable review comments; the latest stale-restore and role-route fixes are being verified before requesting re-review. |
+| [#46](https://github.com/osizk/TokTickIT/pull/46) | `feature/16-Lab3StaffQueue` | Pending | Issue #36 Staff Queue PR received one P1 comment about the required Open-detail target; the read-only staff detail route/page and regressions are addressed locally, with commit/push/re-review pending. |
 
 **Reviewer verdict:** [PR #43](https://github.com/osizk/TokTickIT/pull/43) contains the Issue #33 contract and is merged into `lab3-staging`. The GitHub review timeline remains the source of truth for whether the review was a formal **Approve** or comment-only feedback.
 
@@ -63,6 +64,22 @@
 **Reviewer verdict:** All six comments are actionable and within Issue #35. Re-review is requested only after the latest fixes are committed and pushed; no approval is claimed yet.
 
 **My review verdict:** I accepted all six findings. They address real authentication continuity, route protection, and contract determinism rather than optional polish. The focused and complete client test/build results are recorded in `tests.md`; full authenticated Requester E2E remains a later release gate.
+
+## Issue #36 review status
+
+| PR | Branch | Review status | Response/evidence |
+|---|---|---|---|
+| [#46](https://github.com/osizk/TokTickIT/pull/46) | `feature/16-Lab3StaffQueue` | Comment addressed locally; commit/push/re-review pending | The partner identified one P1: the Queue Open action linked to an unimplemented staff detail route and a staff session could not use the Requester-only detail API. The correction adds a protected read-only staff detail target while leaving Staff Ticket Operations for Issue #37. |
+
+### Partner comments and student responses
+
+| Partner comment | Student response and verification | Status |
+|---|---|---|
+| [P1 — Queue Open action must load staff detail](https://github.com/osizk/TokTickIT/pull/46#issuecomment-5702855591): `/staff/tickets/:ticketNumber` fell through to “Access not available”, and the existing Requester detail endpoint rejected staff sessions. | Added `GET /api/staff/tickets/:ticketNumber` with exact StaffTicket serialization and safe `401`/`403`/`404`/`500` behavior, added the read-only `StaffTicketDetail` route/page, and added API/UI regressions for staff success, missing Ticket, Requester denial, unauthenticated access, and Open navigation. | Addressed locally; the focused server suite passes 6 tests, the focused client suite passes 5 tests, complete client tests pass 9 files/41 tests, and both builds pass. Commit/push/re-review remain pending authorization. |
+
+**Reviewer verdict:** The P1 comment identifies a real FR-09/AC-11 Open-action gap. The fix is ready for re-review only after the changed files are committed and pushed; no formal GitHub **Approve** has been claimed.
+
+**My review verdict:** I accepted the finding because the approved Queue contract requires a usable Open action. I implemented only the read-only staff detail target needed by Issue #36 and kept assignment, status, comments, notes, and Attachment operations in the planned Issue #37 scope.
 
 ## Review evidence rules
 

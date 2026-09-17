@@ -39,6 +39,7 @@ model User {
   legacyRequester    Requester? @relation("LegacyRequester", fields: [legacyRequesterId], references: [id], onDelete: Restrict)
   sessions           Session[]
   resolutionIndications Ticket[] @relation("ResolutionIndications")
+  ownedTickets      Ticket[] @relation("TicketOwner")
   publicComments    PublicComment[]
 
   @@index([isActive, role, name])
@@ -108,9 +109,11 @@ model Ticket {
   categoryId        Int
   relatedSystemId   Int
   requestedPriority TicketPriority
+  itPriority        TicketPriority  @default(LOW)
   status            TicketStatus   @default(NEW)
   summary           String
   description       String
+  ticketOwnerId     Int?
   resolutionIndicatedAt       DateTime?
   resolutionIndicatedByUserId Int?
   createdAt         DateTime       @default(now())
@@ -118,6 +121,7 @@ model Ticket {
   requester         Requester      @relation(fields: [requesterId], references: [id], onDelete: Restrict)
   category          Category       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   relatedSystem     RelatedSystem  @relation(fields: [relatedSystemId], references: [id], onDelete: Restrict)
+  ticketOwner       User?          @relation("TicketOwner", fields: [ticketOwnerId], references: [id], onDelete: SetNull)
   resolutionIndicatedBy User?      @relation("ResolutionIndications", fields: [resolutionIndicatedByUserId], references: [id], onDelete: Restrict)
   attachments       Attachment[]
   publicComments    PublicComment[]
@@ -125,6 +129,9 @@ model Ticket {
   @@index([requesterId, updatedAt, id])
   @@index([requesterId, createdAt, id])
   @@index([requesterId, categoryId, relatedSystemId, requestedPriority, status])
+  @@index([status, itPriority, ticketOwnerId, updatedAt, id])
+  @@index([ticketOwnerId, updatedAt, id])
+  @@index([categoryId, relatedSystemId, requestedPriority, status, updatedAt, id])
   @@index([resolutionIndicatedByUserId])
 }
 
@@ -166,6 +173,13 @@ enum TicketPriority {
 
 enum TicketStatus {
   NEW
+  OPEN
+  IN_PROGRESS
+  WAITING_FOR_REQUESTER
+  RESOLVED
+  CLOSED
+  REOPENED
+  CANCELLED
 }
 
 enum UserRole {

@@ -470,6 +470,16 @@ IT Staff and Administrators only. Return `200` with active eligible assignment U
 
 Missing/expired sessions and password-change-required sessions use the common `401`/`403` contracts; a Requester receives `403 FORBIDDEN`; unexpected failures return exactly `500 ASSIGNEE_LIST_FAILED`.
 
+### `GET /api/staff/tickets/:ticketNumber`
+
+IT Staff and Administrators only. This is the read-only detail target for the Queue Open action. Return exactly `200` with the same complete `<StaffTicket>` schema used by the queue:
+
+```json
+{ "ticket": <StaffTicket> }
+```
+
+The response includes `id`, `ticketNumber`, `requester`, `category`, `relatedSystem`, `requestedPriority`, `itPriority`, `status`, `summary`, `description`, `ticketOwner`, `resolutionIndication`, `createdAt`, and `updatedAt`. Missing or malformed Ticket Numbers return exactly `404` with `{ "error": { "code": "TICKET_NOT_FOUND", "message": "Ticket was not found." } }`; missing/expired sessions return the common `401` contract; Requesters and other roles receive the common `403 FORBIDDEN` contract; unexpected reads return safe `500 STAFF_TICKET_DETAIL_FAILED`. Assignment, priority, status, comment, note, and Attachment operations remain the later Staff Ticket Operations scope.
+
 ### `PATCH /api/staff/tickets/:ticketNumber/assignment`
 
 IT Staff/Administrator. Body:

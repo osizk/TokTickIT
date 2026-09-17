@@ -146,7 +146,15 @@ export interface RelatedSystem {
 }
 
 export type TicketPriority = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
-export type TicketStatus = "NEW";
+export type TicketStatus =
+  | "NEW"
+  | "OPEN"
+  | "IN_PROGRESS"
+  | "WAITING_FOR_REQUESTER"
+  | "RESOLVED"
+  | "CLOSED"
+  | "REOPENED"
+  | "CANCELLED";
 
 export type TicketListSort =
   | "updatedAt"
@@ -187,7 +195,8 @@ export interface CreatedTicket {
   category: Category;
   relatedSystem: RelatedSystem;
   requestedPriority: TicketPriority;
-  status: "NEW";
+  itPriority?: TicketPriority;
+  status: TicketStatus;
   summary: string;
   description: string;
   createdAt: string;
@@ -247,6 +256,62 @@ export interface TicketListPagination {
 export interface TicketListResponse {
   items: TicketListItem[];
   pagination: TicketListPagination;
+}
+
+export type StaffTicketSort =
+  | "updatedAt"
+  | "createdAt"
+  | "ticketNumber"
+  | "summary"
+  | "requestedPriority"
+  | "itPriority"
+  | "status"
+  | "owner";
+export type StaffTicketOwner = "me" | "unassigned" | number;
+
+export interface StaffAssignee {
+  id: number;
+  name: string;
+  email: string;
+  role: "IT_STAFF" | "ADMINISTRATOR";
+}
+
+export interface StaffTicket {
+  id: number;
+  ticketNumber: string;
+  requester: Requester;
+  category: Category;
+  relatedSystem: RelatedSystem;
+  requestedPriority: TicketPriority;
+  itPriority: TicketPriority;
+  status: TicketStatus;
+  summary: string;
+  description: string;
+  ticketOwner: StaffAssignee | null;
+  resolutionIndication: ResolutionIndication | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StaffTicketQuery {
+  search?: string;
+  categoryId?: number;
+  relatedSystemId?: number;
+  requestedPriority?: TicketPriority;
+  itPriority?: TicketPriority;
+  status?: TicketStatus;
+  owner?: StaffTicketOwner;
+  sort: StaffTicketSort;
+  order: TicketListOrder;
+  page: number;
+  pageSize: TicketListPageSize;
+}
+
+export interface StaffTicketPagination extends TicketListPagination {}
+
+export interface StaffTicketResponse {
+  items: StaffTicket[];
+  pagination: StaffTicketPagination;
 }
 
 export class ApiClientError extends Error {
@@ -406,7 +471,7 @@ function isCreatedTicket(value: unknown): value is CreatedTicket {
     isNamedReference(candidate.category) &&
     isNamedReference(candidate.relatedSystem) &&
     ["LOW", "MEDIUM", "HIGH", "URGENT"].includes(candidate.requestedPriority as string) &&
-    candidate.status === "NEW" &&
+    isTicketStatus(candidate.status) &&
     typeof candidate.summary === "string" &&
     typeof candidate.description === "string" &&
     typeof candidate.createdAt === "string" &&
@@ -432,7 +497,7 @@ function isTicketDetail(value: unknown): value is TicketDetail {
     isNamedReference(candidate.category) &&
     isNamedReference(candidate.relatedSystem) &&
     ["LOW", "MEDIUM", "HIGH", "URGENT"].includes(candidate.requestedPriority as string) &&
-    candidate.status === "NEW" &&
+    isTicketStatus(candidate.status) &&
     typeof candidate.summary === "string" &&
     typeof candidate.description === "string" &&
     typeof candidate.createdAt === "string" &&
@@ -471,7 +536,7 @@ function isTicketListItem(value: unknown): value is TicketListItem {
     isNamedReference(candidate.category) &&
     isNamedReference(candidate.relatedSystem) &&
     ["LOW", "MEDIUM", "HIGH", "URGENT"].includes(candidate.requestedPriority as string) &&
-    candidate.status === "NEW" &&
+    isTicketStatus(candidate.status) &&
     typeof candidate.createdAt === "string" &&
     typeof candidate.updatedAt === "string"
   );
@@ -510,6 +575,120 @@ function isTicketListResponse(value: unknown): value is TicketListResponse {
     candidate.items.every(isTicketListItem) &&
     isTicketListPagination(candidate.pagination)
   );
+}
+
+function isTicketStatus(value: unknown): value is TicketStatus {
+  return ["NEW", "OPEN", "IN_PROGRESS", "WAITING_FOR_REQUESTER", "RESOLVED", "CLOSED", "REOPENED", "CANCELLED"].includes(value as string);
+}
+
+function isStaffAssignee(value: unknown): value is StaffAssignee {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate.id === "number" && Number.isSafeInteger(candidate.id) && candidate.id > 0 &&
+    typeof candidate.name === "string" && candidate.name.trim().length > 0 &&
+    typeof candidate.email === "string" && candidate.email.trim().length > 0 &&
+    (candidate.role === "IT_STAFF" || candidate.role === "ADMINISTRATOR")
+  );
+}
+
+function isResolutionIndication(value: unknown): value is ResolutionIndication {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  return typeof candidate.indicatedAt === "string" && isRequester(candidate.indicatedBy);
+}
+
+function isStaffTicket(value: unknown): value is StaffTicket {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate.id === "number" && Number.isSafeInteger(candidate.id) && candidate.id > 0 &&
+    typeof candidate.ticketNumber === "string" && /^TKT-\d{4}-\d{6}$/.test(candidate.ticketNumber) &&
+    isRequester(candidate.requester) && isNamedReference(candidate.category) && isNamedReference(candidate.relatedSystem) &&
+    ["LOW", "MEDIUM", "HIGH", "URGENT"].includes(candidate.requestedPriority as string) &&
+    ["LOW", "MEDIUM", "HIGH", "URGENT"].includes(candidate.itPriority as string) &&
+    isTicketStatus(candidate.status) && typeof candidate.summary === "string" && typeof candidate.description === "string" &&
+    (candidate.ticketOwner === null || isStaffAssignee(candidate.ticketOwner)) &&
+    (candidate.resolutionIndication === null || isResolutionIndication(candidate.resolutionIndication)) &&
+    typeof candidate.createdAt === "string" && typeof candidate.updatedAt === "string"
+  );
+}
+
+function isStaffTicketResponse(value: unknown): value is StaffTicketResponse {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  return Array.isArray(candidate.items) && candidate.items.every(isStaffTicket) && isTicketListPagination(candidate.pagination);
+}
+
+export async function fetchStaffTickets(query: StaffTicketQuery): Promise<StaffTicketResponse> {
+  const params = new URLSearchParams();
+  if (query.search?.trim()) params.set("search", query.search.trim());
+  if (query.categoryId !== undefined) params.set("categoryId", String(query.categoryId));
+  if (query.relatedSystemId !== undefined) params.set("relatedSystemId", String(query.relatedSystemId));
+  if (query.requestedPriority) params.set("requestedPriority", query.requestedPriority);
+  if (query.itPriority) params.set("itPriority", query.itPriority);
+  if (query.status) params.set("status", query.status);
+  if (query.owner !== undefined) params.set("owner", String(query.owner));
+  params.set("sort", query.sort);
+  params.set("order", query.order);
+  params.set("page", String(query.page));
+  params.set("pageSize", String(query.pageSize));
+
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}/api/staff/tickets?${params.toString()}`, {
+      credentials: "include",
+      headers: authenticatedHeaders(),
+    });
+  } catch {
+    throw new ApiClientError("Unable to load Ticket Queue.", 0);
+  }
+  const body = await parseResponseBody(response);
+  if (!response.ok) {
+    const details = readApiError(body);
+    throw new ApiClientError("Unable to load Ticket Queue.", response.status, details.code, details.fieldErrors);
+  }
+  if (!isStaffTicketResponse(body)) throw new ApiClientError("Unable to load Ticket Queue.", response.status);
+  return body;
+}
+
+export async function fetchStaffTicket(ticketNumber: string): Promise<StaffTicket> {
+  if (!ticketNumber) throw new ApiClientError("Unable to load Staff Ticket.", 400);
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}/api/staff/tickets/${encodeURIComponent(ticketNumber)}`, {
+      credentials: "include",
+      headers: authenticatedHeaders(),
+    });
+  } catch {
+    throw new ApiClientError("Unable to load Staff Ticket.", 0);
+  }
+  const body = await parseResponseBody(response);
+  if (!response.ok) {
+    const details = readApiError(body);
+    throw new ApiClientError("Unable to load Staff Ticket.", response.status, details.code, details.fieldErrors);
+  }
+  const result = body as { ticket?: unknown } | null;
+  if (!result || !isStaffTicket(result.ticket)) {
+    throw new ApiClientError("Unable to load Staff Ticket.", response.status);
+  }
+  return result.ticket;
+}
+
+export async function fetchStaffAssignees(): Promise<StaffAssignee[]> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}/api/staff/assignees`, { credentials: "include", headers: authenticatedHeaders() });
+  } catch {
+    throw new ApiClientError("Unable to load assignees.", 0);
+  }
+  const body = await parseResponseBody(response);
+  if (!response.ok) {
+    const details = readApiError(body);
+    throw new ApiClientError("Unable to load assignees.", response.status, details.code, details.fieldErrors);
+  }
+  if (!Array.isArray(body) || !body.every(isStaffAssignee)) throw new ApiClientError("Unable to load assignees.", response.status);
+  return body;
 }
 
 export async function createTicket(
