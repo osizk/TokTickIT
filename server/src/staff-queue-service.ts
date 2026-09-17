@@ -1,5 +1,5 @@
 import type { Request } from "express";
-import type { Prisma, TicketPriority, TicketStatus } from "@prisma/client";
+import type { Prisma, PrismaClient, TicketPriority, TicketStatus } from "@prisma/client";
 import { getPrisma } from "./prisma.js";
 import { TicketApiError } from "./ticket-service.js";
 
@@ -17,7 +17,7 @@ const ORDERS = ["asc", "desc"] as const;
 const PAGE_SIZES = [10, 25, 50] as const;
 const PRIORITIES = ["LOW", "MEDIUM", "HIGH", "URGENT"] as const;
 const TICKET_NUMBER_PATTERN = /^TKT-\d{4}-\d{6}$/;
-const STATUSES = [
+export const STAFF_STATUSES = [
   "NEW",
   "OPEN",
   "IN_PROGRESS",
@@ -178,7 +178,7 @@ export function parseStaffQueueQuery(query: Request["query"]): StaffQueueQuery {
   const itPriority = parseEnum(getSingleQueryValue(query, "itPriority"), "itPriority", PRIORITIES) as
     | TicketPriority
     | undefined;
-  const status = parseEnum(getSingleQueryValue(query, "status"), "status", STATUSES) as TicketStatus | undefined;
+  const status = parseEnum(getSingleQueryValue(query, "status"), "status", STAFF_STATUSES) as TicketStatus | undefined;
   const owner = parseOwner(getSingleQueryValue(query, "owner"));
   const sort = (parseEnum(getSingleQueryValue(query, "sort"), "sort", SORT_FIELDS) as SortField | undefined) ?? "updatedAt";
   const order = (parseEnum(getSingleQueryValue(query, "order"), "order", ORDERS) as SortOrder | undefined) ?? "desc";
@@ -252,7 +252,7 @@ function buildOrderBy(query: StaffQueueQuery): Prisma.TicketOrderByWithRelationI
   return [primary as Prisma.TicketOrderByWithRelationInput, { id: direction }];
 }
 
-const staffTicketSelect = {
+export const staffTicketSelect = {
   id: true,
   ticketNumber: true,
   summary: true,
@@ -272,7 +272,7 @@ const staffTicketSelect = {
 
 type StaffTicketRecord = Prisma.TicketGetPayload<{ select: typeof staffTicketSelect }>;
 
-function serializeStaffTicket(ticket: StaffTicketRecord): StaffTicket {
+export function serializeStaffTicket(ticket: StaffTicketRecord): StaffTicket {
   return {
     id: ticket.id,
     ticketNumber: ticket.ticketNumber,
@@ -367,8 +367,165 @@ export async function listStaffAssignees() {
 }
 
 export const staffQueueContract = {
-  statuses: STATUSES,
+  statuses: STAFF_STATUSES,
   priorities: PRIORITIES,
   sortFields: SORT_FIELDS,
   pageSizes: PAGE_SIZES,
 };
+
+const STAFF_PRIORITIES = ["LOW", "MEDIUM", "HIGH", "URGENT"] as const;
+export const STAFF_STATUS_TRANSITIONS: Record<TicketStatus, readonly TicketStatus[]> = {
+  NEW: ["OPEN", "CANCELLED"],
+  OPEN: ["IN_PROGRESS", "WAITING_FOR_REQUESTER", "RESOLVED", "CANCELLED"],
+  IN_PROGRESS: ["WAITING_FOR_REQUESTER", "RESOLVED", "CANCELLED"],
+  WAITING_FOR_REQUESTER: ["IN_PROGRESS", "RESOLVED", "CANCELLED"],
+  RESOLVED: ["CLOSED", "REOPENED"],
+  CLOSED: ["REOPENED"],
+  REOPENED: ["IN_PROGRESS", "WAITING_FOR_REQUESTER", "RESOLVED", "CANCELLED"],
+  CANCELLED: [],
+};
+export const STAFF_CONFIRMATION_STATUSES = new Set<TicketStatus>(["RESOLVED", "CLOSED", "REOPENED", "CANCELLED"]);
+
+export function isAllowedStaffStatusTransition(from: TicketStatus, to: TicketStatus): boolean {
+  return STAFF_STATUS_TRANSITIONS[from].includes(to);
+}
+
+function operationError(
+  statusCode: 400 | 404 | 409 | 500,
+  code: string,
+  message: string,
+  fieldErrors?: Record<string, string>,
+): TicketApiError {
+  return new TicketApiError({ statusCode, code, message, ...(fieldErrors ? { fieldErrors } : {}) });
+}
+
+function readMutationObject(body: unknown, allowed: readonly string[]): Record<string, unknown> {
+  if (typeof body !== "object" || body === null || Array.isArray(body)) {
+    throw operationError(400, "VALIDATION_ERROR", "Please correct the highlighted fields.", { body: "Request body is required." });
+  }
+  const record = body as Record<string, unknown>;
+  const unsupported = Object.keys(record).find((key) => !allowed.includes(key));
+  if (unsupported) {
+    throw operationError(400, "VALIDATION_ERROR", "Please correct the highlighted fields.", { [unsupported]: "This field is not supported." });
+  }
+  return record;
+}
+
+function readConfirmation(record: Record<string, unknown>): boolean | undefined {
+  if (record.confirm === undefined) return undefined;
+  if (typeof record.confirm !== "boolean") {
+    throw operationError(400, "VALIDATION_ERROR", "Please correct the highlighted fields.", { confirm: "Confirmation must be true or false." });
+  }
+  return record.confirm;
+}
+
+function readStaffTicketNumber(ticketNumber: string): string {
+  if (!TICKET_NUMBER_PATTERN.test(ticketNumber)) {
+    throw operationError(404, "TICKET_NOT_FOUND", "Ticket was not found.");
+  }
+  return ticketNumber;
+}
+
+async function lockTicket(tx: Prisma.TransactionClient, ticketNumber: string) {
+  await tx.$queryRaw<Array<{ id: number }>>`
+    SELECT "id" FROM "Ticket" WHERE "ticketNumber" = ${ticketNumber} FOR UPDATE
+  `;
+  const ticket = await tx.ticket.findUnique({ where: { ticketNumber }, select: { id: true, ticketOwnerId: true, status: true } });
+  if (!ticket) throw operationError(404, "TICKET_NOT_FOUND", "Ticket was not found.");
+  return ticket;
+}
+
+async function loadStaffTicket(tx: PrismaClient | Prisma.TransactionClient, ticketNumber: string): Promise<StaffTicketRecord> {
+  const ticket = await tx.ticket.findUnique({ where: { ticketNumber: readStaffTicketNumber(ticketNumber) }, select: staffTicketSelect });
+  if (!ticket) throw operationError(404, "TICKET_NOT_FOUND", "Ticket was not found.");
+  return ticket;
+}
+
+async function withStaffTicketMutation(
+  ticketNumber: string,
+  operation: (tx: Prisma.TransactionClient) => Promise<StaffTicketRecord>,
+  failureCode: string,
+  failureMessage: string,
+): Promise<{ ticket: StaffTicket }> {
+  try {
+    const ticket = await getPrisma().$transaction((tx) => operation(tx));
+    return { ticket: serializeStaffTicket(ticket) };
+  } catch (error) {
+    if (error instanceof TicketApiError) throw error;
+    throw operationError(500, failureCode, failureMessage);
+  }
+}
+
+export async function updateStaffAssignment(ticketNumber: string, body: unknown): Promise<{ ticket: StaffTicket }> {
+  const record = readMutationObject(body, ["ownerUserId", "confirm"]);
+  const confirm = readConfirmation(record);
+  const rawOwner = record.ownerUserId;
+  let ownerUserId: number | null;
+  if (rawOwner === null) {
+    ownerUserId = null;
+  } else if (typeof rawOwner === "number" && Number.isSafeInteger(rawOwner) && rawOwner > 0) {
+    ownerUserId = rawOwner;
+  } else {
+    throw operationError(400, "VALIDATION_ERROR", "Please correct the highlighted fields.", { ownerUserId: "Owner must be an eligible User ID or null." });
+  }
+
+  return withStaffTicketMutation(ticketNumber, async (tx) => {
+    const current = await lockTicket(tx, readStaffTicketNumber(ticketNumber));
+    if (ownerUserId !== null) {
+      const eligible = await tx.user.findFirst({
+        where: { id: ownerUserId, isActive: true, role: { in: ["IT_STAFF", "ADMINISTRATOR"] } },
+        select: { id: true },
+      });
+      if (!eligible) throw operationError(409, "ASSIGNMENT_CONFLICT", "The selected owner is not an active eligible staff User.");
+    }
+    const changesOwner = current.ticketOwnerId !== ownerUserId;
+    const requiresConfirmation = current.ticketOwnerId !== null && changesOwner;
+    if (requiresConfirmation && confirm !== true) {
+      throw operationError(400, "VALIDATION_ERROR", "Please confirm the reassignment or unassignment.", { confirm: "Confirmation is required for this ownership change." });
+    }
+    await tx.ticket.update({ where: { id: current.id }, data: { ticketOwnerId: ownerUserId } });
+    return loadStaffTicket(tx, ticketNumber);
+  }, "ASSIGNMENT_UPDATE_FAILED", "Ticket assignment could not be updated.");
+}
+
+export async function updateStaffPriority(ticketNumber: string, body: unknown): Promise<{ ticket: StaffTicket }> {
+  const record = readMutationObject(body, ["itPriority"]);
+  const rawPriority = record.itPriority;
+  if (typeof rawPriority !== "string" || !(STAFF_PRIORITIES as readonly string[]).includes(rawPriority)) {
+    throw operationError(400, "VALIDATION_ERROR", "Please correct the highlighted fields.", { itPriority: "IT Priority must be LOW, MEDIUM, HIGH, or URGENT." });
+  }
+  return withStaffTicketMutation(ticketNumber, async (tx) => {
+    const current = await lockTicket(tx, readStaffTicketNumber(ticketNumber));
+    await tx.ticket.update({ where: { id: current.id }, data: { itPriority: rawPriority as TicketPriority } });
+    return loadStaffTicket(tx, ticketNumber);
+  }, "PRIORITY_UPDATE_FAILED", "Ticket IT Priority could not be updated.");
+}
+
+export async function updateStaffStatus(ticketNumber: string, body: unknown): Promise<{ ticket: StaffTicket }> {
+  const record = readMutationObject(body, ["status", "confirm"]);
+  const confirm = readConfirmation(record);
+  const rawStatus = record.status;
+  if (typeof rawStatus !== "string" || !(STAFF_STATUSES as readonly string[]).includes(rawStatus)) {
+    throw operationError(400, "VALIDATION_ERROR", "Please correct the highlighted fields.", { status: "Status is not supported." });
+  }
+  const nextStatus = rawStatus as TicketStatus;
+  return withStaffTicketMutation(ticketNumber, async (tx) => {
+    const current = await lockTicket(tx, readStaffTicketNumber(ticketNumber));
+    if (!isAllowedStaffStatusTransition(current.status, nextStatus)) {
+      throw operationError(409, "INVALID_STATUS_TRANSITION", "This Ticket status transition is not allowed.");
+    }
+    if (STAFF_CONFIRMATION_STATUSES.has(nextStatus) && confirm !== true) {
+      throw operationError(400, "VALIDATION_ERROR", "Please confirm this status transition.", { confirm: "Confirmation is required for this status transition." });
+    }
+    await tx.ticket.update({
+      where: { id: current.id },
+      data: {
+        status: nextStatus,
+        ...(nextStatus === "REOPENED"
+          ? { resolutionIndicatedAt: null, resolutionIndicatedByUserId: null }
+          : {}),
+      },
+    });
+    return loadStaffTicket(tx, ticketNumber);
+  }, "STATUS_UPDATE_FAILED", "Ticket status could not be updated.");
+}

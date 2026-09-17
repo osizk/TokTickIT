@@ -183,6 +183,13 @@ export interface PublicComment {
   createdAt: string;
 }
 
+export interface InternalNote {
+  id: number;
+  content: string;
+  author: Pick<AuthUser, "id" | "name" | "email" | "role">;
+  createdAt: string;
+}
+
 export interface ResolutionIndication {
   indicatedAt: string;
   indicatedBy: Pick<AuthUser, "id" | "name" | "email" | "role">;
@@ -691,6 +698,45 @@ export async function fetchStaffAssignees(): Promise<StaffAssignee[]> {
   return body;
 }
 
+async function patchStaffTicket(
+  ticketNumber: string,
+  endpoint: "assignment" | "priority" | "status",
+  payload: Record<string, unknown>,
+): Promise<StaffTicket> {
+  if (!ticketNumber) throw new ApiClientError("Unable to update Staff Ticket.", 400);
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}/api/staff/tickets/${encodeURIComponent(ticketNumber)}/${endpoint}`, {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "Content-Type": "application/json", ...authenticatedHeaders(true) },
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    throw new ApiClientError("Unable to update Staff Ticket.", 0);
+  }
+  const body = await parseResponseBody(response);
+  if (!response.ok) {
+    const details = readApiError(body);
+    throw new ApiClientError("Unable to update Staff Ticket.", response.status, details.code, details.fieldErrors);
+  }
+  const result = body as { ticket?: unknown } | null;
+  if (!result || !isStaffTicket(result.ticket)) throw new ApiClientError("Unable to update Staff Ticket.", response.status);
+  return result.ticket;
+}
+
+export function updateStaffTicketAssignment(ticketNumber: string, ownerUserId: number | null, confirm = false): Promise<StaffTicket> {
+  return patchStaffTicket(ticketNumber, "assignment", { ownerUserId, ...(confirm ? { confirm: true } : {}) });
+}
+
+export function updateStaffTicketPriority(ticketNumber: string, itPriority: TicketPriority): Promise<StaffTicket> {
+  return patchStaffTicket(ticketNumber, "priority", { itPriority });
+}
+
+export function updateStaffTicketStatus(ticketNumber: string, status: TicketStatus, confirm = false): Promise<StaffTicket> {
+  return patchStaffTicket(ticketNumber, "status", { status, ...(confirm ? { confirm: true } : {}) });
+}
+
 export async function createTicket(
   requesterOrInput: number | CreateTicketInput,
   optionalInput?: CreateTicketInput,
@@ -881,6 +927,10 @@ function isPublicComment(value: unknown): value is PublicComment {
   );
 }
 
+function isInternalNote(value: unknown): value is InternalNote {
+  return isPublicComment(value);
+}
+
 export async function fetchTicketComments(requesterOrTicketNumber: number | string, optionalTicketNumber?: string): Promise<PublicComment[]> {
   const ticketNumber = typeof requesterOrTicketNumber === "number" ? optionalTicketNumber : requesterOrTicketNumber;
   if (!ticketNumber) throw new ApiClientError("Unable to load Public Comments.", 400);
@@ -906,6 +956,47 @@ export async function addPublicComment(requesterOrTicketNumber: number | string,
   const result = body as { comment?: unknown } | null;
   if (!result || !isPublicComment(result.comment)) throw new ApiClientError("Unable to add Public Comment.", response.status);
   return result.comment;
+}
+
+export async function fetchInternalNotes(ticketNumber: string): Promise<InternalNote[]> {
+  if (!ticketNumber) throw new ApiClientError("Unable to load Internal Notes.", 400);
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}/api/tickets/${encodeURIComponent(ticketNumber)}/internal-notes`, { credentials: "include", headers: authenticatedHeaders() });
+  } catch {
+    throw new ApiClientError("Unable to load Internal Notes.", 0);
+  }
+  const body = await parseResponseBody(response);
+  if (!response.ok) {
+    const details = readApiError(body);
+    throw new ApiClientError("Unable to load Internal Notes.", response.status, details.code, details.fieldErrors);
+  }
+  const result = body as { notes?: unknown } | null;
+  if (!result || !Array.isArray(result.notes) || !result.notes.every(isInternalNote)) throw new ApiClientError("Unable to load Internal Notes.", response.status);
+  return result.notes;
+}
+
+export async function addInternalNote(ticketNumber: string, content: string): Promise<InternalNote> {
+  if (!ticketNumber || !content) throw new ApiClientError("Unable to add Internal Note.", 400);
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}/api/tickets/${encodeURIComponent(ticketNumber)}/internal-notes`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json", ...authenticatedHeaders(true) },
+      body: JSON.stringify({ content }),
+    });
+  } catch {
+    throw new ApiClientError("Unable to add Internal Note.", 0);
+  }
+  const body = await parseResponseBody(response);
+  if (!response.ok) {
+    const details = readApiError(body);
+    throw new ApiClientError("Unable to add Internal Note.", response.status, details.code, details.fieldErrors);
+  }
+  const result = body as { note?: unknown } | null;
+  if (!result || !isInternalNote(result.note)) throw new ApiClientError("Unable to add Internal Note.", response.status);
+  return result.note;
 }
 
 export async function indicateTicketResolution(requesterOrTicketNumber: number | string, optionalTicketNumber?: string): Promise<ResolutionIndication> {

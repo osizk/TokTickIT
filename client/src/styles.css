@@ -953,6 +953,41 @@ textarea:focus-visible {
   min-height: 7rem;
 }
 
+.zen-operations-section {
+  margin-top: 2rem;
+  padding-top: 1.7rem;
+  border-top: 1px solid #dce8e1;
+}
+
+.zen-operation-grid {
+  margin-top: 1.1rem;
+}
+
+.zen-operation-grid .zen-control-button {
+  width: 100%;
+  margin-top: 0.75rem;
+}
+
+.zen-inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 0.75rem;
+}
+
+.zen-inline-actions .zen-button {
+  flex: 1 1 9rem;
+}
+
+.zen-internal-notes {
+  border-top-color: #d4c9bd;
+}
+
+.zen-note-list li {
+  border-color: #d4c9bd;
+  background: #fbf7f1;
+}
+
 .zen-attachment-section {
   margin-top: 2rem;
   padding-top: 1.7rem;
@@ -1124,6 +1159,11 @@ textarea:focus-visible {
   }
 
   .zen-attachment-upload > .zen-button {
+    width: 100%;
+  }
+
+  .zen-inline-actions,
+  .zen-inline-actions .zen-button {
     width: 100%;
   }
 }

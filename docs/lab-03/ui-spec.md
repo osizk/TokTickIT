@@ -61,7 +61,7 @@ Preserve the Lab 2 My Tickets table/phone-card presentation, URL query controls,
 
 The desktop queue is a labelled table with Ticket Number, Summary, Requester, Status, IT Priority, Requested Priority, Assignee, Updated, and an Open action. Controls include Search, status, IT Priority, assignee (`Unassigned` included), sort, order, page size (10/25/50), Apply, Clear, and pagination. Defaults are the API defaults. The page distinguishes no Tickets in the permitted scope from a filtered no-results state and includes loading, safe-failure Retry, forbidden, and empty-assignee states. On mobile each row becomes a card with the same fields and a prominent Open action; controls stack without page scrolling.
 
-The Open action navigates to `/staff/tickets/:ticketNumber` and loads the read-only Staff Ticket Detail target through the staff detail API. It must not fall through to the safe “Access not available” state. Detail mutations, comments, notes, and Attachment operations are implemented in the later Staff Ticket Operations Issue.
+The Open action navigates to `/staff/tickets/:ticketNumber` and loads the Staff Ticket Detail target through the staff detail API. It must not fall through to the safe “Access not available” state. Staff Ticket Operations on that target expose assignment, priority, status, Public Comments, Internal Notes, and permitted Attachment reads with the confirmations and privacy rules below.
 
 ### 4.5 Staff Ticket Detail
 

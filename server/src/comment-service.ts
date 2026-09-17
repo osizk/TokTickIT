@@ -34,9 +34,9 @@ function serializeComment(comment: CommentWithAuthor) {
 }
 
 async function findOwnedTicket(context: AuthContext, ticketNumber: string) {
-  const requesterId = requesterIdForContext(context);
+  const requesterId = context.user.role === "REQUESTER" ? requesterIdForContext(context) : undefined;
   const ticket = await getPrisma().ticket.findFirst({
-    where: { ticketNumber: requireTicketNumber(ticketNumber), requesterId },
+    where: { ticketNumber: requireTicketNumber(ticketNumber), ...(requesterId === undefined ? {} : { requesterId }) },
     select: { id: true, status: true, resolutionIndicatedAt: true, resolutionIndicatedBy: true },
   });
   if (!ticket) throw apiError(404, "TICKET_NOT_FOUND", "Ticket was not found.");

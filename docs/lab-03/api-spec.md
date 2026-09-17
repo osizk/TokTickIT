@@ -337,7 +337,7 @@ Invalid query values return `400`; a valid page beyond the end returns an empty 
 
 ### `GET /api/tickets/:ticketNumber`
 
-Requester receives only an owned Ticket. IT Staff/Administrators may use this endpoint for permitted Ticket Detail access. Return exactly `200` with `{ "ticket": <TicketDetail> }`, where every field is defined in the normative schemas above. This response never exposes storage paths, stored filenames, password/session data, or Internal Notes to a Requester. Missing/cross-owner returns the same safe `404 TICKET_NOT_FOUND`; an unexpected read failure returns `500 TICKET_DETAIL_FAILED`.
+Requester receives only an owned Ticket. IT Staff/Administrators use the dedicated `GET /api/staff/tickets/:ticketNumber` route below for queue-selected detail access; they do not use this Requester-only endpoint. Return exactly `200` with `{ "ticket": <TicketDetail> }`, where every field is defined in the normative schemas above. This response never exposes storage paths, stored filenames, password/session data, or Internal Notes to a Requester. Missing/cross-owner returns the same safe `404 TICKET_NOT_FOUND`; an unexpected read failure returns `500 TICKET_DETAIL_FAILED`.
 
 ### Attachment route compatibility
 
@@ -478,7 +478,7 @@ IT Staff and Administrators only. This is the read-only detail target for the Qu
 { "ticket": <StaffTicket> }
 ```
 
-The response includes `id`, `ticketNumber`, `requester`, `category`, `relatedSystem`, `requestedPriority`, `itPriority`, `status`, `summary`, `description`, `ticketOwner`, `resolutionIndication`, `createdAt`, and `updatedAt`. Missing or malformed Ticket Numbers return exactly `404` with `{ "error": { "code": "TICKET_NOT_FOUND", "message": "Ticket was not found." } }`; missing/expired sessions return the common `401` contract; Requesters and other roles receive the common `403 FORBIDDEN` contract; unexpected reads return safe `500 STAFF_TICKET_DETAIL_FAILED`. Assignment, priority, status, comment, note, and Attachment operations remain the later Staff Ticket Operations scope.
+The response includes `id`, `ticketNumber`, `requester`, `category`, `relatedSystem`, `requestedPriority`, `itPriority`, `status`, `summary`, `description`, `ticketOwner`, `resolutionIndication`, `createdAt`, and `updatedAt`. Missing or malformed Ticket Numbers return exactly `404` with `{ "error": { "code": "TICKET_NOT_FOUND", "message": "Ticket was not found." } }`; missing/expired sessions return the common `401` contract; Requesters and other roles receive the common `403 FORBIDDEN` contract; unexpected reads return safe `500 STAFF_TICKET_DETAIL_FAILED`. The mutation, comment, note, and Attachment continuity operations below use this same staff detail target and return the same complete `<StaffTicket>` shape after each successful change.
 
 ### `PATCH /api/staff/tickets/:ticketNumber/assignment`
 
