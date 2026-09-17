@@ -85,15 +85,15 @@
 
 | PR | Branch | Review status | Response/evidence |
 |---|---|---|---|
-| Not opened | `feature/18-Lab3UserManagement` | Local implementation complete; commit/push/PR pending authorization | Focused Administrator API/UI tests and both builds pass locally. No GitHub review, approval, or merge is claimed yet. |
+| [#48](https://github.com/osizk/TokTickIT/pull/48) | `feature/18-Lab3UserManagement` | Open into `lab3-staging`; teammate review pending | Commit [`335b016`](https://github.com/osizk/TokTickIT/commit/335b016) contains the Administrator User Management implementation and evidence updates. Focused API/UI tests and both builds pass locally; full server/release gates remain documented as pending. |
 
 ### Planned review scope
 
-The review should verify that Administrator-only User Management covers list/search/role filter, one-role create/edit/activation, duplicate email, owner-ineligibility, self/last-Administrator safety, password reset/session revocation, safe errors, and responsive accessible UI without adding deletion, bulk, import/export, or staff workflow features. The actual partner comments, student responses, review verdicts, and formal **Approve** event will be added after a PR exists.
+The review should verify that Administrator-only User Management covers list/search/role filter, one-role create/edit/activation, duplicate email, owner-ineligibility, self/last-Administrator safety, password reset/session revocation, safe errors, and responsive accessible UI without adding deletion, bulk, import/export, or staff workflow features. The actual partner comments, student responses, review verdicts, and formal **Approve** event will be added after teammate review.
 
-**Reviewer verdict:** Pending an actual Issue #38 PR and teammate review.
+**Reviewer verdict:** Pending teammate review of [PR #48](https://github.com/osizk/TokTickIT/pull/48); no formal **Approve** is claimed yet.
 
-**My review verdict:** The focused checks are green locally; full server regression and release evidence remain deferred as documented in `tests.md`.
+**My review verdict:** The focused checks are green locally; full server regression and release evidence remain deferred as documented in `tests.md`. I requested review for [PR #48](https://github.com/osizk/TokTickIT/pull/48) and will record the actual approval or requested changes when received.
 
 ## Review evidence rules
 
