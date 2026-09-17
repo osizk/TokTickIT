@@ -26,21 +26,22 @@ model Requester {
 }
 
 model User {
-  id                 Int        @id @default(autoincrement())
-  name               String
-  email              String     @unique
-  passwordHash       String?
-  role               UserRole   @default(REQUESTER)
-  isActive           Boolean    @default(true)
-  mustChangePassword Boolean    @default(true)
-  legacyRequesterId  Int?       @unique
-  createdAt          DateTime   @default(now())
-  updatedAt          DateTime   @updatedAt
-  legacyRequester    Requester? @relation("LegacyRequester", fields: [legacyRequesterId], references: [id], onDelete: Restrict)
-  sessions           Session[]
-  resolutionIndications Ticket[] @relation("ResolutionIndications")
-  ownedTickets      Ticket[] @relation("TicketOwner")
-  publicComments    PublicComment[]
+  id                    Int             @id @default(autoincrement())
+  name                  String
+  email                 String          @unique
+  passwordHash          String?
+  role                  UserRole        @default(REQUESTER)
+  isActive              Boolean         @default(true)
+  mustChangePassword    Boolean         @default(true)
+  legacyRequesterId     Int?            @unique
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  legacyRequester       Requester?      @relation("LegacyRequester", fields: [legacyRequesterId], references: [id], onDelete: Restrict)
+  sessions              Session[]
+  resolutionIndications Ticket[]        @relation("ResolutionIndications")
+  ownedTickets          Ticket[]        @relation("TicketOwner")
+  publicComments        PublicComment[]
+  internalNotes         InternalNote[]
 
   @@index([isActive, role, name])
 }
@@ -103,28 +104,29 @@ model TicketCounter {
 }
 
 model Ticket {
-  id                Int            @id @default(autoincrement())
-  ticketNumber      String         @unique
-  requesterId       Int
-  categoryId        Int
-  relatedSystemId   Int
-  requestedPriority TicketPriority
-  itPriority        TicketPriority  @default(LOW)
-  status            TicketStatus   @default(NEW)
-  summary           String
-  description       String
-  ticketOwnerId     Int?
+  id                          Int             @id @default(autoincrement())
+  ticketNumber                String          @unique
+  requesterId                 Int
+  categoryId                  Int
+  relatedSystemId             Int
+  requestedPriority           TicketPriority
+  itPriority                  TicketPriority  @default(LOW)
+  status                      TicketStatus    @default(NEW)
+  summary                     String
+  description                 String
+  ticketOwnerId               Int?
   resolutionIndicatedAt       DateTime?
   resolutionIndicatedByUserId Int?
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @default(now()) @updatedAt
-  requester         Requester      @relation(fields: [requesterId], references: [id], onDelete: Restrict)
-  category          Category       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  relatedSystem     RelatedSystem  @relation(fields: [relatedSystemId], references: [id], onDelete: Restrict)
-  ticketOwner       User?          @relation("TicketOwner", fields: [ticketOwnerId], references: [id], onDelete: SetNull)
-  resolutionIndicatedBy User?      @relation("ResolutionIndications", fields: [resolutionIndicatedByUserId], references: [id], onDelete: Restrict)
-  attachments       Attachment[]
-  publicComments    PublicComment[]
+  createdAt                   DateTime        @default(now())
+  updatedAt                   DateTime        @default(now()) @updatedAt
+  requester                   Requester       @relation(fields: [requesterId], references: [id], onDelete: Restrict)
+  category                    Category        @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  relatedSystem               RelatedSystem   @relation(fields: [relatedSystemId], references: [id], onDelete: Restrict)
+  ticketOwner                 User?           @relation("TicketOwner", fields: [ticketOwnerId], references: [id], onDelete: SetNull)
+  resolutionIndicatedBy       User?           @relation("ResolutionIndications", fields: [resolutionIndicatedByUserId], references: [id], onDelete: Restrict)
+  attachments                 Attachment[]
+  publicComments              PublicComment[]
+  internalNotes               InternalNote[]
 
   @@index([requesterId, updatedAt, id])
   @@index([requesterId, createdAt, id])
@@ -136,6 +138,18 @@ model Ticket {
 }
 
 model PublicComment {
+  id        Int      @id @default(autoincrement())
+  ticketId  Int
+  authorId  Int
+  content   String
+  createdAt DateTime @default(now())
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Restrict)
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@index([ticketId, createdAt, id])
+}
+
+model InternalNote {
   id        Int      @id @default(autoincrement())
   ticketId  Int
   authorId  Int

@@ -226,7 +226,7 @@ All paths below are intended paths for the implementation branches. A test is no
 |---|---|---|---|---|
 | UNIT-01 | Unit | BR-02/03, AC-01/02/17 | Password, email normalization, and field-boundary validation — `server/tests/lab-03/auth-validation.unit.test.ts` | Passed: 4 tests |
 | UNIT-02 | Unit | BR-05/06/07, AC-03/04/20 | Session expiry, CSRF, cookie flags, rate-limit key behavior — `server/tests/lab-03/session-security.unit.test.ts` | Passed: 3 tests |
-| UNIT-03 | Unit | BR-13/15/16/17, AC-13 | Status-transition, Requested/IT Priority mutation matrix, and confirmation rules — `server/tests/lab-03/status-transition.unit.test.ts` | Planned |
+| UNIT-03 | Unit | BR-13/15/16/17, AC-13 | Status-transition, Requested/IT Priority mutation matrix, and confirmation rules — `server/tests/lab-03/status-transition.unit.test.ts` | Passed: 2 tests |
 | UNIT-04 | Unit | BR-18/19/20, AC-10 | Queue query parsing, defaults, ordering, and page bounds — `server/tests/lab-03/queue-query.unit.test.ts` | Planned |
 | UNIT-05 | Unit | BR-18, AC-09 | Resolution indication allows non-terminal statuses and rejects `CLOSED`/`CANCELLED` — `server/tests/lab-03/resolution-indication.unit.test.ts` | Passed: 1 test |
 | API-01 | API | FR-01/02, AC-01/02 | Login validation, seeded/temporary active login, safe inactive/unknown failure, and role payload — `server/tests/lab-03/auth.api.test.ts` | Passed: 6 tests |
@@ -236,8 +236,8 @@ All paths below are intended paths for the implementation branches. A test is no
 | API-05 | Integration | FR-05/15, AC-06/22 | Applied migration User-ID/credential preservation, non-fixture Requester credential backfill with Ticket/Attachment ownership, changed-password preservation, and repeated idempotent seed counts — `server/tests/lab-03/migration-seed.api.test.ts` | Passed: 4 tests; pre-migration Ticket/Attachment fixture audit remains part of the release migration evidence |
 | API-06 | API | FR-06/07, AC-07/08/20 | Authenticated Requester Ticket/Attachment continuity, inherited Ticket field/priority validation, exact Lab 2 nested routes, and ownership isolation — `server/tests/lab-03/requester-regression.api.test.ts` | Passed: 3 focused tests plus inherited Lab 2 Ticket/Attachment/list/detail regressions |
 | API-07 | API | FR-09, AC-10/11 | Staff queue search/filter/sort/pagination/defaults, Requested/IT Priority filters and sorting, functional staff Open-detail response, and safe failures — `server/tests/lab-03/staff-queue.api.test.ts` | Passed: 6 focused tests; full server regression awaits local Lab 3 password variables |
-| API-08 | API | FR-10, AC-12/13/15 | Staff detail assignment, Requested/IT Priority values and mutation, status, and Attachment access — `server/tests/lab-03/staff-ticket-detail.api.test.ts` | Planned |
-| API-09 | API | FR-08/11/12, AC-09/14 | Public Comments, stable Requester `403 FORBIDDEN` Internal Notes denial, privacy, authorship, validation, append-only behavior — `server/tests/lab-03/comments-notes.api.test.ts` | Planned |
+| API-08 | API | FR-10, AC-12/13/15 | Staff detail assignment, Requested/IT Priority values and mutation, status, and Attachment access — `server/tests/lab-03/staff-ticket-detail.api.test.ts` | Passed: 4 focused tests |
+| API-09 | API | FR-08/11/12, AC-09/14 | Public Comments, stable Requester `403 FORBIDDEN` Internal Notes denial, privacy, authorship, validation, append-only behavior — `server/tests/lab-03/comments-notes.api.test.ts` | Partially passed: public-comment test passes; Internal Note test awaits applying `20260917110000_lab3_ticket_operations` to the disposable database |
 | API-10 | API | FR-13/14, AC-16/17/18/19 | Admin user list/create/edit/activation/reset, `USER_OWNS_TICKETS` atomic rejection, session revocation after role/activation changes, and safety rules — `server/tests/lab-03/users-admin.api.test.ts` | Planned |
 | API-11 | API | FR-07/11, AC-08/15 | Active/removed Attachment metadata, download headers, exact route compatibility, and staff/requester access continuation — `server/tests/lab-03/attachment-continuity.api.test.ts` | Planned |
 | API-12 | API | FR-04/16, AC-05/20 | Exact authenticated Categories, Related Systems, and staff-assignee response/error contracts — `server/tests/lab-03/reference-data.api.test.ts` | Planned |
@@ -245,7 +245,7 @@ All paths below are intended paths for the implementation branches. A test is no
 | UI-02 | Component | FR-02/03/17, AC-03/04/21 | Change-password guard, policy errors, success, and focus — `client/tests/lab-03/ChangePassword.test.tsx` | Planned |
 | UI-03 | Component | FR-06/07/08, AC-07/08/09/21 | Authenticated shell, logout retry, session-expiry redirect, stale session-restore suppression, role-route guards, direct Change Password guard, and Requester list/create/detail regression — `client/tests/lab-03/RequesterRegression.test.tsx` | Passed: 10 focused tests plus inherited Lab 2 list/create/detail/attachment UI regressions |
 | UI-04 | Component | FR-09/17, AC-10/11/21 | Queue controls, Requested/IT Priority filters and sorting, states, role visibility, cards/table, pagination, and functional Open-detail navigation — `client/tests/lab-03/StaffTicketQueue.test.tsx` | Passed: 5 focused tests; full client suite 9 files/41 tests |
-| UI-05 | Component | FR-10/11/12, AC-12/13/14/15/21 | Staff detail actions, priority mutation, dialogs, comments, notes, and attachments — `client/tests/lab-03/StaffTicketDetail.test.tsx` | Planned |
+| UI-05 | Component | FR-10/11/12, AC-12/13/14/15/21 | Staff detail actions, priority mutation, dialogs, comments, notes, and attachments — `client/tests/lab-03/StaffTicketDetail.test.tsx` | Passed: 3 focused tests |
 | UI-06 | Component | FR-13/14, AC-16/17/18/19/21 | User list/editor, validation, activation, `USER_OWNS_TICKETS` conflict feedback, session-effect messaging, and reset controls — `client/tests/lab-03/UserManagement.test.tsx` | Planned |
 | STYLE-01 | Style/a11y | FR-17, AC-11/21 | Labels, focus, roles, contrast, touch targets, semantic feedback — `client/tests/lab-03/Accessibility.test.tsx` | Planned |
 | STYLE-02 | Responsive | FR-17, AC-11/21 | Desktop/tablet/mobile layout and no page-wide horizontal scroll — `client/tests/lab-03/Responsive.test.tsx` | Planned |
@@ -440,7 +440,27 @@ The following mapping makes the business-rule coverage explicit. Each implementa
 - [ ] Teammate submits an actual GitHub **Approve** review.
 - [ ] Student explicitly authorizes commit, push, PR, and merge; card moves to Done only after merge.
 
-## 12. Visual and evidence checklist
+## 12. Issue #37 evidence checklist
+
+- [x] Branch `feature/17-Lab3TicketOperations` was created from the latest merged `lab3-staging` baseline.
+- [x] Planned staff-operation API tests were written and run red first; the missing assignment/priority/status routes, staff attachment reads, staff comments, and Internal Notes endpoint were observed before implementation.
+- [x] Additive Prisma schema/migration defines append-only `InternalNote` rows linked to Tickets and User authors with restrictive delete behavior.
+- [x] Staff assignment API enforces active IT Staff/Administrator owners, required confirmation for reassignment/unassignment, and transactional row locking.
+- [x] Staff IT Priority and status APIs enforce the shared enum, the complete status-transition matrix, consequential-status confirmations, and safe validation/conflict responses.
+- [x] Public Comments now support Requester, IT Staff, and Administrator actors while preserving ownership-safe Requester access; Internal Notes are staff-only and excluded from Requester responses.
+- [x] Staff/Admin Attachment metadata and active-file downloads use the existing Lab 2 routes; Requester-only upload/removal remains unchanged and removed downloads return safe `404`.
+- [x] Focused staff API tests pass 4/4 and the status-transition unit tests pass 2/2. The Internal Note API test remains blocked until the additive migration is applied to the disposable test database; the current 500 is recorded rather than marked as passing.
+- [x] Focused Staff Ticket Detail UI tests pass 3/3; the existing Staff Queue regression tests pass 5/5.
+- [x] Server build and client build pass for this branch.
+- [x] Complete client regression was rerun after Issue #37: 10 test files and 44 tests passed.
+- [x] Complete server regression was attempted with `npm.cmd test -- --run`: 25 files ran with 47 tests passed, 8 failed, and 28 skipped. The failures are recorded as environment/migration blockers (missing local Lab 3 password variables and unapplied `InternalNote` migration), not as passing evidence.
+- [x] Reopening a Ticket now clears its stored Requester resolution indication; the staff-operation API regression covers the reset.
+- [x] `api-spec.md` and `ui-spec.md` now describe the implemented Issue #37 operations and staff-detail behavior.
+- [ ] Apply `20260917110000_lab3_ticket_operations` to `toktickit_lab2_test`, rerun the complete API-09 notes test, and record the complete terminal output.
+- [ ] Teammate submits an actual GitHub **Approve** review.
+- [ ] Student explicitly authorizes commit, push, PR, and merge; card moves to Done only after merge.
+
+## 13. Visual and evidence checklist
 
 - [ ] Final `main` SHA and merge graph show the Lab 3 branch sequence.
 - [ ] Contract PR is visibly approved and merged before product PRs.

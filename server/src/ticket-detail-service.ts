@@ -81,6 +81,23 @@ async function findOwnedTicket(
   return ticket;
 }
 
+async function findTicketByNumber(db: DbClient, ticketNumber: string): Promise<{ id: number }> {
+  const ticket = await db.ticket.findUnique({
+    where: { ticketNumber: ensureTicketNumber(ticketNumber) },
+    select: { id: true },
+  });
+  if (!ticket) throw apiError(404, "TICKET_NOT_FOUND", "Ticket was not found.");
+  return ticket;
+}
+
+async function listAttachmentsForTicket(db: DbClient, ticketId: number) {
+  const attachments = await db.attachment.findMany({
+    where: { ticketId },
+    orderBy: [{ uploadedAt: "asc" }, { id: "asc" }],
+  });
+  return { attachments: attachments.map(serializeAttachment) };
+}
+
 function serializeTicketDetail(ticket: TicketDetailPayload) {
   return {
     id: ticket.id,
@@ -126,11 +143,18 @@ export async function getTicketAttachments(request: Request, ticketNumber: strin
   const db = getPrisma();
   await requireActiveRequester(db, requesterId);
   const ticket = await findOwnedTicket(db, requesterId, ticketNumber);
-  const attachments = await db.attachment.findMany({
-    where: { ticketId: ticket.id },
-    orderBy: [{ uploadedAt: "asc" }, { id: "asc" }],
-  });
-  return { attachments: attachments.map(serializeAttachment) };
+  return listAttachmentsForTicket(db, ticket.id);
+}
+
+export async function getStaffTicketAttachments(ticketNumber: string) {
+  try {
+    const db = getPrisma();
+    const ticket = await findTicketByNumber(db, ticketNumber);
+    return await listAttachmentsForTicket(db, ticket.id);
+  } catch (error) {
+    if (error instanceof TicketApiError) throw error;
+    throw apiError(500, "ATTACHMENT_LIST_FAILED", "Attachments could not be loaded.");
+  }
 }
 
 function validateMultipartFields(fields: Record<string, unknown>): void {
@@ -226,10 +250,12 @@ export async function downloadTicketAttachment(
   const db = getPrisma();
   await requireActiveRequester(db, requesterId);
   const ticket = await findOwnedTicket(db, requesterId, ticketNumber);
+  return downloadAttachmentForTicket(db, ticket.id, rawAttachmentId);
+}
+
+async function downloadAttachmentForTicket(db: DbClient, ticketId: number, rawAttachmentId: string) {
   const attachmentId = parseAttachmentId(rawAttachmentId);
-  const attachment = await db.attachment.findFirst({
-    where: { id: attachmentId, ticketId: ticket.id, removedAt: null },
-  });
+  const attachment = await db.attachment.findFirst({ where: { id: attachmentId, ticketId, removedAt: null } });
   if (!attachment) {
     throw apiError(404, "ATTACHMENT_NOT_FOUND", "Attachment was not found.");
   }
@@ -251,6 +277,17 @@ export async function downloadTicketAttachment(
     mimeType: attachment.mimeType,
     originalName: attachment.originalName,
   };
+}
+
+export async function downloadStaffTicketAttachment(ticketNumber: string, rawAttachmentId: string) {
+  try {
+    const db = getPrisma();
+    const ticket = await findTicketByNumber(db, ticketNumber);
+    return await downloadAttachmentForTicket(db, ticket.id, rawAttachmentId);
+  } catch (error) {
+    if (error instanceof TicketApiError) throw error;
+    throw apiError(500, "ATTACHMENT_DOWNLOAD_FAILED", "Attachment could not be downloaded.");
+  }
 }
 
 function readRemovalReason(request: Request): string {

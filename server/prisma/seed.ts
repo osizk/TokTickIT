@@ -173,6 +173,28 @@ async function main() {
       createdQueueTickets += 1;
     }
 
+    // Seed one stable public conversation and one private operational note
+    // for each deterministic queue Ticket. The lookup is by Ticket Number
+    // and content so repeated runs remain idempotent while any user-authored
+    // entries are left untouched.
+    const seededStaffAuthor = await tx.user.findUnique({ where: { email: "michael.staff@example.test" }, select: { id: true } });
+    if (!seededStaffAuthor) throw new Error("Unable to create queue seed entries: staff author is missing.");
+    for (const [index] of queueTicketFixtures.entries()) {
+      const ticketNumber = `TKT-${seedYear}-${String(900001 + index).padStart(6, "0")}`;
+      const ticket = await tx.ticket.findUnique({ where: { ticketNumber }, select: { id: true, requester: { select: { legacyUser: { select: { id: true } } } } } });
+      if (!ticket) continue;
+      const publicContent = `Seeded public update for Ticket ${ticketNumber}.`;
+      const existingComment = await tx.publicComment.findFirst({ where: { ticketId: ticket.id, content: publicContent }, select: { id: true } });
+      if (!existingComment && ticket.requester.legacyUser) {
+        await tx.publicComment.create({ data: { ticketId: ticket.id, authorId: ticket.requester.legacyUser.id, content: publicContent } });
+      }
+      const noteContent = `Seeded staff note for Ticket ${ticketNumber}.`;
+      const existingNote = await tx.internalNote.findFirst({ where: { ticketId: ticket.id, content: noteContent }, select: { id: true } });
+      if (!existingNote) {
+        await tx.internalNote.create({ data: { ticketId: ticket.id, authorId: seededStaffAuthor.id, content: noteContent } });
+      }
+    }
+
     // Keep annual allocation above both the deterministic fixtures and any
     // existing current-year Ticket. This is monotonic and never rewrites a
     // user's Ticket or counter to a lower value.

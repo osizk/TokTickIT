@@ -7,7 +7,9 @@ import {
   addTicketAttachment,
   downloadTicketAttachment,
   getTicketAttachments,
+  getStaffTicketAttachments,
   getTicketDetail,
+  downloadStaffTicketAttachment,
   removeTicketAttachment,
 } from "./ticket-detail-service.js";
 import {
@@ -30,7 +32,15 @@ import {
 } from "./auth-service.js";
 import { validateEmail, validatePassword } from "./auth-validation.js";
 import { createPublicComment, indicateResolution, listPublicComments } from "./comment-service.js";
-import { getStaffTicket, listStaffAssignees, listStaffTickets } from "./staff-queue-service.js";
+import { createInternalNote, listInternalNotes } from "./note-service.js";
+import {
+  getStaffTicket,
+  listStaffAssignees,
+  listStaffTickets,
+  updateStaffAssignment,
+  updateStaffPriority,
+  updateStaffStatus,
+} from "./staff-queue-service.js";
 
 export const app = express();
 
@@ -95,6 +105,21 @@ async function requireStaff(req: Request) {
   const context = await requireUsableSession(req);
   requireRole(context, "IT_STAFF", "ADMINISTRATOR");
   return context;
+}
+
+async function requireCommentActor(req: Request) {
+  const context = await requireUsableSession(req);
+  requireRole(context, "REQUESTER", "IT_STAFF", "ADMINISTRATOR");
+  return context;
+}
+
+async function requireTicketReader(req: Request) {
+  const context = await requireUsableSession(req);
+  if (context.user.role === "REQUESTER") {
+    return { context, requesterId: requesterIdForContext(context), staff: false as const };
+  }
+  requireRole(context, "IT_STAFF", "ADMINISTRATOR");
+  return { context, staff: true as const };
 }
 
 app.post("/api/auth/login", async (req: Request, res: Response) => {
@@ -257,6 +282,45 @@ app.get("/api/staff/assignees", async (req: Request, res: Response) => {
   }
 });
 
+app.patch("/api/staff/tickets/:ticketNumber/assignment", async (req: Request, res: Response) => {
+  try {
+    assertAllowedOrigin(req);
+    const context = await requireStaff(req);
+    assertCsrf(context, req);
+    const result = await updateStaffAssignment(req.params.ticketNumber, req.body);
+    markUncached(res);
+    res.status(200).json(result);
+  } catch (error) {
+    sendTicketError(res, error);
+  }
+});
+
+app.patch("/api/staff/tickets/:ticketNumber/priority", async (req: Request, res: Response) => {
+  try {
+    assertAllowedOrigin(req);
+    const context = await requireStaff(req);
+    assertCsrf(context, req);
+    const result = await updateStaffPriority(req.params.ticketNumber, req.body);
+    markUncached(res);
+    res.status(200).json(result);
+  } catch (error) {
+    sendTicketError(res, error);
+  }
+});
+
+app.patch("/api/staff/tickets/:ticketNumber/status", async (req: Request, res: Response) => {
+  try {
+    assertAllowedOrigin(req);
+    const context = await requireStaff(req);
+    assertCsrf(context, req);
+    const result = await updateStaffStatus(req.params.ticketNumber, req.body);
+    markUncached(res);
+    res.status(200).json(result);
+  } catch (error) {
+    sendTicketError(res, error);
+  }
+});
+
 app.get("/api/tickets", async (req: Request, res: Response) => {
   try {
     const { requesterId } = await requireRequester(req);
@@ -294,8 +358,10 @@ app.get("/api/tickets/:ticketNumber", async (req: Request, res: Response) => {
 
 app.get("/api/tickets/:ticketNumber/attachments", async (req: Request, res: Response) => {
   try {
-    const { requesterId } = await requireRequester(req);
-    const result = await getTicketAttachments(req, req.params.ticketNumber, requesterId);
+    const reader = await requireTicketReader(req);
+    const result = reader.staff
+      ? await getStaffTicketAttachments(req.params.ticketNumber)
+      : await getTicketAttachments(req, req.params.ticketNumber, reader.requesterId);
     markUncached(res);
     res.status(200).json(result);
   } catch (error) {
@@ -305,7 +371,7 @@ app.get("/api/tickets/:ticketNumber/attachments", async (req: Request, res: Resp
 
 app.get("/api/tickets/:ticketNumber/comments", async (req: Request, res: Response) => {
   try {
-    const { context } = await requireRequester(req);
+    const context = await requireCommentActor(req);
     const result = await listPublicComments(context, req.params.ticketNumber);
     markUncached(res);
     res.status(200).json(result);
@@ -317,9 +383,33 @@ app.get("/api/tickets/:ticketNumber/comments", async (req: Request, res: Respons
 app.post("/api/tickets/:ticketNumber/comments", async (req: Request, res: Response) => {
   try {
     assertAllowedOrigin(req);
-    const { context } = await requireRequester(req);
+    const context = await requireCommentActor(req);
     assertCsrf(context, req);
     const result = await createPublicComment(context, req.params.ticketNumber, req.body);
+    markUncached(res);
+    res.status(201).json(result);
+  } catch (error) {
+    sendTicketError(res, error);
+  }
+});
+
+app.get("/api/tickets/:ticketNumber/internal-notes", async (req: Request, res: Response) => {
+  try {
+    const context = await requireStaff(req);
+    const result = await listInternalNotes(context, req.params.ticketNumber);
+    markUncached(res);
+    res.status(200).json(result);
+  } catch (error) {
+    sendTicketError(res, error);
+  }
+});
+
+app.post("/api/tickets/:ticketNumber/internal-notes", async (req: Request, res: Response) => {
+  try {
+    assertAllowedOrigin(req);
+    const context = await requireStaff(req);
+    assertCsrf(context, req);
+    const result = await createInternalNote(context, req.params.ticketNumber, req.body);
     markUncached(res);
     res.status(201).json(result);
   } catch (error) {
@@ -364,10 +454,13 @@ function safeContentDisposition(originalName: string): string {
 
 app.get("/api/tickets/:ticketNumber/attachments/:attachmentId/download", async (req: Request, res: Response) => {
   try {
-    const { requesterId } = await requireRequester(req);
-    const result = await downloadTicketAttachment(req, req.params.ticketNumber, req.params.attachmentId, requesterId);
+    const reader = await requireTicketReader(req);
+    const result = reader.staff
+      ? await downloadStaffTicketAttachment(req.params.ticketNumber, req.params.attachmentId)
+      : await downloadTicketAttachment(req, req.params.ticketNumber, req.params.attachmentId, reader.requesterId);
     markUncached(res);
     res.setHeader("Content-Type", result.mimeType);
+    res.setHeader("Content-Length", String(result.body.byteLength));
     res.setHeader("Content-Disposition", safeContentDisposition(result.originalName));
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Cache-Control", "no-store");
