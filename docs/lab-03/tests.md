@@ -218,9 +218,52 @@ No pending migrations to apply.
 
 Its storage/database safety checks confirmed the database name ends in `_test` and the attachment path is inside the test-owned storage root. The complete client suite passed 9 files/41 tests after the Open-detail regression was added. An initial full-server attempt failed closed because this local `.env.test` does not contain the three required `LAB3_*_INITIAL_PASSWORD` values. A later process-only attempt was also not counted as passing: the disposable database retained hashes from an earlier generated seed password, so the newly generated value was rejected and the inherited login fixtures became rate-limited. No credential value is recorded here; rerun the complete server suite with the password variables matching the existing disposable seed credentials before release evidence is finalized.
 
+### Issue #38 red/green evidence (Administrator User Management)
+
+The planned API and UI tests were written and run before the Administrator implementation. The first API run was stopped by the test fixture because the cleanup included an unavailable `InternalNote` table; the fixture was corrected to delete only tables present in the current disposable schema. The next red run reached the intended missing-route failures:
+
+```text
+Command: cd server; npm.cmd test -- --run tests/lab-03/users-admin.api.test.ts
+Result: 5 tests failed as expected with HTTP 404 because the Administrator User Management routes did not exist.
+
+Command: cd client; npm.cmd test -- --run tests/lab-03/UserManagement.test.tsx
+Result: failed during collection as expected because client/src/AdminUserManagement.tsx did not exist.
+```
+
+After the service, protected routes, API client, responsive User Management screen, and tests were implemented, the focused checks passed against the guarded disposable `toktickit_lab2_test` database:
+
+```text
+Command: cd server; npm.cmd test -- --run tests/lab-03/users-admin.api.test.ts
+Test Files  1 passed (1)
+Tests       5 passed (5)
+Result      exit status 0
+
+Command: cd server; npm.cmd run build
+Result: TypeScript build passed.
+
+Command: cd client; npm.cmd test -- --run tests/lab-03/UserManagement.test.tsx
+Test Files  1 passed (1)
+Tests       3 passed (3)
+Result      exit status 0
+
+Command: cd client; npm.cmd run build
+Result: production TypeScript/Vite build passed.
+
+Command: cd client; npm.cmd test -- --run
+Test Files  11 passed (11)
+Tests       47 passed (47)
+Result      exit status 0
+```
+
+The API tests verify Administrator-only access, exact safe-user fields with timestamps and no password hash, name/email search, role filtering, one-role creation and validation, duplicate email protection, owner-ineligibility atomic rejection, self-Administrator protection, session revocation after role changes and password reset, and first-login password-change state. The UI tests verify the responsive table/card list, search/filter controls, create/edit form, one-role validation, conflict feedback, and reset action. Full server regression, migration/seed repeat evidence, authenticated E2E, final-main evidence, and Project/review evidence remain release gates for later Issues.
+
+A current complete-server attempt is not claimed as passing: the Issue #38 API file still passed 5/5, but inherited authenticated suites stopped at the local missing `LAB3_REQUESTER_INITIAL_PASSWORD`, and the Internal Notes test returned `500` because its migration is not yet applied to this disposable database. No Issue #38 assertion failed; rerun the full server suite after the local Lab 3 password variables and pending migration are configured.
+
 ## 3. Planned test matrix
 
 All paths below are intended paths for the implementation branches. A test is not marked passed until its real command and output are recorded here.
+
+Issue #38 focused API-10 and UI-06 results are recorded above (5 API tests and 3 UI tests passed). The matrix labels remain a plan-level traceability record; release-wide regression, migration, E2E, and final-main evidence are still tracked separately and must not be inferred from these focused results.
 
 | Test ID | Type | Covers | Planned test/path | Status |
 |---|---|---|---|---|

@@ -81,6 +81,20 @@
 
 **My review verdict:** I accepted the finding because the approved Queue contract requires a usable Open action. I implemented only the read-only staff detail target needed by Issue #36 and kept assignment, status, comments, notes, and Attachment operations in the planned Issue #37 scope.
 
+## Issue #38 review status
+
+| PR | Branch | Review status | Response/evidence |
+|---|---|---|---|
+| Not opened | `feature/18-Lab3UserManagement` | Local implementation complete; commit/push/PR pending authorization | Focused Administrator API/UI tests and both builds pass locally. No GitHub review, approval, or merge is claimed yet. |
+
+### Planned review scope
+
+The review should verify that Administrator-only User Management covers list/search/role filter, one-role create/edit/activation, duplicate email, owner-ineligibility, self/last-Administrator safety, password reset/session revocation, safe errors, and responsive accessible UI without adding deletion, bulk, import/export, or staff workflow features. The actual partner comments, student responses, review verdicts, and formal **Approve** event will be added after a PR exists.
+
+**Reviewer verdict:** Pending an actual Issue #38 PR and teammate review.
+
+**My review verdict:** The focused checks are green locally; full server regression and release evidence remain deferred as documented in `tests.md`.
+
 ## Review evidence rules
 
 - Record the exact PR, branch, Issue, review, response, and merge links after they exist.
