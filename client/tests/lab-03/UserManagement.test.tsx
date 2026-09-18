@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import AdminUserManagement from "../../src/AdminUserManagement.js";
 import * as api from "../../src/api.js";
@@ -61,6 +61,15 @@ describe("Lab 3 Administrator User Management", () => {
     await waitFor(() => expect(api.fetchAdminUsers).toHaveBeenLastCalledWith({ search: "Michael" }));
     await user.selectOptions(screen.getByRole("combobox", { name: "Role" }), "IT_STAFF");
     await waitFor(() => expect(api.fetchAdminUsers).toHaveBeenLastCalledWith({ search: "Michael", role: "IT_STAFF" }));
+  });
+
+  it("renders mobile user cards with usable Edit actions", async () => {
+    render(<AdminUserManagement />);
+
+    const mobileCards = await screen.findByLabelText("Mobile user cards");
+    expect(mobileCards).toHaveClass("admin-users-cards");
+    expect(within(mobileCards).getAllByRole("button", { name: /^Edit / })).toHaveLength(3);
+    expect(within(mobileCards).getByRole("button", { name: "Edit Michael Staff" })).toBeEnabled();
   });
 
   it("creates and edits one-role users with safe conflict feedback", async () => {

@@ -235,7 +235,7 @@ After the service, protected routes, API client, responsive User Management scre
 ```text
 Command: cd server; npm.cmd test -- --run tests/lab-03/users-admin.api.test.ts
 Test Files  1 passed (1)
-Tests       5 passed (5)
+Tests       6 passed (6)
 Result      exit status 0
 
 Command: cd server; npm.cmd run build
@@ -243,7 +243,12 @@ Result: TypeScript build passed.
 
 Command: cd client; npm.cmd test -- --run tests/lab-03/UserManagement.test.tsx
 Test Files  1 passed (1)
-Tests       3 passed (3)
+Tests       4 passed (4)
+Result      exit status 0
+
+Command: cd client; npm.cmd test -- --run tests/lab-03/UserManagement.test.tsx tests/lab-02/ZenGreen.styles.test.tsx
+Test Files  2 passed (2)
+Tests       8 passed (8)
 Result      exit status 0
 
 Command: cd client; npm.cmd run build
@@ -251,19 +256,19 @@ Result: production TypeScript/Vite build passed.
 
 Command: cd client; npm.cmd test -- --run
 Test Files  11 passed (11)
-Tests       47 passed (47)
+Tests       49 passed (49)
 Result      exit status 0
 ```
 
-The API tests verify Administrator-only access, exact safe-user fields with timestamps and no password hash, name/email search, role filtering, one-role creation and validation, duplicate email protection, owner-ineligibility atomic rejection, self-Administrator protection, session revocation after role changes and password reset, and first-login password-change state. The UI tests verify the responsive table/card list, search/filter controls, create/edit form, one-role validation, conflict feedback, and reset action. Full server regression, migration/seed repeat evidence, authenticated E2E, final-main evidence, and Project/review evidence remain release gates for later Issues.
+The API tests verify Administrator-only access, exact safe-user fields with timestamps and no password hash, name/email search, role filtering, one-role creation and validation, duplicate email protection, owner-ineligibility atomic rejection, sole-active-Administrator self-deactivation protection with unchanged User/session state, session revocation after role changes and password reset, and first-login password-change state. The UI tests verify the responsive table/card list, mobile Edit actions, search/filter controls, create/edit form, one-role validation, conflict feedback, and reset action. Full server regression, migration/seed repeat evidence, authenticated E2E, final-main evidence, and Project/review evidence remain release gates for later Issues.
 
-A current complete-server attempt is not claimed as passing: the Issue #38 API file still passed 5/5, but inherited authenticated suites stopped at the local missing `LAB3_REQUESTER_INITIAL_PASSWORD`, and the Internal Notes test returned `500` because its migration is not yet applied to this disposable database. No Issue #38 assertion failed; rerun the full server suite after the local Lab 3 password variables and pending migration are configured.
+A current complete-server attempt is not claimed as passing: the Issue #38 API file passed 6/6, but inherited authenticated suites stopped at the local missing `LAB3_REQUESTER_INITIAL_PASSWORD`, and the Internal Notes test returned `500` because its migration is not yet applied to this disposable database. No Issue #38 assertion failed; rerun the full server suite after the local Lab 3 password variables and pending migration are configured.
 
 ## 3. Planned test matrix
 
 All paths below are intended paths for the implementation branches. A test is not marked passed until its real command and output are recorded here.
 
-Issue #38 focused API-10 and UI-06 results are recorded above (5 API tests and 3 UI tests passed). The matrix labels remain a plan-level traceability record; release-wide regression, migration, E2E, and final-main evidence are still tracked separately and must not be inferred from these focused results.
+Issue #38 focused API-10 and UI-06 results are recorded above (6 API tests and 4 UI tests passed). The matrix labels remain a plan-level traceability record; release-wide regression, migration, E2E, and final-main evidence are still tracked separately and must not be inferred from these focused results.
 
 | Test ID | Type | Covers | Planned test/path | Status |
 |---|---|---|---|---|
@@ -281,7 +286,7 @@ Issue #38 focused API-10 and UI-06 results are recorded above (5 API tests and 3
 | API-07 | API | FR-09, AC-10/11 | Staff queue search/filter/sort/pagination/defaults, Requested/IT Priority filters and sorting, functional staff Open-detail response, and safe failures — `server/tests/lab-03/staff-queue.api.test.ts` | Passed: 6 focused tests; full server regression awaits local Lab 3 password variables |
 | API-08 | API | FR-10, AC-12/13/15 | Staff detail assignment, Requested/IT Priority values and mutation, status, and Attachment access — `server/tests/lab-03/staff-ticket-detail.api.test.ts` | Passed: 4 focused tests |
 | API-09 | API | FR-08/11/12, AC-09/14 | Public Comments, stable Requester `403 FORBIDDEN` Internal Notes denial, privacy, authorship, validation, append-only behavior — `server/tests/lab-03/comments-notes.api.test.ts` | Partially passed: public-comment test passes; Internal Note test awaits applying `20260917110000_lab3_ticket_operations` to the disposable database |
-| API-10 | API | FR-13/14, AC-16/17/18/19 | Admin user list/create/edit/activation/reset, `USER_OWNS_TICKETS` atomic rejection, session revocation after role/activation changes, and safety rules — `server/tests/lab-03/users-admin.api.test.ts` | Planned |
+| API-10 | API | FR-13/14, AC-16/17/18/19 | Admin user list/create/edit/activation/reset, `USER_OWNS_TICKETS` atomic rejection, session revocation after role/activation changes, and safety rules — `server/tests/lab-03/users-admin.api.test.ts` | Passed: 6 tests |
 | API-11 | API | FR-07/11, AC-08/15 | Active/removed Attachment metadata, download headers, exact route compatibility, and staff/requester access continuation — `server/tests/lab-03/attachment-continuity.api.test.ts` | Planned |
 | API-12 | API | FR-04/16, AC-05/20 | Exact authenticated Categories, Related Systems, and staff-assignee response/error contracts — `server/tests/lab-03/reference-data.api.test.ts` | Planned |
 | UI-01 | Component | FR-01/02/17, AC-01/02/03/21 | Login form, safe failure, busy guard, and redirect — `client/tests/lab-03/Login.test.tsx` | Planned |
@@ -289,7 +294,7 @@ Issue #38 focused API-10 and UI-06 results are recorded above (5 API tests and 3
 | UI-03 | Component | FR-06/07/08, AC-07/08/09/21 | Authenticated shell, logout retry, session-expiry redirect, stale session-restore suppression, role-route guards, direct Change Password guard, and Requester list/create/detail regression — `client/tests/lab-03/RequesterRegression.test.tsx` | Passed: 10 focused tests plus inherited Lab 2 list/create/detail/attachment UI regressions |
 | UI-04 | Component | FR-09/17, AC-10/11/21 | Queue controls, Requested/IT Priority filters and sorting, states, role visibility, cards/table, pagination, and functional Open-detail navigation — `client/tests/lab-03/StaffTicketQueue.test.tsx` | Passed: 5 focused tests; full client suite 9 files/41 tests |
 | UI-05 | Component | FR-10/11/12, AC-12/13/14/15/21 | Staff detail actions, priority mutation, dialogs, comments, notes, and attachments — `client/tests/lab-03/StaffTicketDetail.test.tsx` | Passed: 3 focused tests |
-| UI-06 | Component | FR-13/14, AC-16/17/18/19/21 | User list/editor, validation, activation, `USER_OWNS_TICKETS` conflict feedback, session-effect messaging, and reset controls — `client/tests/lab-03/UserManagement.test.tsx` | Planned |
+| UI-06 | Component | FR-13/14, AC-16/17/18/19/21 | User list/editor, validation, activation, `USER_OWNS_TICKETS` conflict feedback, session-effect messaging, reset controls, and mobile cards — `client/tests/lab-03/UserManagement.test.tsx` | Passed: 4 tests |
 | STYLE-01 | Style/a11y | FR-17, AC-11/21 | Labels, focus, roles, contrast, touch targets, semantic feedback — `client/tests/lab-03/Accessibility.test.tsx` | Planned |
 | STYLE-02 | Responsive | FR-17, AC-11/21 | Desktop/tablet/mobile layout and no page-wide horizontal scroll — `client/tests/lab-03/Responsive.test.tsx` | Planned |
 | REG-01 | Regression | AC-06/07/08/15 | Complete prior server suite after migration and auth integration — `server/tests/lab-01/**`, `server/tests/lab-02/**`, `server/tests/lab-03/**` | Historical pass: 21 files, 69 tests; current rerun awaits disposable credential alignment |

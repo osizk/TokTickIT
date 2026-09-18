@@ -162,12 +162,38 @@ describe("Lab 3 Administrator User Management API", () => {
     expect((await prisma.ticket.findUniqueOrThrow({ where: { ticketNumber } })).ticketOwnerId).toBe(ownerId);
   });
 
-  it("protects self and the last active Administrator and resets passwords with session revocation", async () => {
-    const { agent, csrfToken } = await login(adminEmail, adminPassword);
-    const self = await agent.patch(`/api/admin/users/${adminId}`).set("X-CSRF-Token", csrfToken).send({ isActive: false });
-    expect(self.status).toBe(409);
-    expect(self.body.error.code).toBe("ADMINISTRATOR_SAFETY_VIOLATION");
+  it("rejects deactivation of the sole active Administrator without changing the User or session", async () => {
+    const prisma = getPrisma();
+    const otherActiveAdministrators = await prisma.user.findMany({
+      where: { role: "ADMINISTRATOR", isActive: true, id: { not: adminId } },
+      select: { id: true },
+    });
+    await prisma.user.updateMany({ where: { id: { in: otherActiveAdministrators.map((user) => user.id) } }, data: { isActive: false } });
+    try {
+      expect(await prisma.user.count({ where: { role: "ADMINISTRATOR", isActive: true } })).toBe(1);
+      const { agent, csrfToken } = await login(adminEmail, adminPassword);
+      const before = await prisma.user.findUniqueOrThrow({
+        where: { id: adminId },
+        select: { name: true, email: true, role: true, isActive: true, mustChangePassword: true, updatedAt: true },
+      });
+      const activeSessionCount = await prisma.session.count({ where: { userId: adminId, revokedAt: null } });
+      const self = await agent.patch(`/api/admin/users/${adminId}`).set("X-CSRF-Token", csrfToken).send({ isActive: false });
+      expect(self.status).toBe(409);
+      expect(self.body.error).toEqual({ code: "ADMINISTRATOR_SAFETY_VIOLATION", message: "You cannot deactivate or demote your own Administrator account." });
+      const after = await prisma.user.findUniqueOrThrow({
+        where: { id: adminId },
+        select: { name: true, email: true, role: true, isActive: true, mustChangePassword: true, updatedAt: true },
+      });
+      expect(after).toEqual(before);
+      expect(await prisma.session.count({ where: { userId: adminId, revokedAt: null } })).toBe(activeSessionCount);
+      expect((await agent.get("/api/auth/me")).status).toBe(200);
+    } finally {
+      await prisma.user.updateMany({ where: { id: { in: otherActiveAdministrators.map((user) => user.id) } }, data: { isActive: true } });
+    }
+  });
 
+  it("resets passwords and revokes the target session", async () => {
+    const { agent, csrfToken } = await login(adminEmail, adminPassword);
     const managedSession = await login(managedEmail, managedPassword);
     const reset = await agent.post(`/api/admin/users/${managedId}/initial-password`).set("X-CSRF-Token", csrfToken).send({ initialPassword: resetPassword });
     expect(reset.status).toBe(200);
