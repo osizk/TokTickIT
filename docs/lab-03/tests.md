@@ -292,19 +292,19 @@ Issue #38 focused API-10 and UI-06 results are recorded above (6 API tests and 4
 | UI-01 | Component | FR-01/02/17, AC-01/02/03/21 | Login form, safe failure, busy guard, and redirect — `client/tests/lab-03/Login.test.tsx` | Planned |
 | UI-02 | Component | FR-02/03/17, AC-03/04/21 | Change-password guard, policy errors, success, and focus — `client/tests/lab-03/ChangePassword.test.tsx` | Planned |
 | UI-03 | Component | FR-06/07/08, AC-07/08/09/21 | Authenticated shell, logout retry, session-expiry redirect, stale session-restore suppression, role-route guards, direct Change Password guard, and Requester list/create/detail regression — `client/tests/lab-03/RequesterRegression.test.tsx` | Passed: 10 focused tests plus inherited Lab 2 list/create/detail/attachment UI regressions |
-| UI-04 | Component | FR-09/17, AC-10/11/21 | Queue controls, Requested/IT Priority filters and sorting, states, role visibility, cards/table, pagination, and functional Open-detail navigation — `client/tests/lab-03/StaffTicketQueue.test.tsx` | Passed: 5 focused tests; full client suite 9 files/41 tests |
+| UI-04 | Component | FR-09/17, AC-10/11/21 | Queue controls, Requested/IT Priority filters and sorting, states, role visibility, cards/table, pagination, and functional Open-detail navigation — `client/tests/lab-03/StaffTicketQueue.test.tsx` | Passed: 5 focused tests; latest full client suite 11 files/49 tests |
 | UI-05 | Component | FR-10/11/12, AC-12/13/14/15/21 | Staff detail actions, priority mutation, dialogs, comments, notes, and attachments — `client/tests/lab-03/StaffTicketDetail.test.tsx` | Passed: 3 focused tests |
 | UI-06 | Component | FR-13/14, AC-16/17/18/19/21 | User list/editor, validation, activation, `USER_OWNS_TICKETS` conflict feedback, session-effect messaging, reset controls, and mobile cards — `client/tests/lab-03/UserManagement.test.tsx` | Passed: 4 tests |
 | STYLE-01 | Style/a11y | FR-17, AC-11/21 | Labels, focus, roles, contrast, touch targets, semantic feedback — `client/tests/lab-03/Accessibility.test.tsx` | Planned |
 | STYLE-02 | Responsive | FR-17, AC-11/21 | Desktop/tablet/mobile layout and no page-wide horizontal scroll — `client/tests/lab-03/Responsive.test.tsx` | Planned |
 | REG-01 | Regression | AC-06/07/08/15 | Complete prior server suite after migration and auth integration — `server/tests/lab-01/**`, `server/tests/lab-02/**`, `server/tests/lab-03/**` | Historical pass: 21 files, 69 tests; current rerun awaits disposable credential alignment |
-| REG-02 | Regression | AC-06/07/08/21 | Complete prior client suite after selector-to-auth migration — `client/tests/lab-01/**`, `client/tests/lab-02/**`, `client/tests/lab-03/**` | Passed: 9 files, 41 tests |
-| E2E-01 | E2E | AC-01/02/03/04/05/21 | Login, first-login change, logout, guard, and role navigation — `e2e/lab-03/authentication.spec.ts` | Planned |
-| E2E-02 | E2E | AC-07/08/09/14/21 | Requester Ticket continuity, comment, resolution indication, and note privacy — `e2e/lab-03/requester-regression.spec.ts` | Passed: 1 route-guard test; full requester E2E continuation remains release-gate work |
-| E2E-03 | E2E | AC-10/11/12/13/14/15/21 | Staff queue/detail operations, priority filters/mutations, comments, notes, attachments, and responsive views — `e2e/lab-03/staff-ticket-flow.spec.ts` | Planned |
-| E2E-04 | E2E | AC-16/17/18/19/21 | Admin User Management and safety protections — `e2e/lab-03/user-administration.spec.ts` | Planned |
-| E2E-05 | E2E | AC-23 | Release evidence states and final-main evidence capture — `e2e/lab-03/release-evidence-states.spec.ts` | Planned |
-| VIS-01 | Visual | AC-11/21 | Readable desktop/tablet/mobile screenshots and visual checklist — `artifacts/lab-03/screenshots/` | Planned |
+| REG-02 | Regression | AC-06/07/08/21 | Complete prior client suite after selector-to-auth migration — `client/tests/lab-01/**`, `client/tests/lab-02/**`, `client/tests/lab-03/**` | Passed: 11 files, 49 tests |
+| E2E-01 | E2E | AC-01/02/03/04/05/21 | Login, first-login change, logout, guard, and role navigation — `e2e/lab-03/authentication.spec.ts` | Passed: 9/9 project runs |
+| E2E-02 | E2E | AC-07/08/09/14/21 | Requester Ticket continuity, comment, resolution indication, and note privacy — `e2e/lab-03/requester-regression.spec.ts` | Passed: 6/6 project runs |
+| E2E-03 | E2E | AC-10/11/12/13/14/15/21 | Staff queue/detail operations, priority filters/mutations, comments, notes, attachments, and responsive views — `e2e/lab-03/staff-ticket-flow.spec.ts` | Passed: 9/9 project runs |
+| E2E-04 | E2E | AC-16/17/18/19/21 | Admin User Management and safety protections — `e2e/lab-03/user-administration.spec.ts` | Passed: 6/6 project runs |
+| E2E-05 | E2E | AC-23 | Release evidence states and final-main evidence capture — `e2e/lab-03/release-evidence-states.spec.ts` | Passed: 3/3 project runs |
+| VIS-01 | Visual | AC-11/21 | Readable desktop/tablet/mobile screenshots and visual checklist — `artifacts/lab-03/screenshots/` | Passed: screenshots generated and manually inspected at all three projects |
 | REL-01 | Release | AC-23 | Final-main complete tests/builds, migration/seed, traceability, links, and review audit — `docs/lab-03/release-evidence/` | Planned |
 
 ## 4. Commands and evidence to record
@@ -508,7 +508,98 @@ The following mapping makes the business-rule coverage explicit. Each implementa
 - [ ] Teammate submits an actual GitHub **Approve** review.
 - [ ] Student explicitly authorizes commit, push, PR, and merge; card moves to Done only after merge.
 
-## 13. Visual and evidence checklist
+## 13. Issue #39 evidence checklist
+
+Issue #39 was started on `feature/19-Lab3E2EVisual` from the merged `lab3-staging` commit. The Playwright configuration
+now uses the required repository-level `e2e` directory, an explicit `lab-03/**/*.spec.ts` test match, isolated
+`*_test` database/schema validation, three responsive projects, and `artifacts/lab-03/playwright-report` output.
+Legacy Lab 2 selector specs are not included in the Lab 3 run because the authenticated Lab 3 contract intentionally
+removed the selector context.
+
+The planned failing-first specs were added before the fixture helper and green-run configuration were completed. The
+first attempted run was blocked before assertions because the local test seed did not have its required process-only
+password variables:
+
+```text
+Command: cd client; npx.cmd playwright test e2e/lab-03/authentication.spec.ts --project=desktop --reporter=line
+Result: blocked before tests; LAB3_REQUESTER_INITIAL_PASSWORD must be set locally before running the Lab 3 seed.
+No password value was written to the repository or recorded here.
+```
+
+Static Playwright discovery now succeeds and enumerates 33 tests across desktop, tablet, and mobile in the five Lab 3
+spec files. This confirms that all required test paths compile and are selected without required skips; it is not a
+passing E2E result.
+
+The complete isolated Playwright run then passed using process-only disposable Lab 3 password variables (the values
+were not written to the repository). The global setup created the `_test` database/schema, applied the test migration,
+seeded the fixture data, and cleaned the isolated schema after the run:
+
+```text
+Command: cd client; npx playwright test
+Result: 33 passed (1.2m), 0 skipped, exit status 0
+Projects: desktop, tablet, mobile
+Specs: authentication, requester regression, staff queue/detail, user administration, release evidence states
+```
+
+The client regression and production build were rerun after the E2E changes:
+
+```text
+Command: cd client; npm.cmd test -- --run
+Test Files  11 passed (11)
+Tests       49 passed (49)
+Result      exit status 0
+
+Command: cd client; npm.cmd run build
+Result      production TypeScript/Vite build passed
+```
+
+The server build also passed (`cd server; npm.cmd run build`). A complete server regression was rerun from this
+branch, but it is not counted as green because the local ignored `.env.test` still lacks the three Lab 3 initial
+password variables and the disposable database still needs the Internal Notes migration:
+
+```text
+Command: cd server; npm.cmd test -- --run
+Test Files  11 failed | 15 passed (26)
+Tests       8 failed | 53 passed | 28 skipped (89)
+Result      exit status 1
+Blockers    missing LAB3_*_INITIAL_PASSWORD values; unapplied InternalNote migration causing the Internal Notes API 500
+```
+
+- [x] The Issue #39 branch was created from the latest merged `lab3-staging` baseline.
+- [x] Planned Lab 3 authentication, Requester, Staff, Administrator, role-isolation, accessibility, responsive, and
+  evidence-state specs were written at the approved paths.
+- [x] Playwright remains fail-closed: it requires `server/.env.test`, a disposable database ending in `_test`, and an
+  allowlisted E2E schema; it does not fall back to `server/.env`.
+- [x] Client regression (11 files/49 tests) and client build pass after the E2E changes.
+- [x] Playwright discovery lists 33 Lab 3 tests with no configured skips.
+- [x] Run the isolated migration/seed with process-only local Lab 3 password variables; no credential values were
+  written to the repository or evidence.
+- [x] Run `cd client; npx playwright test`: 33 passed, 0 skipped, exit status 0.
+- [x] Preserve readable desktop/tablet/mobile screenshots under `artifacts/lab-03/screenshots/`; representative
+  Change Password, Staff Ticket Detail, and mobile User Management images were manually inspected and the caption
+  table below maps every evidence path to its requirement.
+- [x] Server TypeScript build passes after the E2E changes.
+- [ ] Rerun the complete server regression successfully after configuring local Lab 3 passwords and applying the
+  Internal Notes migration; then complete the final release gates.
+- [ ] Teammate submits an actual GitHub **Approve** review.
+- [ ] Student explicitly authorizes commit, push, PR, and merge; card moves to Done only after merge.
+
+Screenshot captions for the green isolated run:
+
+| Evidence path | Caption | Requirement proved |
+|---|---|---|
+| `authentication/<project>/change-password.png` | First-login Change Password form at the named responsive breakpoint. | AC-03/04, accessible validation and responsive layout. |
+| `authentication/<project>/requester-first-login.png` | Authenticated Requester My Tickets shell after the initial password change. | AC-01/02/07 and role identity/navigation. |
+| `authentication/<project>/requester-ticket-detail.png` | Requester-owned Ticket detail with comment and attachment lifecycle evidence. | AC-07/08/09/14 and ownership/privacy behavior. |
+| `authentication/<project>/logout-and-route-guard.png` | Login screen after logout and a protected-route redirect. | AC-04/05 and session safety. |
+| `authentication/<project>/administrator-landing.png` | Administrator User Management landing workspace. | AC-16/17 and Administrator role navigation. |
+| `staff-queue/<project>/queue-search.png` | Staff queue with URL-preserved search/filter controls. | AC-10/11 and responsive queue behavior. |
+| `staff-queue/<project>/requester-role-isolation.png` | Requester role-denial state for the Staff Queue. | AC-05/20 and role isolation. |
+| `staff-ticket-detail/<project>/detail-operations.png` | Staff Ticket Detail with public comments, Internal Notes, and operations controls. | AC-12/13/14/15. |
+| `user-management/<project>/admin-users-list.png` | Administrator User Management table or mobile cards with usable Edit actions. | AC-16/17/19/21 and responsive accessibility. |
+| `user-management/<project>/admin-no-results.png` | Safe User Management no-results state. | AC-20/21 safe feedback. |
+
+## 14. Visual and evidence checklist
 
 - [ ] Final `main` SHA and merge graph show the Lab 3 branch sequence.
 - [ ] Contract PR is visibly approved and merged before product PRs.
