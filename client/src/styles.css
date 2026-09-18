@@ -358,6 +358,14 @@ textarea:focus-visible {
   color: #d9f1e3;
 }
 
+.zen-public-header .zen-button-link {
+  color: #d9f1e3;
+}
+
+.zen-public-header .zen-button-link:hover:not(:disabled) {
+  color: var(--zen-surface);
+}
+
 .zen-identity .zen-button-link:hover:not(:disabled) {
   color: var(--zen-surface);
 }

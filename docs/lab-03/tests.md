@@ -292,19 +292,19 @@ Issue #38 focused API-10 and UI-06 results are recorded above (6 API tests and 4
 | UI-01 | Component | FR-01/02/17, AC-01/02/03/21 | Login form, safe failure, busy guard, and redirect — `client/tests/lab-03/Login.test.tsx` | Planned |
 | UI-02 | Component | FR-02/03/17, AC-03/04/21 | Change-password guard, policy errors, success, and focus — `client/tests/lab-03/ChangePassword.test.tsx` | Planned |
 | UI-03 | Component | FR-06/07/08, AC-07/08/09/21 | Authenticated shell, logout retry, session-expiry redirect, stale session-restore suppression, role-route guards, direct Change Password guard, and Requester list/create/detail regression — `client/tests/lab-03/RequesterRegression.test.tsx` | Passed: 10 focused tests plus inherited Lab 2 list/create/detail/attachment UI regressions |
-| UI-04 | Component | FR-09/17, AC-10/11/21 | Queue controls, Requested/IT Priority filters and sorting, states, role visibility, cards/table, pagination, and functional Open-detail navigation — `client/tests/lab-03/StaffTicketQueue.test.tsx` | Passed: 5 focused tests; full client suite 9 files/41 tests |
+| UI-04 | Component | FR-09/17, AC-10/11/21 | Queue controls, Requested/IT Priority filters and sorting, states, role visibility, cards/table, pagination, and functional Open-detail navigation — `client/tests/lab-03/StaffTicketQueue.test.tsx` | Passed: 5 focused tests; latest full client suite 11 files/49 tests |
 | UI-05 | Component | FR-10/11/12, AC-12/13/14/15/21 | Staff detail actions, priority mutation, dialogs, comments, notes, and attachments — `client/tests/lab-03/StaffTicketDetail.test.tsx` | Passed: 3 focused tests |
 | UI-06 | Component | FR-13/14, AC-16/17/18/19/21 | User list/editor, validation, activation, `USER_OWNS_TICKETS` conflict feedback, session-effect messaging, reset controls, and mobile cards — `client/tests/lab-03/UserManagement.test.tsx` | Passed: 4 tests |
 | STYLE-01 | Style/a11y | FR-17, AC-11/21 | Labels, focus, roles, contrast, touch targets, semantic feedback — `client/tests/lab-03/Accessibility.test.tsx` | Planned |
 | STYLE-02 | Responsive | FR-17, AC-11/21 | Desktop/tablet/mobile layout and no page-wide horizontal scroll — `client/tests/lab-03/Responsive.test.tsx` | Planned |
 | REG-01 | Regression | AC-06/07/08/15 | Complete prior server suite after migration and auth integration — `server/tests/lab-01/**`, `server/tests/lab-02/**`, `server/tests/lab-03/**` | Historical pass: 21 files, 69 tests; current rerun awaits disposable credential alignment |
-| REG-02 | Regression | AC-06/07/08/21 | Complete prior client suite after selector-to-auth migration — `client/tests/lab-01/**`, `client/tests/lab-02/**`, `client/tests/lab-03/**` | Passed: 9 files, 41 tests |
-| E2E-01 | E2E | AC-01/02/03/04/05/21 | Login, first-login change, logout, guard, and role navigation — `e2e/lab-03/authentication.spec.ts` | Planned |
-| E2E-02 | E2E | AC-07/08/09/14/21 | Requester Ticket continuity, comment, resolution indication, and note privacy — `e2e/lab-03/requester-regression.spec.ts` | Passed: 1 route-guard test; full requester E2E continuation remains release-gate work |
-| E2E-03 | E2E | AC-10/11/12/13/14/15/21 | Staff queue/detail operations, priority filters/mutations, comments, notes, attachments, and responsive views — `e2e/lab-03/staff-ticket-flow.spec.ts` | Planned |
-| E2E-04 | E2E | AC-16/17/18/19/21 | Admin User Management and safety protections — `e2e/lab-03/user-administration.spec.ts` | Planned |
-| E2E-05 | E2E | AC-23 | Release evidence states and final-main evidence capture — `e2e/lab-03/release-evidence-states.spec.ts` | Planned |
-| VIS-01 | Visual | AC-11/21 | Readable desktop/tablet/mobile screenshots and visual checklist — `artifacts/lab-03/screenshots/` | Planned |
+| REG-02 | Regression | AC-06/07/08/21 | Complete prior client suite after selector-to-auth migration — `client/tests/lab-01/**`, `client/tests/lab-02/**`, `client/tests/lab-03/**` | Passed: 11 files, 49 tests |
+| E2E-01 | E2E | AC-01/02/03/04/05/21 | Login, first-login change, logout, guard, and role navigation — `e2e/lab-03/authentication.spec.ts` | Passed: 9/9 project runs |
+| E2E-02 | E2E | AC-07/08/09/14/21 | Requester Ticket continuity, comment, resolution indication, and note privacy — `e2e/lab-03/requester-regression.spec.ts` | Passed: 6/6 project runs |
+| E2E-03 | E2E | AC-10/11/12/13/14/15/21 | Staff queue/detail operations, priority filters/mutations, comments, notes, attachments, and responsive views — `e2e/lab-03/staff-ticket-flow.spec.ts` | Passed: 9/9 project runs |
+| E2E-04 | E2E | AC-16/20/21 | Administrator list/search, editor open/cancel, no-results, responsive cards, and Requester role-isolation smoke coverage — `e2e/lab-03/user-administration.spec.ts` | Passed: 6/6 project runs; mutation and Administrator-safety behavior remains covered by API-10/UI-06 |
+| E2E-05 | E2E | AC-23 | Release evidence states and final-main evidence capture — `e2e/lab-03/release-evidence-states.spec.ts` | Passed: 3/3 project runs |
+| VIS-01 | Visual | AC-11/21 | Readable desktop/tablet/mobile screenshots and visual checklist — `artifacts/lab-03/screenshots/` | Passed: screenshots generated and manually inspected at all three projects |
 | REL-01 | Release | AC-23 | Final-main complete tests/builds, migration/seed, traceability, links, and review audit — `docs/lab-03/release-evidence/` | Planned |
 
 ## 4. Commands and evidence to record
@@ -340,7 +340,7 @@ The implementation must use the following local-only keys. The real values belon
 
 Priority regression coverage is explicit: `API-06` tests create-time validation of all four `TicketPriority` values and inherited summary/description/reference boundaries; `API-07` tests Requested Priority and IT Priority filters and sorting; `API-08` tests that Requested Priority cannot be changed and IT Priority accepts only the shared enum; `UI-04`/`UI-05` and `E2E-03` verify the same values and controls in the queue/detail workflows.
 
-User-management safety coverage is explicit: `API-10` attempts to deactivate or demote an owner, expects `409 USER_OWNS_TICKETS`, verifies no User/Ticket/session changes occurred, then verifies an eligible role change or inactive change revokes all target sessions. `UI-06` and `E2E-04` verify the conflict message, unchanged ownership, and successful session-effect feedback.
+User-management safety coverage is explicit: `API-10` attempts to deactivate or demote an owner, expects `409 USER_OWNS_TICKETS`, verifies no User/Ticket/session changes occurred, then verifies an eligible role change or inactive change revokes all target sessions. `UI-06` verifies the conflict message, unchanged ownership, and successful session-effect feedback. `E2E-04` intentionally remains smoke/visual and role-isolation coverage rather than duplicating those mutation cases.
 
 ## 5. Acceptance-criteria traceability
 
@@ -362,10 +362,10 @@ User-management safety coverage is explicit: `API-10` attempts to deactivate or 
 | AC-14 | API-09, UI-05, UI-03, E2E-02, E2E-03 |
 | AC-15 | API-08, API-11, UI-05, E2E-03 |
 | AC-16 | API-10, UI-06, E2E-04 |
-| AC-17 | UNIT-01, API-10, UI-06, E2E-04 |
-| AC-18 | API-03, API-10, UI-02, UI-06, E2E-01, E2E-04 |
-| AC-19 | API-10, UI-06, E2E-04 |
-| AC-20 | UNIT-02, API-01, API-02, API-04, API-06, API-07, API-10, API-11, API-12 |
+| AC-17 | UNIT-01, API-10, UI-06 |
+| AC-18 | API-03, API-10, UI-02, UI-06, E2E-01 |
+| AC-19 | API-10, UI-06 |
+| AC-20 | UNIT-02, API-01, API-02, API-04, API-06, API-07, API-10, API-11, API-12, E2E-04 |
 | AC-21 | UI-01, UI-02, UI-03, UI-04, UI-05, UI-06, STYLE-01, STYLE-02, E2E-01, E2E-02, E2E-03, E2E-04, VIS-01 |
 | AC-22 | API-05, REG-01, REL-01 |
 | AC-23 | E2E-05, REL-01 |
@@ -388,8 +388,8 @@ Every functional requirement has at least one planned Test ID. The Test ID table
 | FR-10 | API-08, UI-05, E2E-03 |
 | FR-11 | API-09, UI-03, UI-05, E2E-02, E2E-03 |
 | FR-12 | API-09, UI-05, E2E-02, E2E-03 |
-| FR-13 | API-10, UI-06, E2E-04 |
-| FR-14 | API-10, UI-06, E2E-04 |
+| FR-13 | API-10, UI-06 |
+| FR-14 | API-10, UI-06 |
 | FR-15 | API-05, REL-01 |
 | FR-16 | API-01, API-04, API-06, API-07, API-10, API-11, API-12 |
 | FR-17 | UI-01, UI-02, UI-03, UI-04, UI-05, UI-06, STYLE-01, STYLE-02, VIS-01 |
@@ -402,17 +402,17 @@ The following mapping makes the business-rule coverage explicit. Each implementa
 | Business rule | Test IDs |
 |---|---|
 | BR-01 | API-01, API-04, E2E-01 |
-| BR-02 | UNIT-01, API-10, UI-06, E2E-04 |
+| BR-02 | UNIT-01, API-10, UI-06 |
 | BR-03 | UNIT-01, API-03, UI-01, UI-02 |
 | BR-04 | UNIT-01, API-03, UI-02 |
 | BR-05 | UNIT-02, API-02, E2E-01 |
 | BR-06 | UNIT-02, API-03, E2E-01 |
 | BR-07 | UNIT-02, API-04, E2E-01 |
 | BR-08 | API-03, UI-02, E2E-01 |
-| BR-09 | API-03, API-10, E2E-01, E2E-04 |
-| BR-10 | API-01, API-10, UI-06, E2E-04 |
+| BR-09 | API-03, API-10, E2E-01 |
+| BR-10 | API-01, API-10, UI-06 |
 | BR-11 | API-04, API-06, REG-01 |
-| BR-12 | API-08, API-10, UI-05, E2E-03, E2E-04 |
+| BR-12 | API-08, API-10, UI-05, E2E-03 |
 | BR-13 | UNIT-03, API-08, UI-05, E2E-03 |
 | BR-14 | API-06, API-08, E2E-02, E2E-03 |
 | BR-15 | UNIT-03, API-08, UI-05, E2E-03 |
@@ -423,9 +423,9 @@ The following mapping makes the business-rule coverage explicit. Each implementa
 | BR-20 | API-09, UI-03, E2E-02 |
 | BR-21 | UNIT-04, API-07, UI-04, E2E-03 |
 | BR-22 | UNIT-04, API-07, UI-04, E2E-03 |
-| BR-23 | API-01, API-03, API-08, API-09, API-10, E2E-01, E2E-03, E2E-04 |
-| BR-24 | API-10, UI-06, E2E-04 |
-| BR-25 | API-03, API-10, UI-06, E2E-04 |
+| BR-23 | API-01, API-03, API-08, API-09, API-10, E2E-01, E2E-03 |
+| BR-24 | API-10, UI-06 |
+| BR-25 | API-03, API-10, UI-06 |
 | BR-26 | API-05, REG-01, REL-01 |
 | BR-27 | API-05, REL-01 |
 | BR-28 | API-04, API-06, API-07, API-08, API-09, API-10, API-11, E2E-02, E2E-03 |
@@ -497,18 +497,162 @@ The following mapping makes the business-rule coverage explicit. Each implementa
 - [x] Staff IT Priority and status APIs enforce the shared enum, the complete status-transition matrix, consequential-status confirmations, and safe validation/conflict responses.
 - [x] Public Comments now support Requester, IT Staff, and Administrator actors while preserving ownership-safe Requester access; Internal Notes are staff-only and excluded from Requester responses.
 - [x] Staff/Admin Attachment metadata and active-file downloads use the existing Lab 2 routes; Requester-only upload/removal remains unchanged and removed downloads return safe `404`.
-- [x] Focused staff API tests pass 4/4 and the status-transition unit tests pass 2/2. The Internal Note API test remains blocked until the additive migration is applied to the disposable test database; the current 500 is recorded rather than marked as passing.
+- [x] Focused staff API tests pass 4/4 and the status-transition unit tests pass 2/2. The Internal Note API test was
+  initially blocked by the unapplied migration; the release-gate rerun after migration passed the notes coverage.
 - [x] Focused Staff Ticket Detail UI tests pass 3/3; the existing Staff Queue regression tests pass 5/5.
 - [x] Server build and client build pass for this branch.
 - [x] Complete client regression was rerun after Issue #37: 10 test files and 44 tests passed.
 - [x] Complete server regression was attempted with `npm.cmd test -- --run`: 25 files ran with 47 tests passed, 8 failed, and 28 skipped. The failures are recorded as environment/migration blockers (missing local Lab 3 password variables and unapplied `InternalNote` migration), not as passing evidence.
 - [x] Reopening a Ticket now clears its stored Requester resolution indication; the staff-operation API regression covers the reset.
 - [x] `api-spec.md` and `ui-spec.md` now describe the implemented Issue #37 operations and staff-detail behavior.
-- [ ] Apply `20260917110000_lab3_ticket_operations` to `toktickit_lab2_test`, rerun the complete API-09 notes test, and record the complete terminal output.
+- [x] Apply `20260917110000_lab3_ticket_operations` to `toktickit_lab2_test`, rerun the complete API-09 notes test, and
+  record the passing terminal output in the Issue #39 release-gate evidence below.
 - [ ] Teammate submits an actual GitHub **Approve** review.
 - [ ] Student explicitly authorizes commit, push, PR, and merge; card moves to Done only after merge.
 
-## 13. Visual and evidence checklist
+## 13. Issue #39 evidence checklist
+
+Issue #39 was started on `feature/19-Lab3E2EVisual` from the merged `lab3-staging` commit. The Playwright configuration
+now uses the required repository-level `e2e` directory, an explicit `lab-03/**/*.spec.ts` test match, isolated
+`*_test` database/schema validation, three responsive projects, and `artifacts/lab-03/playwright-report` output.
+Legacy Lab 2 selector specs are not included in the Lab 3 run because the authenticated Lab 3 contract intentionally
+removed the selector context.
+
+The planned failing-first specs were added before the fixture helper and green-run configuration were completed. The
+first attempted run was blocked before assertions because the local test seed did not have its required process-only
+password variables:
+
+```text
+Command: cd client; npx.cmd playwright test e2e/lab-03/authentication.spec.ts --project=desktop --reporter=line
+Result: blocked before tests; LAB3_REQUESTER_INITIAL_PASSWORD must be set locally before running the Lab 3 seed.
+No password value was written to the repository or recorded here.
+```
+
+Static Playwright discovery now succeeds and enumerates 33 tests across desktop, tablet, and mobile in the five Lab 3
+spec files. This confirms that all required test paths compile and are selected without required skips; it is not a
+passing E2E result.
+
+The complete isolated Playwright run then passed using process-only disposable Lab 3 password variables (the values
+were not written to the repository). The global setup created the `_test` database/schema, applied the test migration,
+seeded the fixture data, and cleaned the isolated schema after the run:
+
+```text
+Command: cd client; npx playwright test
+Result: 33 passed (2.2m), 0 skipped, exit status 0
+Projects: desktop, tablet, mobile
+Specs: authentication, requester regression, staff queue/detail, user administration, release evidence states
+```
+
+The client regression and production build were rerun after the E2E changes:
+
+```text
+Command: cd client; npm.cmd test -- --run
+Test Files  11 passed (11)
+Tests       49 passed (49)
+Result      exit status 0
+
+Command: cd client; npm.cmd run build
+Result      production TypeScript/Vite build passed
+```
+
+The server build and complete server regression were rerun from commit `030d1db` after resetting only the validated
+disposable database `toktickit_lab2_test`, applying the Internal Notes migration, and supplying the three Lab 3
+initial-password values only in the process environment. The earlier failed attempt remains historical above; this
+is the passing release-gate run:
+
+```text
+Command: cd server; npm.cmd run build
+Result: TypeScript build passed, exit status 0
+
+Command: cd server; npm.cmd run prisma:test:migrate
+Using server/.env.test for Prisma migrate against database toktickit_lab2_test.
+6 migrations found in prisma/migrations
+No pending migrations to apply.
+
+Command: cd server; npm.cmd run prisma:test:seed (first pass)
+Seeded 4 categories, 7 related systems, and 5 requesters; ensured 12 Tickets (12 created this run);
+all existing Requesters received idempotent credential backfill.
+Result: exit status 0
+
+Command: cd server; npm.cmd run prisma:test:seed (second pass)
+Seeded 4 categories, 7 related systems, and 5 requesters; ensured 12 Tickets (0 created this run);
+all existing Requesters received idempotent credential backfill.
+Result: exit status 0
+
+Command: cd server; npm.cmd test -- --run
+✓ tests/lab-03/staff-queue.api.test.ts (6 tests)
+✓ tests/lab-02/attachments.api.test.ts (8 tests)
+✓ tests/lab-03/users-admin.api.test.ts (6 tests)
+✓ tests/lab-02/create-ticket.api.test.ts (7 tests)
+✓ tests/lab-03/staff-ticket-detail.api.test.ts (4 tests)
+✓ tests/lab-02/my-tickets.api.test.ts (4 tests)
+✓ tests/lab-03/requester-regression.api.test.ts (3 tests)
+✓ tests/lab-03/migration-seed.api.test.ts (4 tests)
+  ✓ Lab 3 migration and seed preservation > preserves a changed non-fixture credential across repeated seed runs
+✓ tests/lab-03/auth-session.api.test.ts (5 tests)
+✓ tests/lab-02/ticket-detail.api.test.ts (3 tests)
+✓ tests/lab-03/comments-notes.api.test.ts (2 tests)
+✓ tests/lab-03/auth.api.test.ts (6 tests)
+✓ tests/lab-02/reference-data.test.ts (5 tests)
+✓ tests/lab-02/attachment-rollback.api.test.ts (1 test)
+✓ tests/lab-02/create-ticket-rollback.api.test.ts (1 test)
+✓ tests/lab-02/ticket-validation.unit.test.ts (3 tests)
+✓ tests/lab-02/attachment-validation.unit.test.ts (2 tests)
+✓ tests/lab-03/auth-rate-limit.api.test.ts (1 test)
+  ✓ Lab 3 login rate limiting > blocks after five failed attempts and allows recovery after the bucket is cleared
+✓ tests/lab-03/auth-validation.unit.test.ts (4 tests)
+✓ tests/lab-03/session-security.unit.test.ts (3 tests)
+✓ tests/lab-03/status-transition.unit.test.ts (2 tests)
+✓ tests/lab-02/e2e-environment.unit.test.ts (3 tests)
+✓ tests/lab-01/categories.test.ts (1 test)
+✓ tests/lab-03/authorization.api.test.ts (2 tests)
+✓ tests/lab-01/health.test.ts (2 tests)
+✓ tests/lab-03/resolution-indication.unit.test.ts (1 test)
+Test Files  26 passed (26)
+Tests       89 passed (89)
+Start at   21:22:08
+Duration   23.77s (transform 249ms, setup 0ms, collect 5.23s, tests 13.38s, environment 4ms, prepare 1.69s)
+Result      exit status 0
+```
+
+- [x] The Issue #39 branch was created from the latest merged `lab3-staging` baseline.
+- [x] Planned Lab 3 authentication, Requester, Staff, Administrator, role-isolation, accessibility, responsive, and
+  evidence-state specs were written at the approved paths.
+- [x] Playwright remains fail-closed: it requires `server/.env.test`, a disposable database ending in `_test`, and an
+  allowlisted E2E schema; it does not fall back to `server/.env`.
+- [x] Client regression (11 files/49 tests) and client build pass after the E2E changes.
+- [x] Playwright discovery lists 33 Lab 3 tests with no configured skips.
+- [x] Run the isolated migration/seed with process-only local Lab 3 password variables; no credential values were
+  written to the repository or evidence.
+- [x] Run `cd client; npx playwright test`: 33 passed, 0 skipped, exit status 0.
+- [x] Review-fix reruns passed: Staff Queue/Detail 9/9 and Requester/Admin 12/12 across desktop, tablet, and mobile;
+  the full matrix was rerun afterward with the same 33/33 result.
+- [x] Preserve readable desktop/tablet/mobile screenshots under `artifacts/lab-03/screenshots/`; representative
+  Change Password, Staff Ticket Detail, and mobile User Management images were manually inspected and the caption
+  table below maps every evidence path to its requirement.
+- [x] Server TypeScript build passes after the E2E changes.
+- [x] Complete server release-gate rerun passed from commit `030d1db`: migration is current, repeated seed is
+  idempotent (12 then 0 Tickets created), and the full server suite is 26 files/89 tests passed with 0 failures and
+  0 skips.
+- [ ] Teammate submits an actual GitHub **Approve** review.
+- [ ] Student explicitly authorizes commit, push, PR, and merge; card moves to Done only after merge.
+
+Screenshot captions for the green isolated run:
+
+| Evidence path | Caption | Requirement proved |
+|---|---|---|
+| `authentication/<project>/change-password.png` | First-login Change Password form at the named responsive breakpoint. | AC-03/04, accessible validation and responsive layout. |
+| `authentication/<project>/requester-first-login.png` | Authenticated Requester My Tickets shell after the initial password change. | AC-01/02/07 and role identity/navigation. |
+| `authentication/<project>/requester-ticket-detail.png` | Requester-owned Ticket detail with comment and attachment lifecycle evidence. | AC-07/08/09/14 and ownership/privacy behavior. |
+| `authentication/<project>/logout-and-route-guard.png` | Login screen after logout and a protected-route redirect. | AC-04/05 and session safety. |
+| `authentication/<project>/administrator-landing.png` | Administrator User Management landing workspace. | AC-16/17 and Administrator role navigation. |
+| `staff-queue/<project>/queue-search.png` | Staff queue with URL-preserved search/filter controls. | AC-10/11 and responsive queue behavior. |
+| `staff-queue/<project>/requester-role-isolation.png` | Requester role-denial state for the Staff Queue. | AC-05/20 and role isolation. |
+| `staff-ticket-detail/<project>/detail-operations.png` | Staff Ticket Detail with public comments, Internal Notes, and operations controls. | AC-12/13/14/15. |
+| `user-management/<project>/admin-users-list.png` | Administrator User Management table or mobile cards with usable Edit actions. | AC-16/17/19/21 and responsive accessibility. |
+| `user-management/<project>/admin-no-results.png` | Safe User Management no-results state. | AC-20/21 safe feedback. |
+
+## 14. Visual and evidence checklist
 
 - [ ] Final `main` SHA and merge graph show the Lab 3 branch sequence.
 - [ ] Contract PR is visibly approved and merged before product PRs.

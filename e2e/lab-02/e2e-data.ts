@@ -25,10 +25,18 @@ const { PrismaClient, Prisma } = requireFromServer("@prisma/client") as {
     ticket: {
       findMany: (args: unknown) => Promise<Array<{ id: number; attachments: Array<{ storedFilename: string }> }>>;
     };
+    publicComment: {
+      deleteMany: (args: unknown) => Promise<unknown>;
+    };
+    internalNote: {
+      deleteMany: (args: unknown) => Promise<unknown>;
+    };
     attachment: {
       deleteMany: (args: unknown) => Promise<unknown>;
     };
     $transaction: <T>(callback: (transaction: {
+      publicComment: { deleteMany: (args: unknown) => Promise<unknown> };
+      internalNote: { deleteMany: (args: unknown) => Promise<unknown> };
       attachment: { deleteMany: (args: unknown) => Promise<{ count: number }> };
       ticket: { deleteMany: (args: unknown) => Promise<{ count: number }> };
     }) => Promise<T>) => Promise<T>;
@@ -41,6 +49,7 @@ const { PrismaClient, Prisma } = requireFromServer("@prisma/client") as {
 };
 
 export const E2E_SUMMARY_PREFIX = "E2E-18-";
+const E2E_SUMMARY_PREFIXES = ["E2E-18-", "E2E-39-"] as const;
 
 const execFileAsync = promisify(execFile);
 const npmExecutable = process.platform === "win32" ? (process.env.ComSpec ?? "cmd.exe") : "npm";
@@ -195,7 +204,7 @@ export async function cleanupE2eData(): Promise<void> {
   const prisma = prismaClient();
   try {
     const tickets = await prisma.ticket.findMany({
-      where: { summary: { startsWith: E2E_SUMMARY_PREFIX } },
+      where: { OR: E2E_SUMMARY_PREFIXES.map((prefix) => ({ summary: { startsWith: prefix } })) },
       select: { id: true, attachments: { select: { storedFilename: true } } },
     });
     const ticketIds = tickets.map((ticket) => ticket.id);
@@ -203,6 +212,8 @@ export async function cleanupE2eData(): Promise<void> {
 
     if (ticketIds.length > 0) {
       await prisma.$transaction(async (transaction) => {
+        await transaction.publicComment.deleteMany({ where: { ticketId: { in: ticketIds } } });
+        await transaction.internalNote.deleteMany({ where: { ticketId: { in: ticketIds } } });
         await transaction.attachment.deleteMany({ where: { ticketId: { in: ticketIds } } });
         await transaction.ticket.deleteMany({ where: { id: { in: ticketIds } } });
       });
