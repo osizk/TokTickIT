@@ -78,6 +78,8 @@ describe("Lab 3 authentication API safety contract", () => {
       role: "REQUESTER",
       isActive: true,
       mustChangePassword: true,
+      createdAt: expect.any(String),
+      updatedAt: expect.any(String),
     });
     expect(response.body.csrfToken).toEqual(expect.any(String));
     expect(response.headers["set-cookie"][0]).toContain("HttpOnly");

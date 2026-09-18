@@ -25,6 +25,8 @@ describe("Zen Green style contract", () => {
       "zen-priority-badge",
       "zen-ticket-table",
       "zen-ticket-cards",
+      "admin-users-table-wrap",
+      "admin-users-cards",
     ]) {
       expect(styles).toMatch(new RegExp(`\\.${className}\\b`));
     }
@@ -35,5 +37,12 @@ describe("Zen Green style contract", () => {
     expect(styles).toContain("@media (max-width: 767px)");
     expect(styles).toContain(".zen-ticket-table-wrap");
     expect(styles).toContain(".zen-ticket-cards");
+  });
+
+  it("switches Administrator User Management to cards on mobile without page overflow", () => {
+    expect(styles).toContain("overflow-x: hidden");
+    expect(styles).toMatch(/\.admin-users-table-wrap\s*\{[\s\S]*?overflow-x:\s*auto;/);
+    expect(styles).toMatch(/@media \(max-width: 767px\)[\s\S]*?\.admin-users-table-wrap\s*\{\s*display:\s*none;/);
+    expect(styles).toMatch(/@media \(max-width: 767px\)[\s\S]*?\.admin-users-cards\s*\{\s*display:\s*grid;/);
   });
 });

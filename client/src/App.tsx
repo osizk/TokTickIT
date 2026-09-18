@@ -15,6 +15,7 @@ import MyTickets from "./MyTickets.js";
 import TicketDetail from "./TicketDetail.js";
 import StaffTicketQueue from "./StaffTicketQueue.js";
 import StaffTicketDetail from "./StaffTicketDetail.js";
+import AdminUserManagement from "./AdminUserManagement.js";
 import "./styles.css";
 
 export const REQUESTER_STORAGE_KEY = "toktickit.requesterId";
@@ -168,6 +169,7 @@ function RouteContent({ path, user, requester, navigate }: { path: string; user:
     try { ticketNumber = decodeURIComponent(ticketNumber); } catch { /* API returns a safe not-found response. */ }
     return <StaffTicketDetail ticketNumber={ticketNumber} navigate={navigate} currentUserId={user.id} />;
   }
+  if (user.role === "ADMINISTRATOR" && path === "/admin/users") return <AdminUserManagement />;
   return <section className="zen-card" aria-labelledby="forbidden-heading"><p className="zen-eyebrow">Authenticated workspace</p><h1 id="forbidden-heading">Access not available</h1><p className="zen-lead">This route is not available for the current role.</p></section>;
 }
 

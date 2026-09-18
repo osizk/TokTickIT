@@ -81,6 +81,28 @@
 
 **My review verdict:** I accepted the finding because the approved Queue contract requires a usable Open action. I implemented only the read-only staff detail target needed by Issue #36 and kept assignment, status, comments, notes, and Attachment operations in the planned Issue #37 scope.
 
+## Issue #38 review status
+
+| PR | Branch | Review status | Response/evidence |
+|---|---|---|---|
+| [#48](https://github.com/osizk/TokTickIT/pull/48) | `feature/18-Lab3UserManagement` | Changes requested by partner; fixes pushed; re-review pending | Commits [`335b016`](https://github.com/osizk/TokTickIT/commit/335b016) and [`895f635`](https://github.com/osizk/TokTickIT/commit/895f635) contain the Administrator User Management implementation and review-evidence fixes. Focused API/UI tests and both builds pass locally; full server/release gates remain documented as pending. |
+
+### Planned review scope
+
+The review should verify that Administrator-only User Management covers list/search/role filter, one-role create/edit/activation, duplicate email, owner-ineligibility, self/last-Administrator safety, password reset/session revocation, safe errors, and responsive accessible UI without adding deletion, bulk, import/export, or staff workflow features. The actual partner comments, student responses, review verdicts, and formal **Approve** event will be added after teammate review.
+
+### Partner comments and student responses
+
+| Partner comment | Student response and verification | Status |
+|---|---|---|
+| [Comment 1](https://github.com/osizk/TokTickIT/pull/48#issuecomment-5726461558): the last-Administrator test only covered self-deactivation and did not prove the sole-active-Administrator User/session state remained unchanged. | Added a guarded disposable-database regression that temporarily establishes exactly one active Administrator, attempts self-deactivation, asserts `409 ADMINISTRATOR_SAFETY_VIOLATION`, compares the User row before/after, verifies the active session count is unchanged, and confirms `/api/auth/me` still succeeds. | Addressed in [`895f635`](https://github.com/osizk/TokTickIT/commit/895f635); Administrator API suite passes 6/6. |
+| [Comment 2](https://github.com/osizk/TokTickIT/pull/48#issuecomment-5726462794): User Management tests did not cover the separate mobile card layout and usable Edit actions. | Added mobile-card/Edit-action component coverage and shared responsive stylesheet assertions for the mobile table/card switch, internal table overflow, and page-wide overflow guard. | Addressed in [`895f635`](https://github.com/osizk/TokTickIT/commit/895f635); User Management plus shared style tests pass 8/8. |
+| [Comment 3](https://github.com/osizk/TokTickIT/pull/48#issuecomment-5726464111): API-10/UI-06 evidence counts and matrix statuses were inconsistent. | Updated the Issue #38 evidence to 6 API tests and 4 UI tests, changed both matrix rows from Planned to Passed, and recorded the updated complete-client count. | Addressed in [`895f635`](https://github.com/osizk/TokTickIT/commit/895f635) in `tests.md`. |
+
+**Reviewer verdict:** The partner comments are actionable and have been addressed locally. Re-review of [PR #48](https://github.com/osizk/TokTickIT/pull/48) is required; no formal **Approve** is claimed yet.
+
+**My review verdict:** I accepted all three comments because they strengthen direct safety coverage, responsive evidence, and traceability accuracy without expanding Issue #38 scope. The focused checks are green locally; full server regression and release evidence remain deferred as documented in `tests.md`. I requested re-review for [PR #48](https://github.com/osizk/TokTickIT/pull/48).
+
 ## Review evidence rules
 
 - Record the exact PR, branch, Issue, review, response, and merge links after they exist.

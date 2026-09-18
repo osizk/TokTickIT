@@ -29,6 +29,31 @@ export interface AuthResponse {
   csrfToken: string;
 }
 
+export interface AdminUser extends Omit<AuthUser, "createdAt" | "updatedAt"> {
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminUserListQuery {
+  search?: string;
+  role?: AuthUser["role"];
+}
+
+export interface CreateAdminUserInput {
+  name: string;
+  email: string;
+  role: AuthUser["role"];
+  isActive: boolean;
+  initialPassword: string;
+}
+
+export interface UpdateAdminUserInput {
+  name: string;
+  email: string;
+  role: AuthUser["role"];
+  isActive: boolean;
+}
+
 let csrfToken: string | null = null;
 let sessionExpiredHandler: (() => void) | null = null;
 
@@ -512,8 +537,8 @@ function isTicketDetail(value: unknown): value is TicketDetail {
   );
 }
 
-function readApiError(body: unknown): { code?: string; fieldErrors?: Record<string, string> } {
-  const errorBody = body as { error?: { code?: unknown; fieldErrors?: unknown } } | null;
+function readApiError(body: unknown): { code?: string; message?: string; fieldErrors?: Record<string, string> } {
+  const errorBody = body as { error?: { code?: unknown; message?: unknown; fieldErrors?: unknown } } | null;
   const error = errorBody?.error;
   const fieldErrors =
     error && typeof error.fieldErrors === "object" && error.fieldErrors !== null
@@ -523,6 +548,7 @@ function readApiError(body: unknown): { code?: string; fieldErrors?: Record<stri
       : undefined;
   return {
     code: typeof error?.code === "string" ? error.code : undefined,
+    message: typeof error?.message === "string" ? error.message : undefined,
     fieldErrors,
   };
 }
@@ -696,6 +722,82 @@ export async function fetchStaffAssignees(): Promise<StaffAssignee[]> {
   }
   if (!Array.isArray(body) || !body.every(isStaffAssignee)) throw new ApiClientError("Unable to load assignees.", response.status);
   return body;
+}
+
+function isAdminUser(value: unknown): value is AdminUser {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate.id === "number" && Number.isSafeInteger(candidate.id) && candidate.id > 0 &&
+    typeof candidate.name === "string" && candidate.name.trim().length > 0 &&
+    typeof candidate.email === "string" && candidate.email.trim().length > 0 &&
+    ["REQUESTER", "IT_STAFF", "ADMINISTRATOR"].includes(candidate.role as string) &&
+    typeof candidate.isActive === "boolean" && typeof candidate.mustChangePassword === "boolean" &&
+    typeof candidate.createdAt === "string" && typeof candidate.updatedAt === "string"
+  );
+}
+
+async function adminRequest(path: string, init: RequestInit, action: string): Promise<unknown> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}${path}`, {
+      credentials: "include",
+      ...init,
+    });
+  } catch {
+    throw new ApiClientError(`Unable to ${action}.`, 0);
+  }
+  const body = await parseResponseBody(response);
+  if (!response.ok) {
+    const details = readApiError(body);
+    throw new ApiClientError(details.message || `Unable to ${action}.`, response.status, details.code, details.fieldErrors);
+  }
+  return body;
+}
+
+export async function fetchAdminUsers(query: AdminUserListQuery = {}): Promise<{ users: AdminUser[] }> {
+  const params = new URLSearchParams();
+  if (query.search?.trim()) params.set("search", query.search.trim());
+  if (query.role) params.set("role", query.role);
+  const body = await adminRequest(`/api/admin/users${params.size ? `?${params.toString()}` : ""}`, { headers: authenticatedHeaders() }, "load Users");
+  const result = body as { users?: unknown } | null;
+  if (!result || !Array.isArray(result.users) || !result.users.every(isAdminUser)) throw new ApiClientError("Unable to load Users.", 200);
+  return { users: result.users };
+}
+
+export async function createAdminUser(input: CreateAdminUserInput): Promise<{ user: AdminUser }> {
+  const body = await adminRequest("/api/admin/users", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authenticatedHeaders(true) },
+    body: JSON.stringify(input),
+  }, "create User");
+  const result = body as { user?: unknown } | null;
+  if (!result || !isAdminUser(result.user)) throw new ApiClientError("Unable to create User.", 201);
+  return { user: result.user };
+}
+
+export async function updateAdminUser(userId: number, input: UpdateAdminUserInput): Promise<{ user: AdminUser }> {
+  if (!Number.isSafeInteger(userId) || userId < 1) throw new ApiClientError("Unable to update User.", 400);
+  const body = await adminRequest(`/api/admin/users/${userId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...authenticatedHeaders(true) },
+    body: JSON.stringify(input),
+  }, "update User");
+  const result = body as { user?: unknown } | null;
+  if (!result || !isAdminUser(result.user)) throw new ApiClientError("Unable to update User.", 200);
+  return { user: result.user };
+}
+
+export async function resetAdminUserPassword(userId: number, initialPassword: string): Promise<{ user: AdminUser }> {
+  if (!Number.isSafeInteger(userId) || userId < 1) throw new ApiClientError("Unable to reset the initial password.", 400);
+  const body = await adminRequest(`/api/admin/users/${userId}/initial-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authenticatedHeaders(true) },
+    body: JSON.stringify({ initialPassword }),
+  }, "reset the initial password");
+  const result = body as { user?: unknown } | null;
+  if (!result || !isAdminUser(result.user)) throw new ApiClientError("Unable to reset the initial password.", 200);
+  return { user: result.user };
 }
 
 async function patchStaffTicket(

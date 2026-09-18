@@ -18,7 +18,7 @@ export const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 export const LOGIN_BLOCK_MS = 15 * 60 * 1000;
 export const LOGIN_FAILURE_LIMIT = 5;
 
-export type SafeUser = Pick<User, "id" | "name" | "email" | "role" | "isActive" | "mustChangePassword">;
+export type SafeUser = Pick<User, "id" | "name" | "email" | "role" | "isActive" | "mustChangePassword" | "createdAt" | "updatedAt">;
 
 export class AuthError extends Error {
   readonly statusCode: number;
@@ -48,6 +48,8 @@ export function safeUser(user: User): SafeUser {
     role: user.role,
     isActive: user.isActive,
     mustChangePassword: user.mustChangePassword,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
   };
 }
 

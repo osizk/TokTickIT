@@ -41,6 +41,13 @@ import {
   updateStaffPriority,
   updateStaffStatus,
 } from "./staff-queue-service.js";
+import {
+  createAdminUser,
+  listAdminUsers,
+  resetAdminUserPassword,
+  updateAdminUser,
+  UserManagementError,
+} from "./user-management-service.js";
 
 export const app = express();
 
@@ -91,6 +98,24 @@ function sendTicketError(res: Response, error: unknown) {
   });
 }
 
+function sendUserManagementError(res: Response, error: unknown) {
+  if (error instanceof AuthError) {
+    sendAuthError(res, error);
+    return;
+  }
+  const details = error instanceof UserManagementError
+    ? error
+    : new UserManagementError(500, "USER_MANAGEMENT_FAILED", "The User Management request could not be completed.");
+  markUncached(res);
+  res.status(details.statusCode).json({
+    error: {
+      code: details.code,
+      message: details.message,
+      ...(details.fieldErrors ? { fieldErrors: details.fieldErrors } : {}),
+    },
+  });
+}
+
 async function requireAuthenticated(req: Request) {
   return requireUsableSession(req);
 }
@@ -104,6 +129,12 @@ async function requireRequester(req: Request) {
 async function requireStaff(req: Request) {
   const context = await requireUsableSession(req);
   requireRole(context, "IT_STAFF", "ADMINISTRATOR");
+  return context;
+}
+
+async function requireAdministrator(req: Request) {
+  const context = await requireUsableSession(req);
+  requireRole(context, "ADMINISTRATOR");
   return context;
 }
 
@@ -279,6 +310,59 @@ app.get("/api/staff/assignees", async (req: Request, res: Response) => {
     res.status(200).json(result);
   } catch (error) {
     sendTicketError(res, error);
+  }
+});
+
+app.get("/api/admin/users", async (req: Request, res: Response) => {
+  try {
+    await requireAdministrator(req);
+    const allowed = new Set(["search", "role"]);
+    const unknown = Object.keys(req.query).filter((key) => !allowed.has(key));
+    if (unknown.length > 0) throw new UserManagementError(400, "VALIDATION_ERROR", "Check the query parameters.", { [unknown[0]]: "This query parameter is not supported." });
+    const result = await listAdminUsers({ search: req.query.search, role: req.query.role });
+    markUncached(res);
+    res.status(200).json(result);
+  } catch (error) {
+    sendUserManagementError(res, error);
+  }
+});
+
+app.post("/api/admin/users", async (req: Request, res: Response) => {
+  try {
+    assertAllowedOrigin(req);
+    const context = await requireAdministrator(req);
+    assertCsrf(context, req);
+    const result = await createAdminUser(req.body);
+    markUncached(res);
+    res.status(201).json(result);
+  } catch (error) {
+    sendUserManagementError(res, error);
+  }
+});
+
+app.patch("/api/admin/users/:userId", async (req: Request, res: Response) => {
+  try {
+    assertAllowedOrigin(req);
+    const context = await requireAdministrator(req);
+    assertCsrf(context, req);
+    const result = await updateAdminUser(context.user.id, req.params.userId, req.body);
+    markUncached(res);
+    res.status(200).json(result);
+  } catch (error) {
+    sendUserManagementError(res, error);
+  }
+});
+
+app.post("/api/admin/users/:userId/initial-password", async (req: Request, res: Response) => {
+  try {
+    assertAllowedOrigin(req);
+    const context = await requireAdministrator(req);
+    assertCsrf(context, req);
+    const result = await resetAdminUserPassword(req.params.userId, req.body);
+    markUncached(res);
+    res.status(200).json(result);
+  } catch (error) {
+    sendUserManagementError(res, error);
   }
 });
 
