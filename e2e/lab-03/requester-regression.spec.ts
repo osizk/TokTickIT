@@ -90,9 +90,16 @@ test.describe("Lab 3 authenticated Requester regression", () => {
     }
   });
 
-  test("keeps the old selector route out of the authenticated Lab 3 flow", async ({ page }) => {
-    await page.goto("/tickets");
+  test("does not expose the legacy selector route or sessionStorage context", async ({ page }) => {
+    await page.goto("/select-requester");
     await expect(page).toHaveURL(/\/login$/);
     await expect(page.getByRole("heading", { name: "Select Development Requester" })).toHaveCount(0);
+    expect(await page.evaluate(() => window.sessionStorage.getItem("selectedRequesterId"))).toBeNull();
+
+    await loginAs(page, "requesterA");
+    await page.goto("/select-requester");
+    await expect(page).toHaveURL(/\/tickets$/);
+    await expect(page.getByRole("heading", { name: "Select Development Requester" })).toHaveCount(0);
+    expect(await page.evaluate(() => window.sessionStorage.getItem("selectedRequesterId"))).toBeNull();
   });
 });

@@ -302,7 +302,7 @@ Issue #38 focused API-10 and UI-06 results are recorded above (6 API tests and 4
 | E2E-01 | E2E | AC-01/02/03/04/05/21 | Login, first-login change, logout, guard, and role navigation — `e2e/lab-03/authentication.spec.ts` | Passed: 9/9 project runs |
 | E2E-02 | E2E | AC-07/08/09/14/21 | Requester Ticket continuity, comment, resolution indication, and note privacy — `e2e/lab-03/requester-regression.spec.ts` | Passed: 6/6 project runs |
 | E2E-03 | E2E | AC-10/11/12/13/14/15/21 | Staff queue/detail operations, priority filters/mutations, comments, notes, attachments, and responsive views — `e2e/lab-03/staff-ticket-flow.spec.ts` | Passed: 9/9 project runs |
-| E2E-04 | E2E | AC-16/17/18/19/21 | Admin User Management and safety protections — `e2e/lab-03/user-administration.spec.ts` | Passed: 6/6 project runs |
+| E2E-04 | E2E | AC-16/20/21 | Administrator list/search, editor open/cancel, no-results, responsive cards, and Requester role-isolation smoke coverage — `e2e/lab-03/user-administration.spec.ts` | Passed: 6/6 project runs; mutation and Administrator-safety behavior remains covered by API-10/UI-06 |
 | E2E-05 | E2E | AC-23 | Release evidence states and final-main evidence capture — `e2e/lab-03/release-evidence-states.spec.ts` | Passed: 3/3 project runs |
 | VIS-01 | Visual | AC-11/21 | Readable desktop/tablet/mobile screenshots and visual checklist — `artifacts/lab-03/screenshots/` | Passed: screenshots generated and manually inspected at all three projects |
 | REL-01 | Release | AC-23 | Final-main complete tests/builds, migration/seed, traceability, links, and review audit — `docs/lab-03/release-evidence/` | Planned |
@@ -340,7 +340,7 @@ The implementation must use the following local-only keys. The real values belon
 
 Priority regression coverage is explicit: `API-06` tests create-time validation of all four `TicketPriority` values and inherited summary/description/reference boundaries; `API-07` tests Requested Priority and IT Priority filters and sorting; `API-08` tests that Requested Priority cannot be changed and IT Priority accepts only the shared enum; `UI-04`/`UI-05` and `E2E-03` verify the same values and controls in the queue/detail workflows.
 
-User-management safety coverage is explicit: `API-10` attempts to deactivate or demote an owner, expects `409 USER_OWNS_TICKETS`, verifies no User/Ticket/session changes occurred, then verifies an eligible role change or inactive change revokes all target sessions. `UI-06` and `E2E-04` verify the conflict message, unchanged ownership, and successful session-effect feedback.
+User-management safety coverage is explicit: `API-10` attempts to deactivate or demote an owner, expects `409 USER_OWNS_TICKETS`, verifies no User/Ticket/session changes occurred, then verifies an eligible role change or inactive change revokes all target sessions. `UI-06` verifies the conflict message, unchanged ownership, and successful session-effect feedback. `E2E-04` intentionally remains smoke/visual and role-isolation coverage rather than duplicating those mutation cases.
 
 ## 5. Acceptance-criteria traceability
 
@@ -362,10 +362,10 @@ User-management safety coverage is explicit: `API-10` attempts to deactivate or 
 | AC-14 | API-09, UI-05, UI-03, E2E-02, E2E-03 |
 | AC-15 | API-08, API-11, UI-05, E2E-03 |
 | AC-16 | API-10, UI-06, E2E-04 |
-| AC-17 | UNIT-01, API-10, UI-06, E2E-04 |
-| AC-18 | API-03, API-10, UI-02, UI-06, E2E-01, E2E-04 |
-| AC-19 | API-10, UI-06, E2E-04 |
-| AC-20 | UNIT-02, API-01, API-02, API-04, API-06, API-07, API-10, API-11, API-12 |
+| AC-17 | UNIT-01, API-10, UI-06 |
+| AC-18 | API-03, API-10, UI-02, UI-06, E2E-01 |
+| AC-19 | API-10, UI-06 |
+| AC-20 | UNIT-02, API-01, API-02, API-04, API-06, API-07, API-10, API-11, API-12, E2E-04 |
 | AC-21 | UI-01, UI-02, UI-03, UI-04, UI-05, UI-06, STYLE-01, STYLE-02, E2E-01, E2E-02, E2E-03, E2E-04, VIS-01 |
 | AC-22 | API-05, REG-01, REL-01 |
 | AC-23 | E2E-05, REL-01 |
@@ -388,8 +388,8 @@ Every functional requirement has at least one planned Test ID. The Test ID table
 | FR-10 | API-08, UI-05, E2E-03 |
 | FR-11 | API-09, UI-03, UI-05, E2E-02, E2E-03 |
 | FR-12 | API-09, UI-05, E2E-02, E2E-03 |
-| FR-13 | API-10, UI-06, E2E-04 |
-| FR-14 | API-10, UI-06, E2E-04 |
+| FR-13 | API-10, UI-06 |
+| FR-14 | API-10, UI-06 |
 | FR-15 | API-05, REL-01 |
 | FR-16 | API-01, API-04, API-06, API-07, API-10, API-11, API-12 |
 | FR-17 | UI-01, UI-02, UI-03, UI-04, UI-05, UI-06, STYLE-01, STYLE-02, VIS-01 |
@@ -402,17 +402,17 @@ The following mapping makes the business-rule coverage explicit. Each implementa
 | Business rule | Test IDs |
 |---|---|
 | BR-01 | API-01, API-04, E2E-01 |
-| BR-02 | UNIT-01, API-10, UI-06, E2E-04 |
+| BR-02 | UNIT-01, API-10, UI-06 |
 | BR-03 | UNIT-01, API-03, UI-01, UI-02 |
 | BR-04 | UNIT-01, API-03, UI-02 |
 | BR-05 | UNIT-02, API-02, E2E-01 |
 | BR-06 | UNIT-02, API-03, E2E-01 |
 | BR-07 | UNIT-02, API-04, E2E-01 |
 | BR-08 | API-03, UI-02, E2E-01 |
-| BR-09 | API-03, API-10, E2E-01, E2E-04 |
-| BR-10 | API-01, API-10, UI-06, E2E-04 |
+| BR-09 | API-03, API-10, E2E-01 |
+| BR-10 | API-01, API-10, UI-06 |
 | BR-11 | API-04, API-06, REG-01 |
-| BR-12 | API-08, API-10, UI-05, E2E-03, E2E-04 |
+| BR-12 | API-08, API-10, UI-05, E2E-03 |
 | BR-13 | UNIT-03, API-08, UI-05, E2E-03 |
 | BR-14 | API-06, API-08, E2E-02, E2E-03 |
 | BR-15 | UNIT-03, API-08, UI-05, E2E-03 |
@@ -423,9 +423,9 @@ The following mapping makes the business-rule coverage explicit. Each implementa
 | BR-20 | API-09, UI-03, E2E-02 |
 | BR-21 | UNIT-04, API-07, UI-04, E2E-03 |
 | BR-22 | UNIT-04, API-07, UI-04, E2E-03 |
-| BR-23 | API-01, API-03, API-08, API-09, API-10, E2E-01, E2E-03, E2E-04 |
-| BR-24 | API-10, UI-06, E2E-04 |
-| BR-25 | API-03, API-10, UI-06, E2E-04 |
+| BR-23 | API-01, API-03, API-08, API-09, API-10, E2E-01, E2E-03 |
+| BR-24 | API-10, UI-06 |
+| BR-25 | API-03, API-10, UI-06 |
 | BR-26 | API-05, REG-01, REL-01 |
 | BR-27 | API-05, REL-01 |
 | BR-28 | API-04, API-06, API-07, API-08, API-09, API-10, API-11, E2E-02, E2E-03 |
@@ -536,7 +536,7 @@ seeded the fixture data, and cleaned the isolated schema after the run:
 
 ```text
 Command: cd client; npx playwright test
-Result: 33 passed (1.2m), 0 skipped, exit status 0
+Result: 33 passed (2.2m), 0 skipped, exit status 0
 Projects: desktop, tablet, mobile
 Specs: authentication, requester regression, staff queue/detail, user administration, release evidence states
 ```
@@ -575,6 +575,8 @@ Blockers    missing LAB3_*_INITIAL_PASSWORD values; unapplied InternalNote migra
 - [x] Run the isolated migration/seed with process-only local Lab 3 password variables; no credential values were
   written to the repository or evidence.
 - [x] Run `cd client; npx playwright test`: 33 passed, 0 skipped, exit status 0.
+- [x] Review-fix reruns passed: Staff Queue/Detail 9/9 and Requester/Admin 12/12 across desktop, tablet, and mobile;
+  the full matrix was rerun afterward with the same 33/33 result.
 - [x] Preserve readable desktop/tablet/mobile screenshots under `artifacts/lab-03/screenshots/`; representative
   Change Password, Staff Ticket Detail, and mobile User Management images were manually inspected and the caption
   table below maps every evidence path to its requirement.
