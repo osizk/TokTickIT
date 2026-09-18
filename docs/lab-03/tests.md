@@ -497,14 +497,16 @@ The following mapping makes the business-rule coverage explicit. Each implementa
 - [x] Staff IT Priority and status APIs enforce the shared enum, the complete status-transition matrix, consequential-status confirmations, and safe validation/conflict responses.
 - [x] Public Comments now support Requester, IT Staff, and Administrator actors while preserving ownership-safe Requester access; Internal Notes are staff-only and excluded from Requester responses.
 - [x] Staff/Admin Attachment metadata and active-file downloads use the existing Lab 2 routes; Requester-only upload/removal remains unchanged and removed downloads return safe `404`.
-- [x] Focused staff API tests pass 4/4 and the status-transition unit tests pass 2/2. The Internal Note API test remains blocked until the additive migration is applied to the disposable test database; the current 500 is recorded rather than marked as passing.
+- [x] Focused staff API tests pass 4/4 and the status-transition unit tests pass 2/2. The Internal Note API test was
+  initially blocked by the unapplied migration; the release-gate rerun after migration passed the notes coverage.
 - [x] Focused Staff Ticket Detail UI tests pass 3/3; the existing Staff Queue regression tests pass 5/5.
 - [x] Server build and client build pass for this branch.
 - [x] Complete client regression was rerun after Issue #37: 10 test files and 44 tests passed.
 - [x] Complete server regression was attempted with `npm.cmd test -- --run`: 25 files ran with 47 tests passed, 8 failed, and 28 skipped. The failures are recorded as environment/migration blockers (missing local Lab 3 password variables and unapplied `InternalNote` migration), not as passing evidence.
 - [x] Reopening a Ticket now clears its stored Requester resolution indication; the staff-operation API regression covers the reset.
 - [x] `api-spec.md` and `ui-spec.md` now describe the implemented Issue #37 operations and staff-detail behavior.
-- [ ] Apply `20260917110000_lab3_ticket_operations` to `toktickit_lab2_test`, rerun the complete API-09 notes test, and record the complete terminal output.
+- [x] Apply `20260917110000_lab3_ticket_operations` to `toktickit_lab2_test`, rerun the complete API-09 notes test, and
+  record the passing terminal output in the Issue #39 release-gate evidence below.
 - [ ] Teammate submits an actual GitHub **Approve** review.
 - [ ] Student explicitly authorizes commit, push, PR, and merge; card moves to Done only after merge.
 
@@ -553,16 +555,64 @@ Command: cd client; npm.cmd run build
 Result      production TypeScript/Vite build passed
 ```
 
-The server build also passed (`cd server; npm.cmd run build`). A complete server regression was rerun from this
-branch, but it is not counted as green because the local ignored `.env.test` still lacks the three Lab 3 initial
-password variables and the disposable database still needs the Internal Notes migration:
+The server build and complete server regression were rerun from commit `030d1db` after resetting only the validated
+disposable database `toktickit_lab2_test`, applying the Internal Notes migration, and supplying the three Lab 3
+initial-password values only in the process environment. The earlier failed attempt remains historical above; this
+is the passing release-gate run:
 
 ```text
+Command: cd server; npm.cmd run build
+Result: TypeScript build passed, exit status 0
+
+Command: cd server; npm.cmd run prisma:test:migrate
+Using server/.env.test for Prisma migrate against database toktickit_lab2_test.
+6 migrations found in prisma/migrations
+No pending migrations to apply.
+
+Command: cd server; npm.cmd run prisma:test:seed (first pass)
+Seeded 4 categories, 7 related systems, and 5 requesters; ensured 12 Tickets (12 created this run);
+all existing Requesters received idempotent credential backfill.
+Result: exit status 0
+
+Command: cd server; npm.cmd run prisma:test:seed (second pass)
+Seeded 4 categories, 7 related systems, and 5 requesters; ensured 12 Tickets (0 created this run);
+all existing Requesters received idempotent credential backfill.
+Result: exit status 0
+
 Command: cd server; npm.cmd test -- --run
-Test Files  11 failed | 15 passed (26)
-Tests       8 failed | 53 passed | 28 skipped (89)
-Result      exit status 1
-Blockers    missing LAB3_*_INITIAL_PASSWORD values; unapplied InternalNote migration causing the Internal Notes API 500
+✓ tests/lab-03/staff-queue.api.test.ts (6 tests)
+✓ tests/lab-02/attachments.api.test.ts (8 tests)
+✓ tests/lab-03/users-admin.api.test.ts (6 tests)
+✓ tests/lab-02/create-ticket.api.test.ts (7 tests)
+✓ tests/lab-03/staff-ticket-detail.api.test.ts (4 tests)
+✓ tests/lab-02/my-tickets.api.test.ts (4 tests)
+✓ tests/lab-03/requester-regression.api.test.ts (3 tests)
+✓ tests/lab-03/migration-seed.api.test.ts (4 tests)
+  ✓ Lab 3 migration and seed preservation > preserves a changed non-fixture credential across repeated seed runs
+✓ tests/lab-03/auth-session.api.test.ts (5 tests)
+✓ tests/lab-02/ticket-detail.api.test.ts (3 tests)
+✓ tests/lab-03/comments-notes.api.test.ts (2 tests)
+✓ tests/lab-03/auth.api.test.ts (6 tests)
+✓ tests/lab-02/reference-data.test.ts (5 tests)
+✓ tests/lab-02/attachment-rollback.api.test.ts (1 test)
+✓ tests/lab-02/create-ticket-rollback.api.test.ts (1 test)
+✓ tests/lab-02/ticket-validation.unit.test.ts (3 tests)
+✓ tests/lab-02/attachment-validation.unit.test.ts (2 tests)
+✓ tests/lab-03/auth-rate-limit.api.test.ts (1 test)
+  ✓ Lab 3 login rate limiting > blocks after five failed attempts and allows recovery after the bucket is cleared
+✓ tests/lab-03/auth-validation.unit.test.ts (4 tests)
+✓ tests/lab-03/session-security.unit.test.ts (3 tests)
+✓ tests/lab-03/status-transition.unit.test.ts (2 tests)
+✓ tests/lab-02/e2e-environment.unit.test.ts (3 tests)
+✓ tests/lab-01/categories.test.ts (1 test)
+✓ tests/lab-03/authorization.api.test.ts (2 tests)
+✓ tests/lab-01/health.test.ts (2 tests)
+✓ tests/lab-03/resolution-indication.unit.test.ts (1 test)
+Test Files  26 passed (26)
+Tests       89 passed (89)
+Start at   21:22:08
+Duration   23.77s (transform 249ms, setup 0ms, collect 5.23s, tests 13.38s, environment 4ms, prepare 1.69s)
+Result      exit status 0
 ```
 
 - [x] The Issue #39 branch was created from the latest merged `lab3-staging` baseline.
@@ -581,8 +631,9 @@ Blockers    missing LAB3_*_INITIAL_PASSWORD values; unapplied InternalNote migra
   Change Password, Staff Ticket Detail, and mobile User Management images were manually inspected and the caption
   table below maps every evidence path to its requirement.
 - [x] Server TypeScript build passes after the E2E changes.
-- [ ] Rerun the complete server regression successfully after configuring local Lab 3 passwords and applying the
-  Internal Notes migration; then complete the final release gates.
+- [x] Complete server release-gate rerun passed from commit `030d1db`: migration is current, repeated seed is
+  idempotent (12 then 0 Tickets created), and the full server suite is 26 files/89 tests passed with 0 failures and
+  0 skips.
 - [ ] Teammate submits an actual GitHub **Approve** review.
 - [ ] Student explicitly authorizes commit, push, PR, and merge; card moves to Done only after merge.
 
