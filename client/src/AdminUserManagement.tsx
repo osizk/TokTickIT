@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import {
   ApiClientError,
   type AdminUser,
@@ -29,20 +29,20 @@ function emptyEditor(): EditorState {
   return { name: "", email: "", role: "REQUESTER", isActive: true, initialPassword: "" };
 }
 
-function UserTable({ users, onEdit }: { users: AdminUser[]; onEdit: (user: AdminUser) => void }) {
+function UserTable({ users, onEdit, selectedUserId }: { users: AdminUser[]; onEdit: (user: AdminUser) => void; selectedUserId?: number }) {
   return (
     <>
       <div className="admin-users-table-wrap">
         <table className="admin-users-table" aria-label="Users">
           <thead><tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Role</th><th scope="col">Status</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
-          <tbody>{users.map((user) => <tr key={user.id}>
+          <tbody>{users.map((user) => <tr key={user.id} className={user.id === selectedUserId ? "is-selected" : undefined}>
             <td>{user.name}</td><td>{user.email}</td><td>{user.role.replace("_", " ")}</td><td>{user.isActive ? "Active" : "Inactive"}</td>
             <td><button className="zen-button zen-button-secondary" type="button" onClick={() => onEdit(user)} aria-label={`Edit ${user.name}`}>Edit</button></td>
           </tr>)}</tbody>
         </table>
       </div>
       <div className="admin-users-cards" aria-label="Mobile user cards">
-        {users.map((user) => <article className="admin-user-card" key={user.id}>
+        {users.map((user) => <article className={`admin-user-card${user.id === selectedUserId ? " is-selected" : ""}`} key={user.id}>
           <h3>{user.name}</h3><dl><div><dt>Email</dt><dd>{user.email}</dd></div><div><dt>Role</dt><dd>{user.role.replace("_", " ")}</dd></div><div><dt>Status</dt><dd>{user.isActive ? "Active" : "Inactive"}</dd></div></dl>
           <button className="zen-button zen-button-secondary" type="button" onClick={() => onEdit(user)} aria-label={`Edit ${user.name}`}>Edit</button>
         </article>)}
@@ -63,6 +63,8 @@ export default function AdminUserManagement() {
   const [saving, setSaving] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
   const [resetPassword, setResetPassword] = useState("");
+  const editorRef = useRef<HTMLDivElement | null>(null);
+  const editorHeadingRef = useRef<HTMLHeadingElement | null>(null);
 
   const load = useCallback(async (nextSearch = appliedSearch, nextRole: ManagedRole | "" = role) => {
     setLoading(true);
@@ -78,6 +80,15 @@ export default function AdminUserManagement() {
   }, [appliedSearch, role]);
 
   useEffect(() => { void load("", ""); }, []);
+
+  useEffect(() => {
+    if (!editor) return;
+    const timer = window.setTimeout(() => {
+      editorRef.current?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+      editorHeadingRef.current?.focus();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [editor?.id]);
 
   function openCreate() {
     setEditor(emptyEditor());
@@ -113,13 +124,12 @@ export default function AdminUserManagement() {
     setError(null);
     try {
       if (editor.id) {
-        const result = await updateAdminUser(editor.id, { name: editor.name.trim(), email: editor.email.trim(), role: editor.role, isActive: editor.isActive });
-        setUsers((current) => current.map((user) => user.id === result.user.id ? result.user : user));
+        await updateAdminUser(editor.id, { name: editor.name.trim(), email: editor.email.trim(), role: editor.role, isActive: editor.isActive });
       } else {
-        const result = await createAdminUser({ name: editor.name.trim(), email: editor.email.trim(), role: editor.role, isActive: editor.isActive, initialPassword: editor.initialPassword });
-        setUsers((current) => [...current, result.user].sort((a, b) => a.name.localeCompare(b.name)));
+        await createAdminUser({ name: editor.name.trim(), email: editor.email.trim(), role: editor.role, isActive: editor.isActive, initialPassword: editor.initialPassword });
       }
       setEditor(null);
+      await load(appliedSearch, role);
     } catch (reason) {
       setError(safeMessage(reason, "Unable to save User."));
     } finally {
@@ -169,8 +179,8 @@ export default function AdminUserManagement() {
         <button className="zen-button zen-button-secondary" type="button" onClick={() => void applySearch()}>Search</button>
       </div>
       {error && <div className="zen-state zen-state-error" role="alert" aria-label="User management error"><p>{error}</p><button className="zen-button zen-button-secondary" type="button" onClick={() => void load()}>Retry</button></div>}
-      {loading ? <p className="zen-state zen-state-info" role="status">Loading Users...</p> : users.length === 0 ? <p className="zen-state zen-state-info">No Users match the current search.</p> : <UserTable users={users} onEdit={openEdit} />}
-      {editor && <div className="admin-editor" role="dialog" aria-modal="true" aria-labelledby="admin-editor-heading"><div className="admin-editor-header"><h2 id="admin-editor-heading">{editor.id ? "Edit User" : "Create User"}</h2><button className="zen-button zen-button-link" type="button" onClick={() => setEditor(null)}>Cancel</button></div><form onSubmit={(event) => void submitEditor(event)} noValidate><div className="zen-form-grid">
+      {loading ? <p className="zen-state zen-state-info" role="status">Loading Users...</p> : users.length === 0 ? <p className="zen-state zen-state-info">No Users match the current search.</p> : <UserTable users={users} onEdit={openEdit} selectedUserId={editor?.id} />}
+      {editor && <div ref={editorRef} className="admin-editor" role="dialog" aria-label={editor.id ? "Edit User" : "Create User"}><div className="admin-editor-header"><h2 ref={editorHeadingRef} id="admin-editor-heading" tabIndex={-1}>{editor.id ? `Edit User - ${editor.name}` : "Create User"}</h2><button className="zen-button zen-button-link" type="button" onClick={() => setEditor(null)}>Cancel</button></div><form onSubmit={(event) => void submitEditor(event)} noValidate><div className="zen-form-grid">
         <div className="zen-field"><label htmlFor="admin-name">Name</label><input id="admin-name" className="zen-input" value={editor.name} onChange={(event) => setEditor({ ...editor, name: event.target.value })} aria-invalid={Boolean(fieldErrors.name)} />{fieldErrors.name && <span className="zen-field-error">{fieldErrors.name}</span>}</div>
         <div className="zen-field"><label htmlFor="admin-email">Email</label><input id="admin-email" className="zen-input" type="email" value={editor.email} onChange={(event) => setEditor({ ...editor, email: event.target.value })} aria-invalid={Boolean(fieldErrors.email)} />{fieldErrors.email && <span className="zen-field-error">{fieldErrors.email}</span>}</div>
         <div className="zen-field"><label htmlFor="admin-role">User role</label><select id="admin-role" className="zen-input" value={editor.role} onChange={(event) => setEditor({ ...editor, role: event.target.value as ManagedRole })} aria-invalid={Boolean(fieldErrors.role)}>{roles.map((value) => <option key={value} value={value}>{value.replace("_", " ")}</option>)}</select>{fieldErrors.role && <span className="zen-field-error">{fieldErrors.role}</span>}</div>

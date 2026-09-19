@@ -383,6 +383,7 @@ textarea:focus-visible {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1.2rem 1.4rem;
+  align-items: start;
 }
 
 .zen-field-wide {
@@ -423,6 +424,62 @@ textarea:focus-visible {
 .zen-help {
   color: var(--zen-muted);
   font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.zen-password-policy {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.zen-password-policy-summary {
+  margin: 0;
+  color: var(--zen-muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.zen-password-rule {
+  display: grid;
+  grid-template-columns: 1.15rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.45rem;
+  border-radius: 0.4rem;
+  color: var(--zen-muted);
+}
+
+.zen-password-rule-icon {
+  font-size: 0.95rem;
+  font-weight: 900;
+  text-align: center;
+}
+
+.zen-password-rule-state {
+  font-size: 0.72rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.zen-password-rule.is-passed,
+.zen-password-match.is-passed {
+  color: #17663e;
+}
+
+.zen-password-rule.is-not-yet,
+.zen-password-match.is-not-yet {
+  color: var(--zen-error);
+}
+
+.zen-password-match {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 750;
   line-height: 1.45;
 }
 
@@ -566,6 +623,22 @@ textarea:focus-visible {
 .admin-editor-header h2 {
   margin: 0;
   font-size: 1.25rem;
+}
+
+.admin-editor-header h2:focus {
+  outline: 3px solid var(--zen-focus);
+  outline-offset: 4px;
+  border-radius: 0.25rem;
+}
+
+.admin-users-table tbody tr.is-selected td {
+  background: var(--zen-pale);
+  border-bottom-color: var(--zen-primary);
+}
+
+.admin-user-card.is-selected {
+  border-color: var(--zen-primary);
+  box-shadow: 0 0 0 3px rgb(0 116 73 / 14%);
 }
 
 .admin-password-reset {

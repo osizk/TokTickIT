@@ -30,5 +30,6 @@ server/tmp/
 
 # Playwright transient output (captured evidence screenshots remain tracked)
 client/test-results/
+test-results/
 artifacts/lab-02/playwright-report/
 artifacts/lab-03/playwright-report/

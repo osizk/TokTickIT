@@ -135,12 +135,12 @@ export async function changePassword(currentPassword: string, newPassword: strin
       body: JSON.stringify({ currentPassword, newPassword, confirmPassword }),
     });
   } catch {
-    throw new ApiClientError("Unable to change password.", 0);
+    throw new ApiClientError("Unable to change password. Please try again.", 0);
   }
   const body = await parseResponseBody(response);
   if (!response.ok) {
     const details = readApiError(body);
-    throw new ApiClientError("Unable to change password.", response.status, details.code, details.fieldErrors);
+    throw new ApiClientError(details.message ?? "Unable to change password. Please try again.", response.status, details.code, details.fieldErrors);
   }
   return rememberAuth(body);
 }

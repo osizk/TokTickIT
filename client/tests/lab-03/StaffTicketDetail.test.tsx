@@ -44,7 +44,7 @@ describe("Lab 3 Staff Ticket Detail operations", () => {
   it("renders the staff operation controls and keeps comments and notes distinct", async () => {
     render(<StaffTicketDetail ticketNumber={ticket.ticketNumber} currentUserId={8} navigate={vi.fn()} />);
     expect(await screen.findByRole("heading", { name: "Staff Ticket Detail" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Ticket Operations" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Ticket Operations" })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Assignee" })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "IT Priority" })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Status" })).toBeInTheDocument();

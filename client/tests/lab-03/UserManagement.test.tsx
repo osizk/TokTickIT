@@ -84,11 +84,61 @@ describe("Lab 3 Administrator User Management", () => {
     await waitFor(() => expect(api.createAdminUser).toHaveBeenCalledWith({ name: "New User", email: "new.user@example.test", role: "IT_STAFF", isActive: true, initialPassword: "Initial-User!2026" }));
 
     await user.click(screen.getAllByRole("button", { name: "Edit Michael Staff" })[0]);
+    const editorHeading = await screen.findByRole("heading", { name: "Edit User - Michael Staff" });
+    expect(editorHeading).toBeInTheDocument();
+    await waitFor(() => expect(document.activeElement).toBe(editorHeading));
+    expect(within(screen.getByRole("table", { name: "Users" })).getByText("Michael Staff").closest("tr")).toHaveClass("is-selected");
     const name = screen.getByLabelText("Name");
     await user.clear(name);
     await user.type(name, "Michael Updated");
     await user.click(screen.getByRole("button", { name: "Save User" }));
     await waitFor(() => expect(api.updateAdminUser).toHaveBeenCalledWith(2, { name: "Michael Updated", email: staff.email, role: "IT_STAFF", isActive: true }));
+  });
+
+  it("reapplies the active search and role filters after creating or editing a User", async () => {
+    let serverUsers = [admin, staff, requester];
+    vi.mocked(api.fetchAdminUsers).mockImplementation(async ({ search, role } = {}) => ({
+      users: serverUsers.filter((candidate) => (
+        (!role || candidate.role === role)
+        && (!search || candidate.name.toLowerCase().includes(search.toLowerCase()) || candidate.email.toLowerCase().includes(search.toLowerCase()))
+      )),
+    }));
+    vi.mocked(api.createAdminUser).mockImplementation(async (input) => {
+      const created = { ...requester, id: 9, name: input.name, email: input.email, role: input.role, isActive: input.isActive, mustChangePassword: true };
+      serverUsers = [...serverUsers, created];
+      return { user: created };
+    });
+    vi.mocked(api.updateAdminUser).mockImplementation(async (id, input) => {
+      const existing = serverUsers.find((candidate) => candidate.id === id)!;
+      const updated = { ...existing, ...input };
+      serverUsers = serverUsers.map((candidate) => candidate.id === id ? updated : candidate);
+      return { user: updated };
+    });
+
+    const user = userEvent.setup();
+    render(<AdminUserManagement />);
+    await screen.findByRole("heading", { name: "User Management" });
+    await user.type(screen.getByRole("searchbox", { name: "Search users" }), "Michael");
+    await user.click(screen.getByRole("button", { name: "Search" }));
+    await waitFor(() => expect(api.fetchAdminUsers).toHaveBeenLastCalledWith({ search: "Michael" }));
+    await user.selectOptions(screen.getByRole("combobox", { name: "Role" }), "IT_STAFF");
+    await waitFor(() => expect(api.fetchAdminUsers).toHaveBeenLastCalledWith({ search: "Michael", role: "IT_STAFF" }));
+
+    await user.click(screen.getByRole("button", { name: "Create User" }));
+    await user.type(screen.getByLabelText("Name"), "Filtered Requester");
+    await user.type(screen.getByLabelText("Email"), "filtered.requester@example.test");
+    await user.type(screen.getByLabelText("Initial password"), "Initial-User!2026");
+    await user.click(screen.getByRole("button", { name: "Save User" }));
+
+    await waitFor(() => expect(api.fetchAdminUsers).toHaveBeenLastCalledWith({ search: "Michael", role: "IT_STAFF" }));
+    expect(screen.queryByText("Filtered Requester")).not.toBeInTheDocument();
+
+    await user.click(screen.getAllByRole("button", { name: "Edit Michael Staff" })[0]);
+    await user.selectOptions(screen.getByRole("combobox", { name: "User role" }), "REQUESTER");
+    await user.click(screen.getByRole("button", { name: "Save User" }));
+
+    await waitFor(() => expect(screen.getByText("No Users match the current search.")).toBeInTheDocument());
+    expect(api.fetchAdminUsers).toHaveBeenLastCalledWith({ search: "Michael", role: "IT_STAFF" });
   });
 
   it("shows safe owner/safety failures and offers a password reset action", async () => {

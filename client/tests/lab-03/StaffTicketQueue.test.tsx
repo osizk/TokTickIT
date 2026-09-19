@@ -80,6 +80,9 @@ describe("Lab 3 Staff Ticket Queue", () => {
     vi.spyOn(api, "fetchStaffAssignees").mockResolvedValue(assignees);
     vi.spyOn(api, "fetchStaffTickets").mockResolvedValue(queueResponse);
     vi.spyOn(api, "fetchStaffTicket").mockResolvedValue(queueResponse.items[0]);
+    vi.spyOn(api, "fetchTicketAttachments").mockResolvedValue([]);
+    vi.spyOn(api, "fetchTicketComments").mockResolvedValue([]);
+    vi.spyOn(api, "fetchInternalNotes").mockResolvedValue([]);
   });
 
   afterEach(() => {
