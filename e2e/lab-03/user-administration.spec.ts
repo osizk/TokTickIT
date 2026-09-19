@@ -27,6 +27,8 @@ test.describe("Lab 3 Administrator User Management", () => {
     await saveEvidenceScreenshot(page, testInfo.project.name, "user-management", "admin-users-list");
     await page.getByRole("button", { name: /Edit / }).first().click();
     await expect(page.getByRole("dialog", { name: "Edit User" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Edit User - / })).toBeFocused();
+    await saveEvidenceScreenshot(page, testInfo.project.name, "user-management", "admin-user-editor");
     await page.getByRole("button", { name: "Cancel", exact: true }).click();
     await page.getByLabel("Search users").fill("no-such-lab3-user@example.test");
     await page.getByRole("button", { name: "Search", exact: true }).click();

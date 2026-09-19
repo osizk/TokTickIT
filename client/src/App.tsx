@@ -115,12 +115,52 @@ function ChangePasswordPage({ user, onSuccess, onLogout, logoutError, logoutPend
   const [confirm, setConfirm] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  function updatePasswordField(field: "current" | "next" | "confirm", value: string) {
+    if (field === "current") setCurrent(value);
+    if (field === "next") setNext(value);
+    if (field === "confirm") setConfirm(value);
+    setFieldErrors((previous) => {
+      if (!previous[field]) return previous;
+      const updated = { ...previous };
+      delete updated[field];
+      return updated;
+    });
+    setError(null);
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (submitting) return;
+    const nextFieldErrors: Record<string, string> = {};
+    if (!current) nextFieldErrors.current = "Current password is required.";
+    if (!next) nextFieldErrors.next = "New password is required.";
+    else if (next.length < 12 || next.length > 128 || next.trim() !== next) nextFieldErrors.next = "Password must be 12-128 characters without surrounding whitespace.";
+    else if (!/[A-Z]/.test(next) || !/[a-z]/.test(next) || !/[0-9]/.test(next) || !/[^A-Za-z0-9]/.test(next)) nextFieldErrors.next = "Password must include uppercase, lowercase, number, and symbol characters.";
+    if (confirm !== next) nextFieldErrors.confirm = "Passwords must match.";
+    if (current && next && current === next) nextFieldErrors.next = "New password must differ from the current password.";
+    if (Object.keys(nextFieldErrors).length > 0) {
+      setFieldErrors(nextFieldErrors);
+      setError("Please correct the highlighted fields.");
+      return;
+    }
     setSubmitting(true); setError(null);
+    setFieldErrors({});
     try { const result = await changePassword(current, next, confirm); onSuccess(result.user); }
-    catch (reason) { setError(reason instanceof ApiClientError ? reason.message : "Unable to change password."); }
+    catch (reason) {
+      if (reason instanceof ApiClientError) {
+        setError(reason.message);
+        const serverErrors = reason.fieldErrors ?? {};
+        setFieldErrors({
+          ...(serverErrors.currentPassword ? { current: serverErrors.currentPassword } : {}),
+          ...(serverErrors.newPassword ? { next: serverErrors.newPassword } : {}),
+          ...(serverErrors.confirmPassword ? { confirm: serverErrors.confirmPassword } : {}),
+        });
+      } else {
+        setError("Unable to change password. Please try again.");
+      }
+    }
     finally { setSubmitting(false); }
   }
   return (
@@ -129,9 +169,9 @@ function ChangePasswordPage({ user, onSuccess, onLogout, logoutError, logoutPend
       <main className="zen-main" id="main-content"><LogoutFeedback message={logoutError} onRetry={onLogout} pending={logoutPending} /><section className="zen-card zen-selection-card" aria-labelledby="change-password-heading">
         <p className="zen-eyebrow">First-login security</p><h1 id="change-password-heading">Change Password</h1><p className="zen-lead">{user.name}, change the initial password before entering the application.</p>
         <form onSubmit={(event) => void submit(event)} noValidate><div className="zen-form-grid">
-          <div className="zen-field"><label htmlFor="current-password">Current password</label><input id="current-password" className="zen-input" type="password" value={current} onChange={(event) => setCurrent(event.target.value)} autoComplete="current-password" required /></div>
-          <div className="zen-field"><label htmlFor="new-password">New password</label><input id="new-password" className="zen-input" type="password" value={next} onChange={(event) => setNext(event.target.value)} autoComplete="new-password" required /><span className="zen-help">Use the configured Lab 3 password policy.</span></div>
-          <div className="zen-field"><label htmlFor="confirm-password">Confirm new password</label><input id="confirm-password" className="zen-input" type="password" value={confirm} onChange={(event) => setConfirm(event.target.value)} autoComplete="new-password" required /></div>
+          <div className="zen-field"><label htmlFor="current-password">Current password</label><input id="current-password" className="zen-input" type="password" value={current} onChange={(event) => updatePasswordField("current", event.target.value)} autoComplete="current-password" aria-invalid={Boolean(fieldErrors.current)} aria-describedby={fieldErrors.current ? "current-password-error" : undefined} required />{fieldErrors.current && <p id="current-password-error" className="zen-field-error" role="alert">{fieldErrors.current}</p>}</div>
+          <div className="zen-field"><label htmlFor="new-password">New password</label><input id="new-password" className="zen-input" type="password" value={next} onChange={(event) => updatePasswordField("next", event.target.value)} autoComplete="new-password" aria-invalid={Boolean(fieldErrors.next)} aria-describedby={`password-policy-hint${fieldErrors.next ? " new-password-error" : ""}`} required /><ul id="password-policy-hint" className="zen-password-policy"><li>12-128 characters</li><li>At least one uppercase letter, lowercase letter, number, and symbol</li><li>No leading or trailing whitespace</li></ul>{fieldErrors.next && <p id="new-password-error" className="zen-field-error" role="alert">{fieldErrors.next}</p>}</div>
+          <div className="zen-field"><label htmlFor="confirm-password">Confirm new password</label><input id="confirm-password" className="zen-input" type="password" value={confirm} onChange={(event) => updatePasswordField("confirm", event.target.value)} autoComplete="new-password" aria-invalid={Boolean(fieldErrors.confirm)} aria-describedby={fieldErrors.confirm ? "confirm-password-error" : undefined} required />{fieldErrors.confirm && <p id="confirm-password-error" className="zen-field-error" role="alert">{fieldErrors.confirm}</p>}</div>
         </div>{error && <p className="zen-field-error" role="alert">{error}</p>}<div className="zen-form-actions"><button className="zen-button zen-button-primary" type="submit" disabled={submitting || !current || !next || !confirm}>{submitting ? "Saving password..." : "Save password"}</button></div></form>
       </section></main>
     </div>

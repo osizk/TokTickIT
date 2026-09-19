@@ -14,6 +14,9 @@ test.describe("Lab 3 authentication and role navigation", () => {
   });
 
   test("requires the first-login password change and lands the Requester in My Tickets", async ({ page }, testInfo) => {
+    await page.goto("/login");
+    await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
+    await saveEvidenceScreenshot(page, testInfo.project.name, "authentication", "login");
     await signInWithInitialPassword(page, "requesterA");
     await expect(page.getByRole("heading", { name: "Change Password" })).toBeVisible();
     await new AxeBuilder({ page }).analyze().then((result) => expect(result.violations).toEqual([]));

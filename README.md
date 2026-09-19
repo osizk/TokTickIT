@@ -107,3 +107,66 @@ evidence and captions are stored under
 - [Test plan and evidence](docs/lab-02/tests.md)
 - [AI-use record](docs/lab-02/ai-use.md)
 - [Peer-review record](docs/lab-02/reviewer.md)
+
+## Lab 3 Verification and Evidence
+
+Lab 3 replaces the temporary Development Requester selector with authenticated
+Requester, IT Staff, and Administrator workflows. The backend owns identity,
+role authorization, Ticket ownership, session expiry, CSRF checks, and safe
+errors. Initial seed passwords are local-only values; never commit them.
+
+### Lab 3 local test environment
+
+Copy `server/.env.test.example` to `server/.env.test` and use a disposable
+PostgreSQL database whose name ends in `_test`. Set these three variables only
+in the local environment when running the Lab 3 seed or authenticated tests:
+
+```text
+LAB3_REQUESTER_INITIAL_PASSWORD=<local value>
+LAB3_IT_STAFF_INITIAL_PASSWORD=<local value>
+LAB3_ADMIN_INITIAL_PASSWORD=<local value>
+```
+
+The guarded Prisma and Vitest configuration refuses to fall back to
+`server/.env`, and Playwright accepts only its allowlisted test schemas. Real
+`.env.test` files, passwords, credentials, uploaded files, and test storage
+remain ignored and must not be committed.
+
+### Lab 3 verification commands
+
+```bash
+cd server
+npm test -- --run
+npm run build
+npm run prisma:test:migrate
+npm run prisma:test:seed
+npm run prisma:test:seed
+
+cd ../client
+npm test -- --run
+npm run build
+npx playwright test
+
+cd ..
+node --test scripts/lab3-release-audit.test.mjs
+node scripts/lab3-release-audit.mjs HEAD
+```
+
+The `HEAD` audit verifies the prepared release candidate before its PR is
+merged. After the authorized promotion, `node scripts/lab3-release-audit.mjs
+main` verifies that the recorded Lab 3 release baseline is present in final
+`main`. The exact post-promotion SHA and graph are retained in the submission
+PDF because this course workflow finalizes repository Markdown before the
+promotion. Do not claim a Project-board state, teammate approval, screenshot,
+test result, or PDF audit that was not actually observed or student-confirmed.
+
+### Lab 3 contract and evidence documents
+
+- [Engineering specification](docs/lab-03/specification.md)
+- [API specification](docs/lab-03/api-spec.md)
+- [UI specification](docs/lab-03/ui-spec.md)
+- [Test plan and traceability](docs/lab-03/tests.md)
+- [AI-use record](docs/lab-03/ai-use.md)
+- [Peer-review record](docs/lab-03/reviewer.md)
+- [Release-evidence index](docs/lab-03/release-evidence/README.md)
+- [Responsive screenshots](artifacts/lab-03/screenshots)

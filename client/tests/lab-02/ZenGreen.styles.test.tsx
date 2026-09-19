@@ -19,6 +19,7 @@ describe("Zen Green style contract", () => {
       "zen-field",
       "zen-required",
       "zen-field-error",
+      "zen-password-policy",
       "zen-button-primary",
       "zen-button-secondary",
       "zen-status-badge",
@@ -27,6 +28,7 @@ describe("Zen Green style contract", () => {
       "zen-ticket-cards",
       "admin-users-table-wrap",
       "admin-users-cards",
+      "admin-user-card",
     ]) {
       expect(styles).toMatch(new RegExp(`\\.${className}\\b`));
     }
@@ -44,5 +46,11 @@ describe("Zen Green style contract", () => {
     expect(styles).toMatch(/\.admin-users-table-wrap\s*\{[\s\S]*?overflow-x:\s*auto;/);
     expect(styles).toMatch(/@media \(max-width: 767px\)[\s\S]*?\.admin-users-table-wrap\s*\{\s*display:\s*none;/);
     expect(styles).toMatch(/@media \(max-width: 767px\)[\s\S]*?\.admin-users-cards\s*\{\s*display:\s*grid;/);
+  });
+
+  it("keeps adjacent form controls at their own height and styles the selected editor target", () => {
+    expect(styles).toMatch(/\.zen-form-grid\s*\{[\s\S]*?align-items:\s*start;/);
+    expect(styles).toContain(".admin-users-table tbody tr.is-selected");
+    expect(styles).toContain(".admin-user-card.is-selected");
   });
 });

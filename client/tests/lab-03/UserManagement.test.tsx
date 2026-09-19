@@ -84,6 +84,10 @@ describe("Lab 3 Administrator User Management", () => {
     await waitFor(() => expect(api.createAdminUser).toHaveBeenCalledWith({ name: "New User", email: "new.user@example.test", role: "IT_STAFF", isActive: true, initialPassword: "Initial-User!2026" }));
 
     await user.click(screen.getAllByRole("button", { name: "Edit Michael Staff" })[0]);
+    const editorHeading = await screen.findByRole("heading", { name: "Edit User - Michael Staff" });
+    expect(editorHeading).toBeInTheDocument();
+    await waitFor(() => expect(document.activeElement).toBe(editorHeading));
+    expect(within(screen.getByRole("table", { name: "Users" })).getByText("Michael Staff").closest("tr")).toHaveClass("is-selected");
     const name = screen.getByLabelText("Name");
     await user.clear(name);
     await user.type(name, "Michael Updated");
