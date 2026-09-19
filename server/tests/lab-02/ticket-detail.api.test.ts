@@ -5,6 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { app } from "../../src/app.js";
 import { getPrisma } from "../../src/prisma.js";
+import { loginRequesterByLegacyId, restoreRequesterFirstLogin } from "../lab-03/requester-test-auth.js";
 
 describe("Ticket detail and attachment ownership", () => {
   let storageDir: string;
@@ -14,6 +15,9 @@ describe("Ticket detail and attachment ownership", () => {
   let relatedSystemId: number;
   let ticketNumber: string;
   let attachmentId: number;
+  let agentA: ReturnType<typeof request.agent>;
+  let agentB: ReturnType<typeof request.agent>;
+  let csrfA: string;
   const createdTicketNumbers: string[] = [];
 
   beforeAll(async () => {
@@ -35,10 +39,12 @@ describe("Ticket detail and attachment ownership", () => {
     requesterB = requesters[1].id;
     categoryId = category.id;
     relatedSystemId = relatedSystem.id;
+    ({ agent: agentA, csrfToken: csrfA } = await loginRequesterByLegacyId(requesterA));
+    ({ agent: agentB } = await loginRequesterByLegacyId(requesterB));
 
-    const response = await request(app)
+    const response = await agentA
       .post("/api/tickets")
-      .set("X-Requester-Id", String(requesterA))
+      .set("X-CSRF-Token", csrfA)
       .field("categoryId", String(categoryId))
       .field("relatedSystemId", String(relatedSystemId))
       .field("requestedPriority", "HIGH")
@@ -64,12 +70,14 @@ describe("Ticket detail and attachment ownership", () => {
       await prisma.attachment.deleteMany({ where: { ticketId: { in: tickets.map((ticket) => ticket.id) } } });
       await prisma.ticket.deleteMany({ where: { id: { in: tickets.map((ticket) => ticket.id) } } });
     }
+    await restoreRequesterFirstLogin(requesterA);
+    await restoreRequesterFirstLogin(requesterB);
     await rm(storageDir, { recursive: true, force: true });
     await prisma.$disconnect();
   });
 
   it("returns owned read-only detail and attachment metadata without storage fields", async () => {
-    const detail = await request(app)
+    const detail = await agentA
       .get(`/api/tickets/${ticketNumber}`)
       .set("X-Requester-Id", String(requesterA));
 
@@ -85,7 +93,7 @@ describe("Ticket detail and attachment ownership", () => {
     expect(detail.body.ticket).not.toHaveProperty("attachments");
     expect(detail.body.ticket).not.toHaveProperty("requesterId");
 
-    const metadata = await request(app)
+    const metadata = await agentA
       .get(`/api/tickets/${ticketNumber}/attachments`)
       .set("X-Requester-Id", String(requesterA));
     expect(metadata.status).toBe(200);
@@ -100,10 +108,10 @@ describe("Ticket detail and attachment ownership", () => {
   });
 
   it("uses the same safe 404 for missing and cross-requester detail", async () => {
-    const crossOwner = await request(app)
+    const crossOwner = await agentB
       .get(`/api/tickets/${ticketNumber}`)
       .set("X-Requester-Id", String(requesterB));
-    const missing = await request(app)
+    const missing = await agentA
       .get("/api/tickets/TKT-2099-999999")
       .set("X-Requester-Id", String(requesterA));
 
@@ -119,9 +127,9 @@ describe("Ticket detail and attachment ownership", () => {
   it("requires requester context for detail and attachment metadata", async () => {
     const detail = await request(app).get(`/api/tickets/${ticketNumber}`);
     const metadata = await request(app).get(`/api/tickets/${ticketNumber}/attachments`);
-    expect(detail.status).toBe(400);
-    expect(metadata.status).toBe(400);
-    expect(detail.body.error.code).toBe("REQUESTER_CONTEXT_REQUIRED");
-    expect(metadata.body.error.code).toBe("REQUESTER_CONTEXT_REQUIRED");
+    expect(detail.status).toBe(401);
+    expect(metadata.status).toBe(401);
+    expect(detail.body.error.code).toBe("SESSION_REQUIRED");
+    expect(metadata.body.error.code).toBe("SESSION_REQUIRED");
   });
 });

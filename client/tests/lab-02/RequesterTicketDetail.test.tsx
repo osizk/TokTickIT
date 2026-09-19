@@ -43,6 +43,7 @@ describe("Ticket Detail", () => {
   beforeEach(() => {
     vi.spyOn(api, "fetchTicket").mockResolvedValue(ticket);
     vi.spyOn(api, "fetchTicketAttachments").mockResolvedValue([activeAttachment, removedAttachment]);
+    vi.spyOn(api, "fetchTicketComments").mockResolvedValue([]);
   });
 
   afterEach(() => {
@@ -64,7 +65,8 @@ describe("Ticket Detail", () => {
     for (const field of ["Ticket Number", "Ticket Date", "Requester", "Category", "Related System", "Requested Priority", "Current Status", "Summary", "Description"]) {
       expect(screen.getByLabelText(field)).toHaveAttribute("readonly");
     }
-    expect(screen.queryByText(/Actions Taken|Resolution|Internal Notes|Comments/)).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Public Comments" })).toBeInTheDocument();
+    expect(screen.queryByText(/Actions Taken|Internal Notes/)).not.toBeInTheDocument();
   });
 
   it("keeps Ticket and Attachment loading states independent and offers safe retry", async () => {

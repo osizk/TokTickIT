@@ -34,6 +34,8 @@ const { baseDatabaseUrl, schemaName } = assertSafeE2EEnvironment({
 const isolatedDatabaseUrl = new URL(baseDatabaseUrl);
 isolatedDatabaseUrl.searchParams.set("schema", schemaName);
 const e2eStorageDir = path.resolve(serverDir, ".test-attachments", schemaName);
+const e2eClientOrigin = process.env.PLAYWRIGHT_CLIENT_ORIGIN
+  ?? new URL(process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:5173").origin;
 const serverEnv: Record<string, string> = {
   ...Object.fromEntries(
     Object.entries(process.env).filter((entry): entry is [string, string] => entry[1] !== undefined),
@@ -44,18 +46,20 @@ const serverEnv: Record<string, string> = {
   PLAYWRIGHT_SCHEMA: schemaName,
   PORT: process.env.PLAYWRIGHT_API_PORT ?? "3000",
   ATTACHMENT_STORAGE_DIR: e2eStorageDir,
+  CLIENT_ORIGIN: e2eClientOrigin,
 };
 
 // Make the same resolved values available to global setup/teardown and tests.
 Object.assign(process.env, serverEnv, {
   PLAYWRIGHT_API_URL: process.env.PLAYWRIGHT_API_URL ?? `http://127.0.0.1:${serverEnv.PORT}`,
-  PLAYWRIGHT_RUN_TAG: process.env.PLAYWRIGHT_RUN_TAG ?? `E2E-18-${Date.now()}`,
+  PLAYWRIGHT_RUN_TAG: process.env.PLAYWRIGHT_RUN_TAG ?? `E2E-39-${Date.now()}`,
 });
 
 const externalBaseUrl = process.env.PLAYWRIGHT_BASE_URL;
 
 export default defineConfig({
   testDir: "../e2e",
+  testMatch: "lab-03/**/*.spec.ts",
   timeout: 60_000,
   expect: { timeout: 10_000 },
   fullyParallel: false,
@@ -65,7 +69,7 @@ export default defineConfig({
   reporter: [
     ["list"],
     ["html", {
-      outputFolder: path.resolve(repositoryDir, "artifacts/lab-02/playwright-report"),
+      outputFolder: path.resolve(repositoryDir, "artifacts/lab-03/playwright-report"),
       open: "never",
     }],
   ],

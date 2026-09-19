@@ -303,7 +303,7 @@ export default function MyTickets({ requester, navigate }: MyTicketsProps) {
         <div>
           <p className="zen-eyebrow">Requester workspace</p>
           <h1 id="my-tickets-heading">My Tickets</h1>
-          <p className="zen-lead">Tickets created in the selected Development Requester context.</p>
+          <p className="zen-lead">Tickets created in your authenticated Requester context.</p>
         </div>
         <a
           className="zen-button zen-button-primary"

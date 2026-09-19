@@ -7,6 +7,15 @@ import * as api from "../../src/api.js";
 const activeRequesters: api.Requester[] = [
   { id: 1, name: "Amina Rahman", email: "amina@example.test" },
 ];
+const authUser: api.AuthUser = {
+  id: 101,
+  name: "Amina Rahman",
+  email: "amina@example.test",
+  role: "REQUESTER",
+  isActive: true,
+  mustChangePassword: false,
+  legacyRequesterId: 1,
+};
 
 const categories: api.Category[] = [
   { id: 10, name: "Hardware" },
@@ -35,13 +44,10 @@ const createdTicket: api.CreatedTicket = {
 
 async function openCreateTicket(user: ReturnType<typeof userEvent.setup>) {
   render(<App />);
-
-  await user.selectOptions(
-    await screen.findByRole("combobox", { name: "Development Requester" }),
-    "1",
-  );
-  await user.click(screen.getByRole("button", { name: "Continue" }));
-  await user.click(await screen.findByRole("link", { name: "Create Ticket" }));
+  await user.type(await screen.findByLabelText("Email"), authUser.email);
+  await user.type(screen.getByLabelText("Password"), "Initial-Lab3!Password");
+  await user.click(screen.getByRole("button", { name: "Sign in" }));
+  await user.click(await screen.findByRole("link", { name: "Create Ticket from My Tickets" }));
   expect(await screen.findByRole("heading", { name: "Create Ticket" })).toBeInTheDocument();
 }
 
@@ -59,10 +65,12 @@ async function fillValidTicket(user: ReturnType<typeof userEvent.setup>) {
 describe("Create Ticket", () => {
   beforeEach(() => {
     sessionStorage.clear();
-    window.history.replaceState({}, "", "/select-requester");
-    vi.spyOn(api, "fetchRequesters").mockResolvedValue(activeRequesters);
+    window.history.replaceState({}, "", "/login");
+    vi.spyOn(api, "currentUser").mockRejectedValue(new api.ApiClientError("Authentication is required.", 401));
+    vi.spyOn(api, "login").mockResolvedValue({ user: authUser, csrfToken: "csrf-test-token" });
     vi.spyOn(api, "fetchCategories").mockResolvedValue(categories);
     vi.spyOn(api, "fetchRelatedSystems").mockResolvedValue(relatedSystems);
+    vi.spyOn(api, "fetchTickets").mockResolvedValue({ items: [], pagination: { page: 1, pageSize: 10, totalItems: 0, totalPages: 0, hasPreviousPage: false, hasNextPage: false } });
   });
 
   afterEach(() => {

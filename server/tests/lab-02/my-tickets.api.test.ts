@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import request from "supertest";
 import { app } from "../../src/app.js";
 import { getPrisma } from "../../src/prisma.js";
+import { loginRequesterByLegacyId, restoreRequesterFirstLogin } from "../lab-03/requester-test-auth.js";
 
 describe("GET /api/tickets", () => {
   let requesterA: number;
@@ -10,6 +11,10 @@ describe("GET /api/tickets", () => {
   let categoryB: number;
   let systemA: number;
   let systemB: number;
+  let agentA: ReturnType<typeof request.agent>;
+  let agentB: ReturnType<typeof request.agent>;
+  let csrfA: string;
+  let csrfB: string;
   const token = `Issue16-${Date.now()}`;
   const createdTicketNumbers: string[] = [];
 
@@ -39,6 +44,8 @@ describe("GET /api/tickets", () => {
     categoryB = categories[1].id;
     systemA = systems[0].id;
     systemB = systems[1].id;
+    ({ agent: agentA, csrfToken: csrfA } = await loginRequesterByLegacyId(requesterA));
+    ({ agent: agentB, csrfToken: csrfB } = await loginRequesterByLegacyId(requesterB));
 
     const tickets = [
       ["Alpha VPN outage", "VPN cannot connect from the office.", "LOW", categoryA, systemA],
@@ -48,9 +55,9 @@ describe("GET /api/tickets", () => {
     ] as const;
 
     for (const [summary, description, priority, categoryId, relatedSystemId] of tickets) {
-      const response = await request(app)
+      const response = await agentA
         .post("/api/tickets")
-        .set("X-Requester-Id", String(requesterA))
+        .set("X-CSRF-Token", csrfA)
         .field("categoryId", String(categoryId))
         .field("relatedSystemId", String(relatedSystemId))
         .field("requestedPriority", priority)
@@ -60,9 +67,9 @@ describe("GET /api/tickets", () => {
       createdTicketNumbers.push(response.body.ticket.ticketNumber);
     }
 
-    const otherResponse = await request(app)
+    const otherResponse = await agentB
       .post("/api/tickets")
-      .set("X-Requester-Id", String(requesterB))
+      .set("X-CSRF-Token", csrfB)
       .field("categoryId", String(categoryA))
       .field("relatedSystemId", String(systemA))
       .field("requestedPriority", "LOW")
@@ -80,22 +87,24 @@ describe("GET /api/tickets", () => {
     });
     await prisma.attachment.deleteMany({ where: { ticketId: { in: tickets.map((ticket) => ticket.id) } } });
     await prisma.ticket.deleteMany({ where: { id: { in: tickets.map((ticket) => ticket.id) } } });
+    await restoreRequesterFirstLogin(requesterA);
+    await restoreRequesterFirstLogin(requesterB);
     await prisma.$disconnect();
   });
 
   it("requires valid requester context and returns safe errors for invalid query parameters", async () => {
     const missingContext = await request(app).get("/api/tickets");
-    expect(missingContext.status).toBe(400);
+    expect(missingContext.status).toBe(401);
     expect(missingContext.body).toEqual({
       error: {
-        code: "REQUESTER_CONTEXT_REQUIRED",
-        message: "A valid X-Requester-Id header is required.",
+        code: "SESSION_REQUIRED",
+        message: "Authentication is required.",
       },
     });
 
     const inactive = await request(app).get("/api/tickets").set("X-Requester-Id", "5");
-    expect(inactive.status).toBe(404);
-    expect(inactive.body.error.code).toBe("REQUESTER_NOT_FOUND");
+    expect(inactive.status).toBe(401);
+    expect(inactive.body.error.code).toBe("SESSION_REQUIRED");
 
     for (const query of [
       "page=0",
@@ -108,18 +117,18 @@ describe("GET /api/tickets", () => {
       "unknown=value",
       `search=${"x".repeat(101)}`,
     ]) {
-      const response = await request(app)
+      const response = await agentA
         .get(`/api/tickets?${query}`)
-        .set("X-Requester-Id", String(requesterA));
+        .set("X-Requester-Id", String(requesterB));
       expect(response.status, query).toBe(400);
       expect(response.body.error.code, query).toBe("VALIDATION_ERROR");
     }
   });
 
   it("returns only owned tickets with stable pagination metadata and no private fields", async () => {
-    const response = await request(app)
+    const response = await agentA
       .get(`/api/tickets?search=${encodeURIComponent(token)}&page=1&pageSize=10`)
-      .set("X-Requester-Id", String(requesterA));
+      .set("X-Requester-Id", String(requesterB));
 
     expect(response.status).toBe(200);
     expect(response.body.pagination).toEqual({
@@ -141,9 +150,9 @@ describe("GET /api/tickets", () => {
       !Object.prototype.hasOwnProperty.call(item, "attachments"),
     )).toBe(true);
 
-    const nextPage = await request(app)
+    const nextPage = await agentA
       .get(`/api/tickets?search=${encodeURIComponent(token)}&page=2&pageSize=10`)
-      .set("X-Requester-Id", String(requesterA));
+      .set("X-Requester-Id", String(requesterB));
     expect(nextPage.status).toBe(200);
     expect(nextPage.body.items).toEqual([]);
     expect(nextPage.body.pagination.hasPreviousPage).toBe(true);
@@ -152,9 +161,9 @@ describe("GET /api/tickets", () => {
 
   it("supports search, reference filters, priority/status filters, and explicit sorting", async () => {
     const base = `/api/tickets?search=${encodeURIComponent(token)}`;
-    const sorted = await request(app)
+    const sorted = await agentA
       .get(`${base}&sort=summary&order=asc&pageSize=10`)
-      .set("X-Requester-Id", String(requesterA));
+      .set("X-Requester-Id", String(requesterB));
     expect(sorted.status).toBe(200);
     expect(sorted.body.items.map((item: { summary: string }) => item.summary)).toEqual([
       `${token} Alpha VPN outage`,
@@ -163,11 +172,11 @@ describe("GET /api/tickets", () => {
       `${token} Delta portal access`,
     ]);
 
-    const filtered = await request(app)
+    const filtered = await agentA
       .get(
         `${base}&categoryId=${categoryA}&relatedSystemId=${systemA}&priority=MEDIUM&status=NEW`,
       )
-      .set("X-Requester-Id", String(requesterA));
+      .set("X-Requester-Id", String(requesterB));
     expect(filtered.status).toBe(200);
     expect(filtered.body.pagination.totalItems).toBe(1);
     expect(filtered.body.items[0]).toMatchObject({
@@ -178,21 +187,21 @@ describe("GET /api/tickets", () => {
       relatedSystem: { id: systemA },
     });
 
-    const ticketNumberSearch = await request(app)
+    const ticketNumberSearch = await agentA
       .get(`/api/tickets?search=${encodeURIComponent(createdTicketNumbers[0])}`)
-      .set("X-Requester-Id", String(requesterA));
+      .set("X-Requester-Id", String(requesterB));
     expect(ticketNumberSearch.status).toBe(200);
     expect(ticketNumberSearch.body.items).toHaveLength(1);
     expect(ticketNumberSearch.body.items[0].ticketNumber).toBe(createdTicketNumbers[0]);
   });
 
   it("isolates ownership between requester contexts", async () => {
-    const requesterAResponse = await request(app)
-      .get(`/api/tickets?search=${encodeURIComponent(token)}`)
-      .set("X-Requester-Id", String(requesterA));
-    const requesterBResponse = await request(app)
+    const requesterAResponse = await agentA
       .get(`/api/tickets?search=${encodeURIComponent(token)}`)
       .set("X-Requester-Id", String(requesterB));
+    const requesterBResponse = await agentB
+      .get(`/api/tickets?search=${encodeURIComponent(token)}`)
+      .set("X-Requester-Id", String(requesterA));
 
     expect(requesterAResponse.status).toBe(200);
     expect(requesterBResponse.status).toBe(200);

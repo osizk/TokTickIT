@@ -7,6 +7,15 @@ import * as api from "../../src/api.js";
 const activeRequesters: api.Requester[] = [
   { id: 1, name: "Amina Rahman", email: "amina@example.test" },
 ];
+const authUser: api.AuthUser = {
+  id: 101,
+  name: "Amina Rahman",
+  email: "amina@example.test",
+  role: "REQUESTER",
+  isActive: true,
+  mustChangePassword: false,
+  legacyRequesterId: 1,
+};
 const categories: api.Category[] = [
   { id: 10, name: "Hardware" },
   { id: 11, name: "Software" },
@@ -44,19 +53,18 @@ const listResponse: api.TicketListResponse = {
 
 async function openMyTickets(user: ReturnType<typeof userEvent.setup>) {
   render(<App />);
-  await user.selectOptions(
-    await screen.findByRole("combobox", { name: "Development Requester" }),
-    "1",
-  );
-  await user.click(screen.getByRole("button", { name: "Continue" }));
+  await user.type(await screen.findByLabelText("Email"), authUser.email);
+  await user.type(screen.getByLabelText("Password"), "Initial-Lab3!Password");
+  await user.click(screen.getByRole("button", { name: "Sign in" }));
   expect(await screen.findByRole("heading", { name: "My Tickets" })).toBeInTheDocument();
 }
 
 describe("My Tickets", () => {
   beforeEach(() => {
     sessionStorage.clear();
-    window.history.replaceState({}, "", "/select-requester");
-    vi.spyOn(api, "fetchRequesters").mockResolvedValue(activeRequesters);
+    window.history.replaceState({}, "", "/login");
+    vi.spyOn(api, "currentUser").mockRejectedValue(new api.ApiClientError("Authentication is required.", 401));
+    vi.spyOn(api, "login").mockResolvedValue({ user: authUser, csrfToken: "csrf-test-token" });
     vi.spyOn(api, "fetchCategories").mockResolvedValue(categories);
     vi.spyOn(api, "fetchRelatedSystems").mockResolvedValue(relatedSystems);
     vi.spyOn(api, "fetchTickets").mockResolvedValue(listResponse);

@@ -7,13 +7,51 @@ import {
   addTicketAttachment,
   downloadTicketAttachment,
   getTicketAttachments,
+  getStaffTicketAttachments,
   getTicketDetail,
+  downloadStaffTicketAttachment,
   removeTicketAttachment,
 } from "./ticket-detail-service.js";
+import {
+  AuthError,
+  assertAllowedOrigin,
+  assertCsrf,
+  authenticate,
+  changePassword,
+  expiredSessionCookie,
+  optionalSession,
+  requireSession,
+  requireUsableSession,
+  safeUser,
+  sessionCookie,
+  revokeFromRequest,
+  configuredClientOrigin,
+  rotateCsrfToken,
+  requireRole,
+  requesterIdForContext,
+} from "./auth-service.js";
+import { validateEmail, validatePassword } from "./auth-validation.js";
+import { createPublicComment, indicateResolution, listPublicComments } from "./comment-service.js";
+import { createInternalNote, listInternalNotes } from "./note-service.js";
+import {
+  getStaffTicket,
+  listStaffAssignees,
+  listStaffTickets,
+  updateStaffAssignment,
+  updateStaffPriority,
+  updateStaffStatus,
+} from "./staff-queue-service.js";
+import {
+  createAdminUser,
+  listAdminUsers,
+  resetAdminUserPassword,
+  updateAdminUser,
+  UserManagementError,
+} from "./user-management-service.js";
 
 export const app = express();
 
-app.use(cors());
+app.use(cors({ origin: configuredClientOrigin(), credentials: true }));
 app.use(express.json());
 app.disable("etag");
 
@@ -30,13 +68,170 @@ function sendReferenceError(res: Response, message: string) {
   });
 }
 
+function sendAuthError(res: Response, error: unknown) {
+  const details = error instanceof AuthError
+    ? error
+    : new AuthError(500, "AUTHENTICATION_FAILED", "Authentication could not be completed.");
+  markUncached(res);
+  res.status(details.statusCode).json({
+    error: {
+      code: details.code,
+      message: details.message,
+      ...(details.fieldErrors ? { fieldErrors: details.fieldErrors } : {}),
+    },
+  });
+}
+
+function sendTicketError(res: Response, error: unknown) {
+  if (error instanceof AuthError) {
+    sendAuthError(res, error);
+    return;
+  }
+  const details = toApiError(error);
+  markUncached(res);
+  res.status(details.statusCode).json({
+    error: {
+      code: details.code,
+      message: details.message,
+      ...(details.fieldErrors ? { fieldErrors: details.fieldErrors } : {}),
+    },
+  });
+}
+
+function sendUserManagementError(res: Response, error: unknown) {
+  if (error instanceof AuthError) {
+    sendAuthError(res, error);
+    return;
+  }
+  const details = error instanceof UserManagementError
+    ? error
+    : new UserManagementError(500, "USER_MANAGEMENT_FAILED", "The User Management request could not be completed.");
+  markUncached(res);
+  res.status(details.statusCode).json({
+    error: {
+      code: details.code,
+      message: details.message,
+      ...(details.fieldErrors ? { fieldErrors: details.fieldErrors } : {}),
+    },
+  });
+}
+
+async function requireAuthenticated(req: Request) {
+  return requireUsableSession(req);
+}
+
+async function requireRequester(req: Request) {
+  const context = await requireUsableSession(req);
+  requireRole(context, "REQUESTER");
+  return { context, requesterId: requesterIdForContext(context) };
+}
+
+async function requireStaff(req: Request) {
+  const context = await requireUsableSession(req);
+  requireRole(context, "IT_STAFF", "ADMINISTRATOR");
+  return context;
+}
+
+async function requireAdministrator(req: Request) {
+  const context = await requireUsableSession(req);
+  requireRole(context, "ADMINISTRATOR");
+  return context;
+}
+
+async function requireCommentActor(req: Request) {
+  const context = await requireUsableSession(req);
+  requireRole(context, "REQUESTER", "IT_STAFF", "ADMINISTRATOR");
+  return context;
+}
+
+async function requireTicketReader(req: Request) {
+  const context = await requireUsableSession(req);
+  if (context.user.role === "REQUESTER") {
+    return { context, requesterId: requesterIdForContext(context), staff: false as const };
+  }
+  requireRole(context, "IT_STAFF", "ADMINISTRATOR");
+  return { context, staff: true as const };
+}
+
+app.post("/api/auth/login", async (req: Request, res: Response) => {
+  try {
+    assertAllowedOrigin(req);
+    const body = req.body && typeof req.body === "object" ? req.body as Record<string, unknown> : {};
+    const emailResult = validateEmail(body.email);
+    const fieldErrors: Record<string, string> = {};
+    if (!emailResult.ok || typeof emailResult.value !== "string") fieldErrors.email = emailResult.ok ? "Enter a valid email address." : emailResult.message;
+    if (typeof body.password !== "string" || body.password.length === 0) fieldErrors.password = "Password is required.";
+    if (Object.keys(fieldErrors).length > 0) {
+      throw new AuthError(400, "VALIDATION_ERROR", "Check the highlighted fields.", fieldErrors);
+    }
+    const normalizedEmail = emailResult.ok && typeof emailResult.value === "string" ? emailResult.value : "";
+    const result = await authenticate(normalizedEmail, body.password as string, req);
+    res.setHeader("Set-Cookie", sessionCookie(result.token));
+    markUncached(res);
+    res.status(200).json({ user: safeUser(result.user), csrfToken: result.csrfToken });
+  } catch (error) {
+    sendAuthError(res, error);
+  }
+});
+
+app.get("/api/auth/me", async (req: Request, res: Response) => {
+  try {
+    const context = await requireSession(req);
+    const csrfToken = await rotateCsrfToken(context);
+    markUncached(res);
+    res.status(200).json({ user: safeUser(context.user), csrfToken });
+  } catch (error) {
+    sendAuthError(res, error);
+  }
+});
+
+app.post("/api/auth/change-password", async (req: Request, res: Response) => {
+  try {
+    assertAllowedOrigin(req);
+    const context = await requireSession(req);
+    assertCsrf(context, req);
+    const body = req.body && typeof req.body === "object" ? req.body as Record<string, unknown> : {};
+    const fieldErrors: Record<string, string> = {};
+    if (typeof body.currentPassword !== "string" || body.currentPassword.length === 0) fieldErrors.currentPassword = "Current password is required.";
+    const newPasswordResult = validatePassword(body.newPassword);
+    if (!newPasswordResult.ok) fieldErrors.newPassword = newPasswordResult.message;
+    if (body.confirmPassword !== body.newPassword) fieldErrors.confirmPassword = "Passwords must match.";
+    if (Object.keys(fieldErrors).length > 0) {
+      throw new AuthError(400, "VALIDATION_ERROR", "Check the highlighted fields.", fieldErrors);
+    }
+    const result = await changePassword(context, body.currentPassword as string, body.newPassword as string);
+    res.setHeader("Set-Cookie", sessionCookie(result.token));
+    markUncached(res);
+    res.status(200).json({ user: safeUser(result.user), csrfToken: result.csrfToken });
+  } catch (error) {
+    sendAuthError(res, error);
+  }
+});
+
+app.post("/api/auth/logout", async (req: Request, res: Response) => {
+  try {
+    assertAllowedOrigin(req);
+    const context = await optionalSession(req);
+    if (context) {
+      assertCsrf(context, req);
+      await revokeFromRequest(req);
+    }
+    res.setHeader("Set-Cookie", expiredSessionCookie());
+    markUncached(res);
+    res.status(204).send();
+  } catch (error) {
+    sendAuthError(res, error);
+  }
+});
+
 app.get("/api/health", (_req: Request, res: Response) => {
   markUncached(res);
   res.status(200).json({ status: "ok", service: "TokTickIT API" });
 });
 
-app.get("/api/categories", async (_req: Request, res: Response) => {
+app.get("/api/categories", async (req: Request, res: Response) => {
   try {
+    await requireAuthenticated(req);
     const categories = await getPrisma().category.findMany({
       where: { isActive: true },
       select: { id: true, name: true },
@@ -45,13 +240,15 @@ app.get("/api/categories", async (_req: Request, res: Response) => {
 
     markUncached(res);
     res.status(200).json(categories);
-  } catch {
-    sendReferenceError(res, "Unable to load categories.");
+  } catch (error) {
+    if (error instanceof AuthError) sendAuthError(res, error);
+    else sendReferenceError(res, "Unable to load categories.");
   }
 });
 
-app.get("/api/related-systems", async (_req: Request, res: Response) => {
+app.get("/api/related-systems", async (req: Request, res: Response) => {
   try {
+    await requireAuthenticated(req);
     const relatedSystems = await getPrisma().relatedSystem.findMany({
       where: { isActive: true },
       select: { id: true, name: true },
@@ -60,13 +257,15 @@ app.get("/api/related-systems", async (_req: Request, res: Response) => {
 
     markUncached(res);
     res.status(200).json(relatedSystems);
-  } catch {
-    sendReferenceError(res, "Unable to load related systems.");
+  } catch (error) {
+    if (error instanceof AuthError) sendAuthError(res, error);
+    else sendReferenceError(res, "Unable to load related systems.");
   }
 });
 
-app.get("/api/requesters", async (_req: Request, res: Response) => {
+app.get("/api/requesters", async (req: Request, res: Response) => {
   try {
+    await requireAuthenticated(req);
     const requesters = await getPrisma().requester.findMany({
       where: { isActive: true },
       select: { id: true, name: true, email: true },
@@ -75,98 +274,256 @@ app.get("/api/requesters", async (_req: Request, res: Response) => {
 
     markUncached(res);
     res.status(200).json(requesters);
-  } catch {
-    sendReferenceError(res, "Unable to load requesters.");
+  } catch (error) {
+    if (error instanceof AuthError) sendAuthError(res, error);
+    else sendReferenceError(res, "Unable to load requesters.");
+  }
+});
+
+app.get("/api/staff/tickets", async (req: Request, res: Response) => {
+  try {
+    const context = await requireStaff(req);
+    const result = await listStaffTickets(req, context.user.id);
+    markUncached(res);
+    res.status(200).json(result);
+  } catch (error) {
+    sendTicketError(res, error);
+  }
+});
+
+app.get("/api/staff/tickets/:ticketNumber", async (req: Request, res: Response) => {
+  try {
+    await requireStaff(req);
+    const result = await getStaffTicket(req.params.ticketNumber);
+    markUncached(res);
+    res.status(200).json(result);
+  } catch (error) {
+    sendTicketError(res, error);
+  }
+});
+
+app.get("/api/staff/assignees", async (req: Request, res: Response) => {
+  try {
+    await requireStaff(req);
+    const result = await listStaffAssignees();
+    markUncached(res);
+    res.status(200).json(result);
+  } catch (error) {
+    sendTicketError(res, error);
+  }
+});
+
+app.get("/api/admin/users", async (req: Request, res: Response) => {
+  try {
+    await requireAdministrator(req);
+    const allowed = new Set(["search", "role"]);
+    const unknown = Object.keys(req.query).filter((key) => !allowed.has(key));
+    if (unknown.length > 0) throw new UserManagementError(400, "VALIDATION_ERROR", "Check the query parameters.", { [unknown[0]]: "This query parameter is not supported." });
+    const result = await listAdminUsers({ search: req.query.search, role: req.query.role });
+    markUncached(res);
+    res.status(200).json(result);
+  } catch (error) {
+    sendUserManagementError(res, error);
+  }
+});
+
+app.post("/api/admin/users", async (req: Request, res: Response) => {
+  try {
+    assertAllowedOrigin(req);
+    const context = await requireAdministrator(req);
+    assertCsrf(context, req);
+    const result = await createAdminUser(req.body);
+    markUncached(res);
+    res.status(201).json(result);
+  } catch (error) {
+    sendUserManagementError(res, error);
+  }
+});
+
+app.patch("/api/admin/users/:userId", async (req: Request, res: Response) => {
+  try {
+    assertAllowedOrigin(req);
+    const context = await requireAdministrator(req);
+    assertCsrf(context, req);
+    const result = await updateAdminUser(context.user.id, req.params.userId, req.body);
+    markUncached(res);
+    res.status(200).json(result);
+  } catch (error) {
+    sendUserManagementError(res, error);
+  }
+});
+
+app.post("/api/admin/users/:userId/initial-password", async (req: Request, res: Response) => {
+  try {
+    assertAllowedOrigin(req);
+    const context = await requireAdministrator(req);
+    assertCsrf(context, req);
+    const result = await resetAdminUserPassword(req.params.userId, req.body);
+    markUncached(res);
+    res.status(200).json(result);
+  } catch (error) {
+    sendUserManagementError(res, error);
+  }
+});
+
+app.patch("/api/staff/tickets/:ticketNumber/assignment", async (req: Request, res: Response) => {
+  try {
+    assertAllowedOrigin(req);
+    const context = await requireStaff(req);
+    assertCsrf(context, req);
+    const result = await updateStaffAssignment(req.params.ticketNumber, req.body);
+    markUncached(res);
+    res.status(200).json(result);
+  } catch (error) {
+    sendTicketError(res, error);
+  }
+});
+
+app.patch("/api/staff/tickets/:ticketNumber/priority", async (req: Request, res: Response) => {
+  try {
+    assertAllowedOrigin(req);
+    const context = await requireStaff(req);
+    assertCsrf(context, req);
+    const result = await updateStaffPriority(req.params.ticketNumber, req.body);
+    markUncached(res);
+    res.status(200).json(result);
+  } catch (error) {
+    sendTicketError(res, error);
+  }
+});
+
+app.patch("/api/staff/tickets/:ticketNumber/status", async (req: Request, res: Response) => {
+  try {
+    assertAllowedOrigin(req);
+    const context = await requireStaff(req);
+    assertCsrf(context, req);
+    const result = await updateStaffStatus(req.params.ticketNumber, req.body);
+    markUncached(res);
+    res.status(200).json(result);
+  } catch (error) {
+    sendTicketError(res, error);
   }
 });
 
 app.get("/api/tickets", async (req: Request, res: Response) => {
   try {
-    const result = await listTickets(req);
+    const { requesterId } = await requireRequester(req);
+    const result = await listTickets(req, requesterId);
     markUncached(res);
     res.status(200).json(result);
   } catch (error) {
-    const details = toApiError(error);
-    markUncached(res);
-    res.status(details.statusCode).json({
-      error: {
-        code: details.code,
-        message: details.message,
-        ...(details.fieldErrors ? { fieldErrors: details.fieldErrors } : {}),
-      },
-    });
+    sendTicketError(res, error);
   }
 });
 
 app.post("/api/tickets", async (req: Request, res: Response) => {
   try {
-    const result = await createTicketFromMultipart(req);
+    assertAllowedOrigin(req);
+    const { context, requesterId } = await requireRequester(req);
+    assertCsrf(context, req);
+    const result = await createTicketFromMultipart(req, requesterId);
     markUncached(res);
     res.status(201).json(result);
   } catch (error) {
-    const details = toApiError(error);
-    markUncached(res);
-    res.status(details.statusCode).json({
-      error: {
-        code: details.code,
-        message: details.message,
-        ...(details.fieldErrors ? { fieldErrors: details.fieldErrors } : {}),
-      },
-    });
+    sendTicketError(res, error);
   }
 });
 
 app.get("/api/tickets/:ticketNumber", async (req: Request, res: Response) => {
   try {
-    const result = await getTicketDetail(req, req.params.ticketNumber);
+    const { requesterId } = await requireRequester(req);
+    const result = await getTicketDetail(req, req.params.ticketNumber, requesterId);
     markUncached(res);
     res.status(200).json(result);
   } catch (error) {
-    const details = toApiError(error);
-    markUncached(res);
-    res.status(details.statusCode).json({
-      error: {
-        code: details.code,
-        message: details.message,
-        ...(details.fieldErrors ? { fieldErrors: details.fieldErrors } : {}),
-      },
-    });
+    sendTicketError(res, error);
   }
 });
 
 app.get("/api/tickets/:ticketNumber/attachments", async (req: Request, res: Response) => {
   try {
-    const result = await getTicketAttachments(req, req.params.ticketNumber);
+    const reader = await requireTicketReader(req);
+    const result = reader.staff
+      ? await getStaffTicketAttachments(req.params.ticketNumber)
+      : await getTicketAttachments(req, req.params.ticketNumber, reader.requesterId);
     markUncached(res);
     res.status(200).json(result);
   } catch (error) {
-    const details = toApiError(error);
+    sendTicketError(res, error);
+  }
+});
+
+app.get("/api/tickets/:ticketNumber/comments", async (req: Request, res: Response) => {
+  try {
+    const context = await requireCommentActor(req);
+    const result = await listPublicComments(context, req.params.ticketNumber);
     markUncached(res);
-    res.status(details.statusCode).json({
-      error: {
-        code: details.code,
-        message: details.message,
-        ...(details.fieldErrors ? { fieldErrors: details.fieldErrors } : {}),
-      },
-    });
+    res.status(200).json(result);
+  } catch (error) {
+    sendTicketError(res, error);
+  }
+});
+
+app.post("/api/tickets/:ticketNumber/comments", async (req: Request, res: Response) => {
+  try {
+    assertAllowedOrigin(req);
+    const context = await requireCommentActor(req);
+    assertCsrf(context, req);
+    const result = await createPublicComment(context, req.params.ticketNumber, req.body);
+    markUncached(res);
+    res.status(201).json(result);
+  } catch (error) {
+    sendTicketError(res, error);
+  }
+});
+
+app.get("/api/tickets/:ticketNumber/internal-notes", async (req: Request, res: Response) => {
+  try {
+    const context = await requireStaff(req);
+    const result = await listInternalNotes(context, req.params.ticketNumber);
+    markUncached(res);
+    res.status(200).json(result);
+  } catch (error) {
+    sendTicketError(res, error);
+  }
+});
+
+app.post("/api/tickets/:ticketNumber/internal-notes", async (req: Request, res: Response) => {
+  try {
+    assertAllowedOrigin(req);
+    const context = await requireStaff(req);
+    assertCsrf(context, req);
+    const result = await createInternalNote(context, req.params.ticketNumber, req.body);
+    markUncached(res);
+    res.status(201).json(result);
+  } catch (error) {
+    sendTicketError(res, error);
+  }
+});
+
+app.post("/api/tickets/:ticketNumber/resolution-indication", async (req: Request, res: Response) => {
+  try {
+    assertAllowedOrigin(req);
+    const { context } = await requireRequester(req);
+    assertCsrf(context, req);
+    const result = await indicateResolution(context, req.params.ticketNumber);
+    markUncached(res);
+    res.status(200).json(result);
+  } catch (error) {
+    sendTicketError(res, error);
   }
 });
 
 app.post("/api/tickets/:ticketNumber/attachments", async (req: Request, res: Response) => {
   try {
-    const result = await addTicketAttachment(req, req.params.ticketNumber);
+    assertAllowedOrigin(req);
+    const { context, requesterId } = await requireRequester(req);
+    assertCsrf(context, req);
+    const result = await addTicketAttachment(req, req.params.ticketNumber, requesterId);
     markUncached(res);
     res.status(201).json(result);
   } catch (error) {
-    const details = toApiError(error);
-    markUncached(res);
-    res.status(details.statusCode).json({
-      error: {
-        code: details.code,
-        message: details.message,
-        ...(details.fieldErrors ? { fieldErrors: details.fieldErrors } : {}),
-      },
-    });
+    sendTicketError(res, error);
   }
 });
 
@@ -181,41 +538,32 @@ function safeContentDisposition(originalName: string): string {
 
 app.get("/api/tickets/:ticketNumber/attachments/:attachmentId/download", async (req: Request, res: Response) => {
   try {
-    const result = await downloadTicketAttachment(req, req.params.ticketNumber, req.params.attachmentId);
+    const reader = await requireTicketReader(req);
+    const result = reader.staff
+      ? await downloadStaffTicketAttachment(req.params.ticketNumber, req.params.attachmentId)
+      : await downloadTicketAttachment(req, req.params.ticketNumber, req.params.attachmentId, reader.requesterId);
     markUncached(res);
     res.setHeader("Content-Type", result.mimeType);
+    res.setHeader("Content-Length", String(result.body.byteLength));
     res.setHeader("Content-Disposition", safeContentDisposition(result.originalName));
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Cache-Control", "no-store");
     res.status(200).send(result.body);
   } catch (error) {
-    const details = toApiError(error);
-    markUncached(res);
-    res.status(details.statusCode).json({
-      error: {
-        code: details.code,
-        message: details.message,
-        ...(details.fieldErrors ? { fieldErrors: details.fieldErrors } : {}),
-      },
-    });
+    sendTicketError(res, error);
   }
 });
 
 app.delete("/api/tickets/:ticketNumber/attachments/:attachmentId", async (req: Request, res: Response) => {
   try {
-    const result = await removeTicketAttachment(req, req.params.ticketNumber, req.params.attachmentId);
+    assertAllowedOrigin(req);
+    const { context, requesterId } = await requireRequester(req);
+    assertCsrf(context, req);
+    const result = await removeTicketAttachment(req, req.params.ticketNumber, req.params.attachmentId, requesterId);
     markUncached(res);
     res.status(200).json(result);
   } catch (error) {
-    const details = toApiError(error);
-    markUncached(res);
-    res.status(details.statusCode).json({
-      error: {
-        code: details.code,
-        message: details.message,
-        ...(details.fieldErrors ? { fieldErrors: details.fieldErrors } : {}),
-      },
-    });
+    sendTicketError(res, error);
   }
 });
 
