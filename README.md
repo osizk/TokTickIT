@@ -8,7 +8,7 @@ TokTickIT is an IT service desk application. This project is built using:
 ## Setup Instructions
 
 ### Prerequisites
-- Node.js (v18+)
+- Node.js (v20+; required by Playwright 1.62)
 - PostgreSQL installed and running locally.
 
 ### 1. Database Setup

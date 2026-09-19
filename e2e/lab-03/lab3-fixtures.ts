@@ -83,12 +83,16 @@ export async function signInWithInitialPassword(page: Page, role: Lab3Role): Pro
   await expect(page).toHaveURL(/\/change-password$/);
 }
 
-export async function completeFirstLogin(page: Page, role: Lab3Role): Promise<void> {
+export async function fillFirstLoginPassword(page: Page, role: Lab3Role): Promise<void> {
   const { passwordKey } = roleSettings[role];
   const nextPassword = changedPassword(configuredPassword(passwordKey));
   await page.getByRole("textbox", { name: "Current password", exact: true }).fill(configuredPassword(passwordKey));
   await page.getByRole("textbox", { name: "New password", exact: true }).fill(nextPassword);
   await page.getByRole("textbox", { name: "Confirm new password", exact: true }).fill(nextPassword);
+}
+
+export async function completeFirstLogin(page: Page, role: Lab3Role): Promise<void> {
+  await fillFirstLoginPassword(page, role);
   await page.getByRole("button", { name: "Save password", exact: true }).click();
   await expect(page).not.toHaveURL(/\/change-password$/);
 }

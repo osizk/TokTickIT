@@ -289,16 +289,16 @@ Issue #38 focused API-10 and UI-06 results are recorded above (6 API tests and 4
 | API-10 | API | FR-13/14, AC-16/17/18/19 | Admin user list/create/edit/activation/reset, `USER_OWNS_TICKETS` atomic rejection, session revocation after role/activation changes, and safety rules — `server/tests/lab-03/users-admin.api.test.ts` | Passed: 6 tests |
 | API-11 | API | FR-07/11, AC-08/15 | Active/removed Attachment metadata, download headers, exact route compatibility, and staff/requester access continuation — `server/tests/lab-02/attachments.api.test.ts`, `server/tests/lab-02/ticket-detail.api.test.ts`, `server/tests/lab-03/requester-regression.api.test.ts`, `server/tests/lab-03/staff-ticket-detail.api.test.ts` | Passed in the configured Lab 3 release rerun; the current unconfigured shell rerun is recorded as blocked below |
 | API-12 | API | FR-04/16, AC-05/20 | Exact authenticated Categories, Related Systems, and staff-assignee response/error contracts — `server/tests/lab-02/reference-data.test.ts`, `server/tests/lab-03/staff-queue.api.test.ts` | Passed in the configured Lab 3 release rerun; the current unconfigured shell rerun is recorded as blocked below |
-| UI-01 | Component | FR-01/02/17, AC-01/02/03/21 | Login form, safe failure, busy guard, and redirect — `client/tests/lab-03/Login.test.tsx`, `client/tests/lab-03/RequesterRegression.test.tsx` | Passed: 1 focused Login test; full client suite 13 files/51 tests |
-| UI-02 | Component | FR-02/03/17, AC-03/04/21 | Change-password guard, policy errors, success, and focus — `client/tests/lab-03/ChangePassword.test.tsx`, `client/tests/lab-03/RequesterRegression.test.tsx` | Passed: 1 focused Change Password test; full client suite 13 files/51 tests |
+| UI-01 | Component | FR-01/02/17, AC-01/02/03/21 | Login form, safe failure, busy guard, and redirect — `client/tests/lab-03/Login.test.tsx`, `client/tests/lab-03/RequesterRegression.test.tsx` | Passed: 1 focused Login test; full client suite 13 files/56 tests |
+| UI-02 | Component | FR-02/03/17, AC-03/04/21 | Change-password guard, live policy checklist, confirmation match status, precise errors, success, and focus — `client/tests/lab-03/ChangePassword.test.tsx`, `client/tests/lab-03/RequesterRegression.test.tsx` | Passed: 4 focused Change Password tests; full client suite 13 files/56 tests |
 | UI-03 | Component | FR-06/07/08, AC-07/08/09/21 | Authenticated shell, logout retry, session-expiry redirect, stale session-restore suppression, role-route guards, direct Change Password guard, and Requester list/create/detail regression — `client/tests/lab-03/RequesterRegression.test.tsx` | Passed: 10 focused tests plus inherited Lab 2 list/create/detail/attachment UI regressions |
-| UI-04 | Component | FR-09/17, AC-10/11/21 | Queue controls, Requested/IT Priority filters and sorting, states, role visibility, cards/table, pagination, and functional Open-detail navigation — `client/tests/lab-03/StaffTicketQueue.test.tsx` | Passed: 5 focused tests; latest full client suite 13 files/51 tests |
+| UI-04 | Component | FR-09/17, AC-10/11/21 | Queue controls, Requested/IT Priority filters and sorting, states, role visibility, cards/table, pagination, and functional Open-detail navigation — `client/tests/lab-03/StaffTicketQueue.test.tsx` | Passed: 5 focused tests; latest full client suite 13 files/56 tests |
 | UI-05 | Component | FR-10/11/12, AC-12/13/14/15/21 | Staff detail actions, priority mutation, dialogs, comments, notes, and attachments — `client/tests/lab-03/StaffTicketDetail.test.tsx` | Passed: 3 focused tests |
-| UI-06 | Component | FR-13/14, AC-16/17/18/19/21 | User list/editor, validation, activation, `USER_OWNS_TICKETS` conflict feedback, session-effect messaging, reset controls, and mobile cards — `client/tests/lab-03/UserManagement.test.tsx` | Passed: 4 tests |
+| UI-06 | Component | FR-13/14, AC-16/17/18/19/21 | User list/editor, validation, activation, active-filter reapplication after create/edit, `USER_OWNS_TICKETS` conflict feedback, session-effect messaging, reset controls, and mobile cards — `client/tests/lab-03/UserManagement.test.tsx` | Passed: 5 tests |
 | STYLE-01 | Style/a11y | FR-17, AC-11/21 | Labels, focus, roles, contrast, touch targets, semantic feedback — `client/tests/lab-02/ZenGreen.styles.test.tsx`, `client/tests/lab-03/*.test.tsx`, `e2e/lab-03/*.spec.ts` | Passed: stylesheet/component checks and Playwright accessibility assertions |
 | STYLE-02 | Responsive | FR-17, AC-11/21 | Desktop/tablet/mobile layout and no page-wide horizontal scroll — `e2e/lab-03/*.spec.ts`, `artifacts/lab-03/screenshots/` | Passed: 33/33 Playwright project runs and inspected responsive screenshots |
 | REG-01 | Regression | AC-06/07/08/15 | Complete prior server suite after migration and auth integration — `server/tests/lab-01/**`, `server/tests/lab-02/**`, `server/tests/lab-03/**` | Configured green evidence: 26 files/89 tests passed at commit `030d1db`; current shell rerun is blocked by missing local password variables (16 files passed, 10 failed, 28 skipped) |
-| REG-02 | Regression | AC-06/07/08/21 | Complete prior client suite after selector-to-auth migration — `client/tests/lab-01/**`, `client/tests/lab-02/**`, `client/tests/lab-03/**` | Passed: 13 files, 51 tests |
+| REG-02 | Regression | AC-06/07/08/21 | Complete prior client suite after selector-to-auth migration — `client/tests/lab-01/**`, `client/tests/lab-02/**`, `client/tests/lab-03/**` | Passed: 13 files, 56 tests |
 | E2E-01 | E2E | AC-01/02/03/04/05/21 | Login, first-login change, logout, guard, and role navigation — `e2e/lab-03/authentication.spec.ts` | Passed: 9/9 project runs |
 | E2E-02 | E2E | AC-07/08/09/14/21 | Requester Ticket continuity, comment, resolution indication, and note privacy — `e2e/lab-03/requester-regression.spec.ts` | Passed: 6/6 project runs |
 | E2E-03 | E2E | AC-10/11/12/13/14/15/21 | Staff queue/detail operations, priority filters/mutations, comments, notes, attachments, and responsive views — `e2e/lab-03/staff-ticket-flow.spec.ts` | Passed: 9/9 project runs |
@@ -646,7 +646,7 @@ Screenshot captions for the green isolated run:
 | Evidence path | Caption | Requirement proved |
 |---|---|---|
 | `authentication/<project>/login.png` | Sign-in form at the named responsive breakpoint with aligned Email and Password controls. | AC-01/03, consistent form layout and accessible labels. |
-| `authentication/<project>/change-password.png` | First-login Change Password form at the named responsive breakpoint. | AC-03/04, accessible validation and responsive layout. |
+| `authentication/<project>/change-password.png` | First-login Change Password form with an explicit seven-rule checklist at the named responsive breakpoint. | AC-03/04, understandable accessible validation and responsive layout. |
 | `authentication/<project>/requester-first-login.png` | Authenticated Requester My Tickets shell after the initial password change. | AC-01/02/07 and role identity/navigation. |
 | `authentication/<project>/requester-ticket-detail.png` | Requester-owned Ticket detail with comment and attachment lifecycle evidence. | AC-07/08/09/14 and ownership/privacy behavior. |
 | `authentication/<project>/logout-and-route-guard.png` | Login screen after logout and a protected-route redirect. | AC-04/05 and session safety. |
@@ -664,7 +664,7 @@ Screenshot captions for the green isolated run:
 - [x] Contract PR #43 is visibly merged before product PRs; its actual changes-requested review state is recorded without inventing an Approve.
 - [x] Login, Change Password, Requester, Staff Queue, Staff Detail, and Admin screenshots have readable captions and requirement links.
 - [x] Safe 401/403/404/409/429 responses and ownership/privacy evidence are sanitized.
-- [x] Complete server/client tests and builds show no unexpected failures: server 26 files/89 tests, client 13 files/54 tests, and both production builds passed.
+- [x] Complete server/client tests and builds show no unexpected failures: server 26 files/89 tests, client 13 files/56 tests, and both production builds passed.
 - [x] Migration plus two repeated seed runs show stable counts and preserved IDs on guarded database `toktickit_test`.
 - [x] Playwright output shows all 33 required Lab 3 tests passed across desktop/tablet/mobile with no skips.
 - [x] `reviewer.md`, README, Project/Issue/PR evidence, and release documents have working links; final board capture is student-confirmed in the PDF.
@@ -718,7 +718,7 @@ Issue #40 candidate verification was rerun after the release-audit implementatio
 ```text
 Command: cd client; npm.cmd test -- --run
 Test Files  13 passed (13)
-Tests       54 passed (54)
+Tests       56 passed (56)
 Result      exit status 0
 
 Command: cd client; npm.cmd run build
@@ -762,13 +762,18 @@ The student explicitly authorized resetting only `toktickit_test`. No
 development database, production database, uploaded file, or committed secret
 was modified by the clean release rerun.
 
+The PR #50 User Management review fix also followed a failing-first check. The new focused test initially failed
+because a created Requester was appended while the `IT_STAFF` filter remained active. After changing create/edit
+success handling to reload the authoritative list with the applied search and role, the focused file passed 5/5;
+the complete client regression then passed 13 files/56 tests and the production build passed.
+
 - [x] Issue #40 branch was created from the latest merged `lab3-staging`.
 - [x] Release-audit red phase was run before implementation.
 - [x] Release-audit unit test passes and reports missing final evidence without fabricating it.
 - [x] README now documents Lab 3 local passwords, guarded test commands, and evidence links.
 - [x] Candidate branch history and the current `lab3-staging`/`main` SHAs are recorded in
   `docs/lab-03/release-evidence/repository-history.md`.
-- [x] Candidate client regression passes (13 files/54 tests) and the client production build passes.
+- [x] Candidate client regression passes (13 files/56 tests) and the client production build passes.
 - [x] Candidate server TypeScript build passes.
 - [x] Candidate Playwright passes 33/33 across desktop/tablet/mobile with no skips.
 - [x] Guarded migration and two repeated seed runs pass against `toktickit_test` with stable counts.

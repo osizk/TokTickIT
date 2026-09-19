@@ -109,6 +109,17 @@ function LogoutFeedback({ message, onRetry, pending }: { message: string | null;
   return <div className="zen-state zen-state-error" role="alert"><p>{message}</p><button className="zen-button zen-button-secondary" type="button" onClick={onRetry} disabled={pending}>{pending ? "Retrying logout..." : "Retry logout"}</button></div>;
 }
 
+function PasswordRequirement({ met, active, children }: { met: boolean; active: boolean; children: string }) {
+  const state = !active ? "required" : met ? "passed" : "not-yet";
+  return (
+    <li className={`zen-password-rule is-${state}`}>
+      <span className="zen-password-rule-icon" aria-hidden="true">{!active ? "–" : met ? "✓" : "×"}</span>
+      <span className="zen-password-rule-label">{children}</span>
+      <span className="zen-password-rule-state">{!active ? "Required" : met ? "Passed" : "Not yet"}</span>
+    </li>
+  );
+}
+
 function ChangePasswordPage({ user, onSuccess, onLogout, logoutError, logoutPending }: { user: AuthUser; onSuccess: (next: AuthUser) => void; onLogout: () => void; logoutError: string | null; logoutPending: boolean }) {
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
@@ -116,6 +127,19 @@ function ChangePasswordPage({ user, onSuccess, onLogout, logoutError, logoutPend
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const passwordStarted = next.length > 0;
+  const passwordRequirements = [
+    { label: "12-128 characters", met: next.length >= 12 && next.length <= 128 },
+    { label: "At least one uppercase letter", met: /[A-Z]/.test(next) },
+    { label: "At least one lowercase letter", met: /[a-z]/.test(next) },
+    { label: "At least one number", met: /[0-9]/.test(next) },
+    { label: "At least one symbol", met: /[^A-Za-z0-9]/.test(next) },
+    { label: "No leading or trailing whitespace", met: next.trim() === next },
+    { label: "Different from the current password", met: current.length > 0 && next !== current },
+  ];
+  const passedRequirementCount = passwordStarted ? passwordRequirements.filter((requirement) => requirement.met).length : 0;
+  const confirmationStarted = confirm.length > 0;
+  const passwordsMatch = confirmationStarted && confirm === next;
 
   function updatePasswordField(field: "current" | "next" | "confirm", value: string) {
     if (field === "current") setCurrent(value);
@@ -170,8 +194,8 @@ function ChangePasswordPage({ user, onSuccess, onLogout, logoutError, logoutPend
         <p className="zen-eyebrow">First-login security</p><h1 id="change-password-heading">Change Password</h1><p className="zen-lead">{user.name}, change the initial password before entering the application.</p>
         <form onSubmit={(event) => void submit(event)} noValidate><div className="zen-form-grid">
           <div className="zen-field"><label htmlFor="current-password">Current password</label><input id="current-password" className="zen-input" type="password" value={current} onChange={(event) => updatePasswordField("current", event.target.value)} autoComplete="current-password" aria-invalid={Boolean(fieldErrors.current)} aria-describedby={fieldErrors.current ? "current-password-error" : undefined} required />{fieldErrors.current && <p id="current-password-error" className="zen-field-error" role="alert">{fieldErrors.current}</p>}</div>
-          <div className="zen-field"><label htmlFor="new-password">New password</label><input id="new-password" className="zen-input" type="password" value={next} onChange={(event) => updatePasswordField("next", event.target.value)} autoComplete="new-password" aria-invalid={Boolean(fieldErrors.next)} aria-describedby={`password-policy-hint${fieldErrors.next ? " new-password-error" : ""}`} required /><ul id="password-policy-hint" className="zen-password-policy"><li>12-128 characters</li><li>At least one uppercase letter, lowercase letter, number, and symbol</li><li>No leading or trailing whitespace</li></ul>{fieldErrors.next && <p id="new-password-error" className="zen-field-error" role="alert">{fieldErrors.next}</p>}</div>
-          <div className="zen-field"><label htmlFor="confirm-password">Confirm new password</label><input id="confirm-password" className="zen-input" type="password" value={confirm} onChange={(event) => updatePasswordField("confirm", event.target.value)} autoComplete="new-password" aria-invalid={Boolean(fieldErrors.confirm)} aria-describedby={fieldErrors.confirm ? "confirm-password-error" : undefined} required />{fieldErrors.confirm && <p id="confirm-password-error" className="zen-field-error" role="alert">{fieldErrors.confirm}</p>}</div>
+          <div className="zen-field"><label htmlFor="new-password">New password</label><input id="new-password" className="zen-input" type="password" value={next} onChange={(event) => updatePasswordField("next", event.target.value)} autoComplete="new-password" aria-invalid={Boolean(fieldErrors.next)} aria-describedby={`password-policy-summary password-policy-hint${fieldErrors.next ? " new-password-error" : ""}`} required /><p id="password-policy-summary" className="zen-password-policy-summary" role="status" aria-live="polite">{passedRequirementCount} of {passwordRequirements.length} password requirements passed.</p><ul id="password-policy-hint" className="zen-password-policy">{passwordRequirements.map((requirement) => <PasswordRequirement key={requirement.label} met={requirement.met} active={passwordStarted}>{requirement.label}</PasswordRequirement>)}</ul>{fieldErrors.next && <p id="new-password-error" className="zen-field-error" role="alert">{fieldErrors.next}</p>}</div>
+          <div className="zen-field"><label htmlFor="confirm-password">Confirm new password</label><input id="confirm-password" className="zen-input" type="password" value={confirm} onChange={(event) => updatePasswordField("confirm", event.target.value)} autoComplete="new-password" aria-invalid={Boolean(fieldErrors.confirm) || (confirmationStarted && !passwordsMatch)} aria-describedby={`${confirmationStarted ? "password-match-status" : ""}${fieldErrors.confirm ? " confirm-password-error" : ""}`.trim() || undefined} required />{confirmationStarted && <p id="password-match-status" className={`zen-password-match ${passwordsMatch ? "is-passed" : "is-not-yet"}`} role="status" aria-live="polite"><span aria-hidden="true">{passwordsMatch ? "✓" : "×"}</span> {passwordsMatch ? "Passwords match." : "Passwords do not match yet."}</p>}{fieldErrors.confirm && <p id="confirm-password-error" className="zen-field-error" role="alert">{fieldErrors.confirm}</p>}</div>
         </div>{error && <p className="zen-field-error" role="alert">{error}</p>}<div className="zen-form-actions"><button className="zen-button zen-button-primary" type="submit" disabled={submitting || !current || !next || !confirm}>{submitting ? "Saving password..." : "Save password"}</button></div></form>
       </section></main>
     </div>

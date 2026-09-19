@@ -124,13 +124,12 @@ export default function AdminUserManagement() {
     setError(null);
     try {
       if (editor.id) {
-        const result = await updateAdminUser(editor.id, { name: editor.name.trim(), email: editor.email.trim(), role: editor.role, isActive: editor.isActive });
-        setUsers((current) => current.map((user) => user.id === result.user.id ? result.user : user));
+        await updateAdminUser(editor.id, { name: editor.name.trim(), email: editor.email.trim(), role: editor.role, isActive: editor.isActive });
       } else {
-        const result = await createAdminUser({ name: editor.name.trim(), email: editor.email.trim(), role: editor.role, isActive: editor.isActive, initialPassword: editor.initialPassword });
-        setUsers((current) => [...current, result.user].sort((a, b) => a.name.localeCompare(b.name)));
+        await createAdminUser({ name: editor.name.trim(), email: editor.email.trim(), role: editor.role, isActive: editor.isActive, initialPassword: editor.initialPassword });
       }
       setEditor(null);
+      await load(appliedSearch, role);
     } catch (reason) {
       setError(safeMessage(reason, "Unable to save User."));
     } finally {

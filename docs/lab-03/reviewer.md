@@ -148,11 +148,19 @@ The review scope was Administrator-only User Management: list/search/role filter
 
 | PR | Branch | Review status | Response/evidence |
 |---|---|---|---|
-| Not opened | `feature/20-Lab3ReleaseEvidence` | Release audit in progress; no Issue #40 PR review claimed | The repository-level audit, candidate history, pre-promotion record, Project/Issue/PR evidence, and student-confirmed PDF audit are recorded under `docs/lab-03/release-evidence/`. The existing formal teammate **Approve** for PR #44 is recorded above; no Issue #40 approval is claimed because its PR has not been opened. |
+| [PR #50](https://github.com/osizk/TokTickIT/pull/50) | `feature/20-Lab3ReleaseEvidence` | Open; review pending; no formal Issue #40 **Approve** or merge claimed | PR #50 targets `lab3-staging`. The repository-level audit, candidate history, pre-promotion record, Project/Issue/PR evidence, and student-confirmed PDF audit are recorded under `docs/lab-03/release-evidence/`. Review responses, any formal approval, and merge evidence will be recorded only after those GitHub events actually occur. |
 
-**Reviewer verdict:** No Issue #40 PR has been opened yet. GitHub confirms that PRs #43-#49 are merged and Issues #33-#39 are closed. The actual review state of every PR remains recorded without relabeling comments or changes-requested reviews as formal approvals.
+### PR #50 review comments and responses
 
-**My review verdict:** I kept the release work bounded to evidence tooling and truthful documentation. The repository records the pre-promotion baseline because the final merge SHA cannot exist before promotion; the student confirms the final `main` graph, Project board, and PDF audit will be preserved in the submission PDF. No Issue #40 approval is claimed before its PR exists.
+| Partner comment | Student response and verification | Status |
+|---|---|---|
+| README advertised Node.js 18+ even though Playwright 1.62 requires Node.js 20 or newer. | Raised the documented prerequisite to Node.js 20+ and retained the approved Playwright version. | Addressed locally; the client install contract and README now agree. |
+| The Issue #40 section still said that its PR had not been opened after PR #50 existed. | Added the PR #50 link and recorded only its current open/review-pending state. No approval or merge is claimed. | Addressed locally; final review and merge evidence remain pending. |
+| User Management appended create/edit results without reapplying the active search and role filter. | Added a failing regression covering create and edit under an `IT_STAFF` filter, then reloaded the authoritative list with the applied search/role after each successful mutation. | Addressed locally; focused UI-06 passes 5/5 and complete client regression passes 13 files/56 tests. |
+
+**Reviewer verdict:** PR #50 is open and awaiting review. GitHub confirms that PRs #43-#49 are merged and Issues #33-#39 are closed. No Issue #40 formal **Approve** or merge is claimed before it occurs.
+
+**My review verdict:** I opened PR #50 for the bounded release-evidence work and kept its current review state explicit. The repository records the pre-promotion baseline because the final merge SHA cannot exist before promotion; the student confirms the final `main` graph, Project board, and PDF audit will be preserved in the submission PDF. Approval and merge evidence remain pending.
 
 ## Review evidence rules
 

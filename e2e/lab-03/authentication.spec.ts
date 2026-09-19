@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 import {
   assertNoHorizontalOverflow,
   completeFirstLogin,
+  fillFirstLoginPassword,
   resetLab3Users,
   saveEvidenceScreenshot,
   signInWithInitialPassword,
@@ -19,9 +20,13 @@ test.describe("Lab 3 authentication and role navigation", () => {
     await saveEvidenceScreenshot(page, testInfo.project.name, "authentication", "login");
     await signInWithInitialPassword(page, "requesterA");
     await expect(page.getByRole("heading", { name: "Change Password" })).toBeVisible();
+    await fillFirstLoginPassword(page, "requesterA");
+    await expect(page.getByText("7 of 7 password requirements passed.")).toBeVisible();
+    await expect(page.getByText("Passwords match.")).toBeVisible();
     await new AxeBuilder({ page }).analyze().then((result) => expect(result.violations).toEqual([]));
     await saveEvidenceScreenshot(page, testInfo.project.name, "authentication", "change-password");
-    await completeFirstLogin(page, "requesterA");
+    await page.getByRole("button", { name: "Save password", exact: true }).click();
+    await expect(page).not.toHaveURL(/\/change-password$/);
     await expect(page).toHaveURL(/\/tickets$/);
     await expect(page.getByRole("heading", { name: "My Tickets" })).toBeVisible();
     await assertNoHorizontalOverflow(page);

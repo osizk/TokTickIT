@@ -17,7 +17,7 @@ submission PDF rather than added through a later documentation branch.
 ## Pre-promotion release gate
 
 - Server and client production builds: passed on the Issue #40 candidate.
-- Client regression: 13 files and 54 tests passed.
+- Client regression: 13 files and 56 tests passed.
 - Playwright: 33 tests passed across desktop, tablet, and mobile with no skips.
 - Guarded migration: 6 migrations present and no pending migration.
 - Repeated seed: stable at 4 Categories, 7 Related Systems, 5 Requesters, and
