@@ -779,5 +779,6 @@ the complete client regression then passed 13 files/56 tests and the production 
 - [x] Guarded migration and two repeated seed runs pass against `toktickit_test` with stable counts.
 - [x] The student explicitly authorized resetting only disposable database `toktickit_test`; the clean complete-server regression passed 26 files/89 tests with no skips.
 - [x] Pre-promotion baseline/history and the main-promotion evidence convention are captured in `final-main.md`.
-- [x] PR #43-#49 merge states and Issue #33-#40 release workflow are captured in `project-board.md`; actual review states remain explicit in `reviewer.md`.
+- [x] PR #43-#50 merge states and the closed Issue #33-#40 release workflow are captured in `project-board.md`; actual review states, including no formal review on PR #50, remain explicit in `reviewer.md`.
+- [x] PR #50 merged into `lab3-staging` as `e7fa105`; Issue #40 is closed and no submitted formal PR #50 review is claimed.
 - [x] The student confirms the single-PDF heading/link/caption audit as complete in `submission-audit.md` without an additional agent inspection.

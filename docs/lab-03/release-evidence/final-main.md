@@ -1,10 +1,12 @@
 # Lab 3 Release Candidate and Final Main Record
 
 This Markdown file is **not** the submission PDF. It records the repository
-state used to prepare the Lab 3 release before the release branch is merged.
+state used to prepare the integrated Lab 3 staging candidate before promotion
+to `main`.
 
 - Release baseline SHA: `522eab4b72c75bf1ab59a3190bbc37af52cb8192`
-- Release work branch: `feature/20-Lab3ReleaseEvidence`
+- Integrated staging candidate SHA: `e7fa1059e1ce4e4d62f0236d76afbaaf83f5e076`
+- Release work branch: `feature/20-Lab3ReleaseEvidence` (merged by PR #50)
 - Staging branch: `lab3-staging`
 - `main` before Lab 3 promotion: `45925aa81a7cc62d2ac39b1c2613e5f010873913`
 

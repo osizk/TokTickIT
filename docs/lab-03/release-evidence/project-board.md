@@ -12,12 +12,12 @@ pre-release state:
 | #37 | IT Staff Ticket operations | Closed | PR #47 merged |
 | #38 | Administrator user management | Closed | PR #48 merged |
 | #39 | E2E and visual testing | Closed | PR #49 merged |
-| #40 | Release evidence | In progress on `feature/20-Lab3ReleaseEvidence` | Release PR is the remaining Lab 3 PR |
+| #40 | Release evidence | Closed | PR #50 merged as `e7fa105` |
 
 The GitHub Project board is external evidence. The student confirms that its
-final all-Done capture will be included in the submission PDF after Issue #40
-is merged. This file does not claim that Issue #40 is Done before its PR is
-approved and merged.
+final all-Done capture will be included in the submission PDF. GitHub confirms
+that Issue #40 is closed and PR #50 is merged; this file does not independently
+claim a Project-card status that was not queried or changed during this update.
 
 Review states are recorded exactly in
 [`../reviewer.md`](../reviewer.md). Only PR #44 has a formal teammate GitHub

@@ -18,8 +18,9 @@
 | [#47](https://github.com/osizk/TokTickIT/pull/47) | `feature/17-Lab3TicketOperations` | `d78b0f0` | Merged; no submitted partner review is recorded. |
 | [#48](https://github.com/osizk/TokTickIT/pull/48) | `feature/18-Lab3UserManagement` | `d257f9d` | Merged; partner feedback and responses are recorded below, with no submitted formal review. |
 | [#49](https://github.com/osizk/TokTickIT/pull/49) | `feature/19-Lab3E2EVisual` | `522eab4` | Merged; partner feedback and responses are recorded below, with no submitted formal review. |
+| [#50](https://github.com/osizk/TokTickIT/pull/50) | `feature/20-Lab3ReleaseEvidence` | `e7fa105` | Merged; partner feedback and responses are recorded below, with no submitted formal review. |
 
-**Reviewer verdict:** GitHub confirms all seven authored Lab 3 PRs (#43–#49) are merged into `lab3-staging`. Only PR #44 has a recorded teammate **Approve**; PR #43 has changes-requested reviews, PR #45 has comment-only reviews, and PRs #46–#49 have no submitted formal review in the API. The links above are the authoritative records.
+**Reviewer verdict:** GitHub confirms all eight authored Lab 3 PRs (#43–#50) are merged into `lab3-staging`. Only PR #44 has a recorded teammate **Approve**; PR #43 has changes-requested reviews, PR #45 has comment-only reviews, and PRs #46–#50 have no submitted formal review in the API. The links above are the authoritative records.
 
 Formal GitHub **Approve** recorded: [HolyThiccDaddy approval on PR #44](https://github.com/osizk/TokTickIT/pull/44#pullrequestreview-5213002067).
 
@@ -37,7 +38,7 @@ Formal GitHub **Approve** recorded: [HolyThiccDaddy approval on PR #44](https://
 
 **My review verdict:** GitHub confirms five Lab 3 partner PRs (#40–#44) were merged into the partner's `lab3-staging`, and each has my recorded formal **Approve** after any requested changes were addressed. The partner repository and every PR link are listed above; Lab 2 reviews remain in `docs/lab-02/reviewer.md`.
 
-**Partner's response:** The partner's comments and responses for my Lab 3 PRs are recorded under Issues #33–#39 below. PR #44 contains the recorded teammate **Approve**; the other authored PRs are explicitly labeled comment-only, changes-requested, or no formal review where that is what GitHub shows.
+**Partner's response:** The partner's comments and responses for my Lab 3 PRs are recorded under Issues #33–#40 below. PR #44 contains the recorded teammate **Approve**; the other authored PRs are explicitly labeled comment-only, changes-requested, or no formal review where that is what GitHub shows.
 
 ## Issue #34 review status
 
@@ -148,19 +149,19 @@ The review scope was Administrator-only User Management: list/search/role filter
 
 | PR | Branch | Review status | Response/evidence |
 |---|---|---|---|
-| [PR #50](https://github.com/osizk/TokTickIT/pull/50) | `feature/20-Lab3ReleaseEvidence` | Open; review pending; no formal Issue #40 **Approve** or merge claimed | PR #50 targets `lab3-staging`. The repository-level audit, candidate history, pre-promotion record, Project/Issue/PR evidence, and student-confirmed PDF audit are recorded under `docs/lab-03/release-evidence/`. Review responses, any formal approval, and merge evidence will be recorded only after those GitHub events actually occur. |
+| [PR #50](https://github.com/osizk/TokTickIT/pull/50) | `feature/20-Lab3ReleaseEvidence` | Merged into `lab3-staging`; no submitted formal review | Merge commit [`e7fa105`](https://github.com/osizk/TokTickIT/commit/e7fa1059e1ce4e4d62f0236d76afbaaf83f5e076). GitHub reports no submitted review on PR #50, so no formal **Approve** is claimed. Issue #40 is closed. |
 
 ### PR #50 review comments and responses
 
 | Partner comment | Student response and verification | Status |
 |---|---|---|
 | README advertised Node.js 18+ even though Playwright 1.62 requires Node.js 20 or newer. | Raised the documented prerequisite to Node.js 20+ and retained the approved Playwright version. | Addressed locally; the client install contract and README now agree. |
-| The Issue #40 section still said that its PR had not been opened after PR #50 existed. | Added the PR #50 link and recorded only its current open/review-pending state. No approval or merge is claimed. | Addressed locally; final review and merge evidence remain pending. |
+| The Issue #40 section still said that its PR had not been opened after PR #50 existed. | Added the PR #50 link, then updated the record after merge to include the real merge commit and closed Issue state. No approval is claimed. | Addressed; PR #50 is merged and Issue #40 is closed. |
 | User Management appended create/edit results without reapplying the active search and role filter. | Added a failing regression covering create and edit under an `IT_STAFF` filter, then reloaded the authoritative list with the applied search/role after each successful mutation. | Addressed locally; focused UI-06 passes 5/5 and complete client regression passes 13 files/56 tests. |
 
-**Reviewer verdict:** PR #50 is open and awaiting review. GitHub confirms that PRs #43-#49 are merged and Issues #33-#39 are closed. No Issue #40 formal **Approve** or merge is claimed before it occurs.
+**Reviewer verdict:** GitHub confirms PR #50 merged into `lab3-staging` as `e7fa105` and Issue #40 is closed. No submitted review exists on PR #50, so the record does not relabel the partner's comments as a formal **Approve**.
 
-**My review verdict:** I opened PR #50 for the bounded release-evidence work and kept its current review state explicit. The repository records the pre-promotion baseline because the final merge SHA cannot exist before promotion; the student confirms the final `main` graph, Project board, and PDF audit will be preserved in the submission PDF. Approval and merge evidence remain pending.
+**My review verdict:** I addressed the three release-review comments, verified the final candidate, and merged PR #50 into `lab3-staging`. The repository records the pre-promotion baseline because the final `main` SHA cannot exist before promotion; the student confirms the final `main` graph, Project board, and PDF audit will be preserved in the submission PDF. The absence of a formal PR #50 approval remains explicit.
 
 ## Review evidence rules
 
