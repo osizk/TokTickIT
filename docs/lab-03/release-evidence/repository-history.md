@@ -3,14 +3,15 @@
 ## Pre-merge release baseline
 
 - Lab 3 staging/release baseline SHA: `522eab4b72c75bf1ab59a3190bbc37af52cb8192`
+- Integrated Lab 3 staging candidate SHA: `e7fa1059e1ce4e4d62f0236d76afbaaf83f5e076`
 - `main` before Lab 3 promotion: `45925aa81a7cc62d2ac39b1c2613e5f010873913`
-- Active release branch: `feature/20-Lab3ReleaseEvidence`
+- Issue #40 release branch: `feature/20-Lab3ReleaseEvidence` (merged by PR #50)
 - Release target: `lab3-staging`, followed by the authorized promotion of
   `lab3-staging` to `main`.
 
-The Issue #40 commit and eventual `main` merge SHA cannot be known before those
-Git operations occur. The submission PDF is the final visual record of the
-post-promotion `main` graph.
+The Issue #40 merge commit is now known. The eventual `main` merge SHA cannot
+be known before that promotion occurs. The submission PDF is the final visual
+record of the post-promotion `main` graph.
 
 ## Integrated Lab 3 pull requests
 
@@ -23,8 +24,9 @@ post-promotion `main` graph.
 | #37 | [PR #47](https://github.com/osizk/TokTickIT/pull/47) | `feature/17-Lab3TicketOperations` | `d78b0f0` | Merged |
 | #38 | [PR #48](https://github.com/osizk/TokTickIT/pull/48) | `feature/18-Lab3UserManagement` | `d257f9d` | Merged |
 | #39 | [PR #49](https://github.com/osizk/TokTickIT/pull/49) | `feature/19-Lab3E2EVisual` | `522eab4` | Merged |
+| #40 | [PR #50](https://github.com/osizk/TokTickIT/pull/50) | `feature/20-Lab3ReleaseEvidence` | `e7fa105` | Merged |
 
-GitHub was queried during Issue #40 and confirmed that PRs #43-#49 are merged
+GitHub was queried after Issue #40 and confirmed that PRs #43-#50 are merged
 into `lab3-staging`. The graph command used for readable submission evidence is:
 
 ```powershell
