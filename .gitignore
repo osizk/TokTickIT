@@ -20,6 +20,9 @@ docs/lab-02/PLAN_LAB2.md
 docs/lab-02/Lab2_Submission_Draft.docx
 docs/lab-03/PLAN_LAB3.md
 docs/lab-03/Lab3_Labsheet.pdf
+docs/lab-03/Lab3_Submission_Draft.docx
+docs/lab-04/Lab4_Labsheet.pdf
+docs/lab-04/PLAN_LAB4.md
 TokTickIT_GitHub_Workflow_Guide_TH_EN.pdf
 
 # Lab 2 local test/runtime data and secrets
@@ -33,3 +36,4 @@ client/test-results/
 test-results/
 artifacts/lab-02/playwright-report/
 artifacts/lab-03/playwright-report/
+artifacts/lab-04/playwright-report/
