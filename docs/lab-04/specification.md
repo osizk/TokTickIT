@@ -1,6 +1,6 @@
 # Lab 4 Specification — Actions Taken, Dashboards, and Final Regression
 
-Status: **Draft engineering contract for Issue #55; student and teammate approval pending.** Source: [Lab 4 labsheet](Lab4_labsheet.pdf), including its nine-part rubric. Baseline inspected: `a6cd507efcf4c666491cd79ef81ec0fbfba0f18c`; `feature/21-Lab4Contract` starts from `lab4-staging`. The private plan's earlier branch snapshot is historical, not the current baseline. No product implementation is authorized by this document alone.
+Status: **Draft engineering contract for Issue #55; student and teammate approval pending.** Source: instructor-provided `Lab4_labsheet.pdf`, including its nine-part rubric. The labsheet is a local course resource, intentionally not committed or presented as a repository hyperlink. Historical baseline inspected: `a6cd507efcf4c666491cd79ef81ec0fbfba0f18c`; `feature/21-Lab4Contract` starts from `lab4-staging`. See tests.md for the actual reviewed-source SHA and distinction between committed and worktree checks. The private plan's earlier branch snapshot is historical, not the current baseline. No product implementation is authorized by this document alone.
 
 ## 1. Sprint Goal
 
