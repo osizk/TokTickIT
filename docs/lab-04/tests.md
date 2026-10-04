@@ -29,7 +29,7 @@ For compactness, the exact path prefixes in this table are `S = server/tests/lab
 | E2E-02 | Browser; E`ticket-resolution.spec.ts` | FR-07,08,14; BR-11–15,22; AC-07–10,18 | Failed gate via direct API, complete/follow-up correction then resolve/close/reopen/cancel, confirmed transitions, retained events/revisions, advisory indication and legacy Ticket. | Planned |
 | E2E-03 | Browser; E`dashboards.spec.ts` | FR-09–11,14; BR-16–19,22; AC-11–14,18,19 | Requester/Staff/Admin dashboard roles, metrics-to-list totals, real Action links, zero/failure, 3 sizes/boundaries, keyboard/axe and no page overflow. | Planned |
 | REG-01 | Full prior/new suites; manifest and Lab 2 flow mapping below; planned e2e/lab-04/requester-regression.spec.ts | FR-07,12–14; BR-13,21,22; AC-09,16,18,20 | Full inherited server/client suites and authenticated equivalents of every retained Lab 2 browser flow, plus Lab 3/4 E2E; verify mapped scenarios actually pass, builds, migrations/repeat seed; no hidden skips. | Planned |
-| DOC-01 | Manual/inline contract check; six files in docs/lab-04 | FR-14; BR-22; AC-20 | Presence, exact eleven specification headings, all IDs/paths mapped, exact APIs/decisions, labsheet rubric and peer approval order. Approval is separate from local structural success. | Historical local green; reviewed SHA link failure reproduced; corrected worktree verification below; committed rerun/approval pending |
+| DOC-01 | Manual/inline contract check; six files in docs/lab-04 | FR-14; BR-22; AC-20 | Presence, exact eleven specification headings, all IDs/paths mapped, exact APIs/decisions, labsheet rubric and peer approval order. Approval is separate from local structural success. | Committed-source green at b9ebdc2, exit0; actual peer approval pending |
 | MAN-01 | Real captures/manual review; artifacts/lab-04/screenshots directories in ui-spec | FR-12,14; BR-21,22; AC-17,19,20 | Disposable recovery observation, role/metric API evidence, real readable responsive screenshots, focus/console/links, Project/history/review audit and nine-part submission. | Planned |
 
 The eleven required files in labsheet §12 are API-01,04,05,06; UI-01,02,03,04; E2E-01,02,03. Additional focused tests cover explicit validation, authorization, concurrency, migration and performance requirements; they do not expand product scope.
@@ -304,7 +304,7 @@ $docCheck | node - committed
 exit $LASTEXITCODE
 ```
 
-Corrected worktree preview command: run the same here-string with `$docCheck | node - worktree`. Actual output is recorded below after verification. **The final committed-source run remains pending student commit authorization.** After committing the fixes, run committed mode and retain its printed SHA/full output in the PR verification record. An evidence-only follow-up may cite that tested commit; evidence must not pretend to reference its own future SHA.
+Historical corrected worktree preview command: run the same here-string with `$docCheck | node - worktree`. Its output below is not represented as a committed-content result. The student subsequently authorized commit/push; the actual committed-source passing result is recorded afterward. An evidence-only follow-up cites that tested commit rather than pretending to reference its own future SHA.
 
 ```text
 Source SHA: 74abfb06b1eee3004de32e72b52d410d506c240c; mode: worktree
@@ -323,6 +323,30 @@ PASS: inherited attachment DTO and Requester sort/filter distinction
 PASS: all API TypeScript response/request declarations type-check without emitting files
 DOC-01 structural green: PASS (worktree); peer approval and product checks remain pending.
 ```
+
+### Review-fix committed-source green — observed 4 October 2026
+
+Committed the four correction documents as `b9ebdc224e6ab823c56f6ef944d25eecfd9ced54`, then ran the exact PowerShell here-string above with `$docCheck | node - committed`. Exit code **0**. Documents and local-link/regression targets were read from that Git tree; the local uncommitted PDF cannot satisfy this check. This evidence-only update does not change the product contract/API implementation. Complete output:
+
+```text
+Source SHA: b9ebdc224e6ab823c56f6ef944d25eecfd9ced54; mode: committed
+PASS: six required nonempty contract/evidence files
+PASS: exact numbered specification section order (11)
+PASS: FR declarations and explicit traceability (14)
+PASS: BR declarations and explicit traceability (22)
+PASS: AC declarations and explicit traceability (20)
+PASS: 23 planned Test IDs with individual matrix rows
+PASS: all 11 labsheet-required automated filenames mapped
+PASS: 44 inherited regression paths exist in the source commit
+PASS: 16 explicit Lab 2 authenticated continuity mappings (execution remains planned)
+PASS: local Markdown links resolve to committed files, not untracked local resources
+PASS: no unresolved response placeholders or unperformed checked boxes
+PASS: inherited attachment DTO and Requester sort/filter distinction
+PASS: all API TypeScript response/request declarations type-check without emitting files
+DOC-01 structural green: PASS (committed); peer approval and product checks remain pending.
+```
+
+Rerun committed mode after the evidence-only commit and record the final pushed head/check result in PR #63. This avoids an endless self-referencing commit cycle while retaining both a reproducible tested correction SHA and verification of the final review head. No product regression/Approve/merge is inferred from documentation success.
 
 Substantive cross-check: reviewed full labsheet and rubric, existing schema/services/routes/auth/seed and accepted templates; corrected inherited attachment metadata (`removedByRequesterId`), Requester filter vs sort names (`priority` vs `requestedPriority`), repeat-removal409, inactive/credential errors, idempotent logout204, exact screenshot directories, and non-destructive seed requirements. Product gates/legacy decisions are explicit proposals awaiting approval. No Lab 4 product tests, full database regression, migration, seed, screenshot, teammate approval or merge has occurred as part of this Issue. Earlier plan baseline tests remain historical, not new Issue #55 results. Peer approval and all future release checks remain separate.
 
