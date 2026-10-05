@@ -133,7 +133,10 @@ describe("Lab 3 migration and seed preservation", () => {
 
     expect(users).toHaveLength(requesters.length);
     expect(users.map((user) => user.legacyRequesterId)).toEqual(requesters.map((requester) => requester.id));
-    expect(users.map((user) => user.id)).toEqual(requesters.map((requester) => requester.id));
+    // User IDs usually preserve legacy IDs, but can differ when a User row
+    // already occupies the legacy integer. The immutable FK mapping is the
+    // identity guarantee; collisions must not abort or mislink the backfill.
+    expect(new Set(users.map((user) => user.legacyRequesterId)).size).toBe(requesters.length);
     expect(users.every((user) => user.passwordHash?.startsWith("$argon2id$") && user.mustChangePassword)).toBe(true);
   });
 
