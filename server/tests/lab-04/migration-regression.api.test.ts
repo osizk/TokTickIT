@@ -1,11 +1,15 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { execFile } from "node:child_process";
+import { cp, copyFile, mkdtemp, mkdir, readdir, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { promisify } from "node:util";
 import path from "node:path";
+import { PrismaClient } from "@prisma/client";
 import { hashPassword } from "../../src/auth-service.js";
 import { getPrisma } from "../../src/prisma.js";
 
 const execFileAsync = promisify(execFile);
+const LAB4_MIGRATION = "20261004100000_lab4_actions_foundation";
 const suffix = `${process.pid}-${Date.now()}`;
 const ticketNumber = `TKT-2094-${String(process.pid % 1_000_000).padStart(6, "0")}`;
 const attachmentName = `lab4-migration-${suffix}.pdf`;
@@ -25,9 +29,118 @@ let seedActionId: number | undefined;
 let originalSeedActionDescription: string | undefined;
 
 function assertDisposableTestDatabase(): void {
-  const url = process.env.DATABASE_URL ?? "";
-  const databaseName = url.match(/\/([^/?#]+)(?:[?#]|$)/)?.[1] ?? "";
+  const databaseName = new URL(process.env.DATABASE_URL ?? "").pathname.slice(1);
   if (!databaseName.endsWith("_test")) throw new Error("Issue #56 migration evidence requires a disposable _test database.");
+}
+
+async function applyRealLab4MigrationInScratchSchema(): Promise<void> {
+  assertDisposableTestDatabase();
+  const migratedPasswordHash = changedPasswordHash;
+  if (!migratedPasswordHash) throw new Error("The changed-password fixture must be prepared before the migration regression.");
+  const schemaName = `toktickit_lab4_migration_test_${process.pid}_${Date.now()}`;
+  if (!/^toktickit_lab4_migration_test_\d+_\d+$/.test(schemaName)) throw new Error("Refusing an unexpected migration-test schema name.");
+  const schemaUrl = new URL(process.env.DATABASE_URL as string);
+  schemaUrl.searchParams.set("schema", schemaName);
+  const tempDir = await mkdtemp(path.join(tmpdir(), "toktickit-lab4-migration-"));
+  const migrationRoot = path.resolve(process.cwd(), "prisma/migrations");
+  const tempSchema = path.join(tempDir, "schema.prisma");
+  const tempMigrations = path.join(tempDir, "migrations");
+  const prisma = getPrisma();
+  let scratch: PrismaClient | undefined;
+
+  try {
+    await prisma.$executeRawUnsafe(`CREATE SCHEMA "${schemaName}"`);
+    await copyFile(path.resolve(process.cwd(), "prisma/schema.prisma"), tempSchema);
+    await mkdir(tempMigrations);
+    await copyFile(path.join(migrationRoot, "migration_lock.toml"), path.join(tempMigrations, "migration_lock.toml"));
+    const migrationDirs = await readdir(migrationRoot, { withFileTypes: true });
+    for (const migration of migrationDirs.filter((entry) => entry.isDirectory() && entry.name < LAB4_MIGRATION)) {
+      await cp(path.join(migrationRoot, migration.name), path.join(tempMigrations, migration.name), { recursive: true });
+    }
+
+    const migrate = async () => execFileAsync(process.execPath, [
+      path.resolve(process.cwd(), "node_modules/prisma/build/index.js"),
+      "migrate", "deploy", "--schema", tempSchema,
+    ], {
+      cwd: process.cwd(),
+      env: { ...process.env, DATABASE_URL: schemaUrl.toString() },
+      windowsHide: true,
+      maxBuffer: 10 * 1024 * 1024,
+    });
+    await migrate();
+    scratch = new PrismaClient({ datasources: { db: { url: schemaUrl.toString() } } });
+
+    const [requester] = await scratch.$queryRaw<Array<{ id: number }>>`
+      INSERT INTO "Requester" ("name", "email", "isActive")
+      VALUES ('Pre-Lab 4 Requester', 'pre-lab4@example.test', true)
+      RETURNING "id"
+    `;
+    const [category] = await scratch.$queryRaw<Array<{ id: number }>>`
+      INSERT INTO "Category" ("name") VALUES ('Pre-Lab 4 Category') RETURNING "id"
+    `;
+    const [relatedSystem] = await scratch.$queryRaw<Array<{ id: number }>>`
+      INSERT INTO "RelatedSystem" ("name") VALUES ('Pre-Lab 4 System') RETURNING "id"
+    `;
+    const [user] = await scratch.$queryRaw<Array<{ id: number }>>`
+      INSERT INTO "User" ("name", "email", "passwordHash", "role", "isActive", "mustChangePassword", "legacyRequesterId")
+      VALUES ('Changed Password User', 'changed-password@example.test', ${migratedPasswordHash}, 'REQUESTER', true, false, ${requester.id})
+      RETURNING "id"
+    `;
+    const ticketNumber = `TKT-2093-${String(process.pid % 1_000_000).padStart(6, "0")}`;
+    const [ticket] = await scratch.$queryRaw<Array<{ id: number }>>`
+      INSERT INTO "Ticket" ("ticketNumber", "requesterId", "categoryId", "relatedSystemId", "requestedPriority", "status", "summary", "description")
+      VALUES (${ticketNumber}, ${requester.id}, ${category.id}, ${relatedSystem.id}, 'MEDIUM'::"TicketPriority", 'OPEN'::"TicketStatus", 'Existing Ticket', 'A Ticket created before the Lab 4 migration.')
+      RETURNING "id"
+    `;
+    await scratch.$executeRaw`
+      INSERT INTO "Attachment" ("ticketId", "originalName", "mimeType", "sizeBytes", "storedFilename")
+      VALUES (${ticket.id}, 'pre-lab4.pdf', 'application/pdf', 128, 'pre-lab4-protected-file')
+    `;
+    const beforeMigration = await scratch.$queryRaw<Array<{ table_name: string }>>`
+      SELECT "table_name" FROM information_schema.tables
+      WHERE "table_schema" = ${schemaName} AND "table_name" = 'ActionTaken'
+    `;
+    expect(beforeMigration).toHaveLength(0);
+
+    await cp(path.join(migrationRoot, LAB4_MIGRATION), path.join(tempMigrations, LAB4_MIGRATION), { recursive: true });
+    const migrationOutput = await migrate();
+    expect(migrationOutput.stdout).toContain(`Applying migration \`${LAB4_MIGRATION}\``);
+    expect(migrationOutput.stdout).toContain("All migrations have been successfully applied.");
+
+    const migrated = await scratch.$queryRaw<Array<{ ticketNumber: string; workflowVersion: number }>>`
+      SELECT "ticketNumber", "workflowVersion" FROM "Ticket" WHERE "id" = ${ticket.id}
+    `;
+    const attachment = await scratch.$queryRaw<Array<{ originalName: string; storedFilename: string }>>`
+      SELECT "originalName", "storedFilename" FROM "Attachment" WHERE "ticketId" = ${ticket.id}
+    `;
+    const preservedUser = await scratch.$queryRaw<Array<{ passwordHash: string; mustChangePassword: boolean }>>`
+      SELECT "passwordHash", "mustChangePassword" FROM "User" WHERE "id" = ${user.id}
+    `;
+    const actionTables = await scratch.$queryRaw<Array<{ table_name: string }>>`
+      SELECT "table_name" FROM information_schema.tables
+      WHERE "table_schema" = ${schemaName} AND "table_name" IN ('ActionTaken', 'ActionTakenRevision')
+      ORDER BY "table_name"
+    `;
+    const appliedMigration = await scratch.$queryRaw<Array<{ migration_name: string; finished_at: Date | null }>>`
+      SELECT "migration_name", "finished_at" FROM "_prisma_migrations"
+      WHERE "migration_name" = ${LAB4_MIGRATION} AND "finished_at" IS NOT NULL
+    `;
+    expect(migrated).toEqual([{ ticketNumber, workflowVersion: 0 }]);
+    expect(attachment).toEqual([{ originalName: "pre-lab4.pdf", storedFilename: "pre-lab4-protected-file" }]);
+    expect(preservedUser).toEqual([{ passwordHash: migratedPasswordHash, mustChangePassword: false }]);
+    expect(actionTables.map((row) => row.table_name)).toEqual(["ActionTaken", "ActionTakenRevision"]);
+    expect(appliedMigration).toHaveLength(1);
+  } finally {
+    try {
+      await scratch?.$disconnect();
+    } finally {
+      try {
+        await prisma.$executeRawUnsafe(`DROP SCHEMA IF EXISTS "${schemaName}" CASCADE`);
+      } finally {
+        await rm(tempDir, { recursive: true, force: true });
+      }
+    }
+  }
 }
 
 async function runTestSeed() {
@@ -108,21 +221,9 @@ describe("Lab 4 migration and repeat seed regression", () => {
 
   afterAll(restoreAndCleanup);
 
-  it("records the additive migration and defaults existing Ticket versions without removing old data", async () => {
-    const prisma = getPrisma();
-    const migration = await prisma.$queryRaw<Array<{ migration_name: string; finished_at: Date | null }>>`
-      SELECT "migration_name", "finished_at"
-      FROM "_prisma_migrations"
-      WHERE "migration_name" = '20261004100000_lab4_actions_foundation'
-        AND "finished_at" IS NOT NULL
-    `;
-    expect(migration).toHaveLength(1);
-    const ticket = await prisma.ticket.findUniqueOrThrow({ where: { id: ticketId } });
-    const attachment = await prisma.attachment.findUniqueOrThrow({ where: { id: attachmentId } });
-    expect(ticket.workflowVersion).toBe(0);
-    expect(attachment.ticketId).toBe(ticketId);
-    expect(attachment.storedFilename).toBe(attachmentName);
-  });
+  it("applies the real Lab 4 migration to a pre-Lab-4 schema and preserves existing Tickets, Attachments, and changed credentials", async () => {
+    await applyRealLab4MigrationInScratchSchema();
+  }, 120_000);
 
   it("runs the guarded seed twice without duplicating graphs or overwriting user-edited references and credentials", async () => {
     const prisma = getPrisma();

@@ -34,7 +34,7 @@ export interface ActionPagination {
   hasNextPage: boolean;
 }
 
-function apiError(statusCode: 400 | 404 | 409 | 500, code: string, message: string, fieldErrors?: Record<string, string>): TicketApiError {
+function apiError(statusCode: 400 | 403 | 404 | 409 | 500, code: string, message: string, fieldErrors?: Record<string, string>): TicketApiError {
   return new TicketApiError({ statusCode, code, message, ...(fieldErrors ? { fieldErrors } : {}) });
 }
 
@@ -237,6 +237,15 @@ async function assertEligibleAssignee(tx: ActionTx, userId: number) {
   if (eligibleUsers.length === 0) throw apiError(409, "ASSIGNMENT_CONFLICT", "Choose an active IT Staff or Administrator.", { assigneeUserId: "This User is not eligible for Action assignment." });
 }
 
+async function assertEligibleActor(tx: ActionTx, userId: number) {
+  const eligibleUsers = await tx.$queryRaw<Array<{ id: number }>>`
+    SELECT "id" FROM "User"
+    WHERE "id" = ${userId} AND "isActive" = true AND "role" IN ('IT_STAFF', 'ADMINISTRATOR')
+    FOR SHARE
+  `;
+  if (eligibleUsers.length === 0) throw apiError(403, "FORBIDDEN", "An active IT Staff or Administrator account is required.");
+}
+
 function assertTicketActionWritable(ticket: ReaderTicket) {
   if (isActionTransitionBlockedByTicket(ticket.status)) {
     throw apiError(409, "ACTION_READ_ONLY", "Actions cannot be changed on a resolved, closed, or cancelled Ticket.");
@@ -299,6 +308,7 @@ export async function createActionTaken(context: AuthContext, rawTicketNumber: s
   try {
     return await serializable(async (tx) => {
       const ticket = await lockTicket(tx, context, ticketNumber);
+      await assertEligibleActor(tx, context.user.id);
       const existing = await tx.actionTaken.findUnique({
         where: { createdByUserId_clientRequestId: { createdByUserId: context.user.id, clientRequestId: input.clientRequestId } },
         include: ACTION_INCLUDE,
@@ -399,6 +409,7 @@ export async function updateActionTaken(context: AuthContext, rawTicketNumber: s
   try {
     return await serializable(async (tx) => {
       const ticket = await lockTicket(tx, context, ticketNumber);
+      await assertEligibleActor(tx, context.user.id);
       assertTicketActionWritable(ticket);
       const current = await tx.actionTaken.findFirst({ where: { id: actionId, ticketId: ticket.id }, include: ACTION_INCLUDE });
       if (!current) throw apiError(404, "ACTION_NOT_FOUND", "Action was not found.");
@@ -425,7 +436,9 @@ export async function updateActionTaken(context: AuthContext, rawTicketNumber: s
       };
       checkCrossFieldRules(input, current, final);
       if (input.assigneeUserId !== undefined) await assertEligibleAssignee(tx, input.assigneeUserId);
-      if (finalStatus === "COMPLETED") await assertEligibleAssignee(tx, input.assigneeUserId ?? current.assigneeUserId);
+      if (current.status !== "COMPLETED" && finalStatus === "COMPLETED") {
+        await assertEligibleAssignee(tx, input.assigneeUserId ?? current.assigneeUserId);
+      }
 
       const now = new Date();
       const cancellationReason = finalStatus === "CANCELLED"

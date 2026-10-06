@@ -1,7 +1,9 @@
+import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import request from "supertest";
 import { app } from "../../src/app.js";
-import { hashPassword } from "../../src/auth-service.js";
+import { hashPassword, type AuthContext } from "../../src/auth-service.js";
+import { createActionTaken, updateActionTaken } from "../../src/actions-taken-service.js";
 import { getPrisma } from "../../src/prisma.js";
 
 const suffix = `${process.pid}-${Date.now()}`;
@@ -169,12 +171,17 @@ describe("Lab 4 Actions Taken API", () => {
     });
     expect(completed.body.action.completedAt).toEqual(expect.any(String));
 
-    const completedEdit = await agent.patch(`/api/tickets/${ticketNumber}/actions-taken/${actionId}`)
-      .set("X-CSRF-Token", csrfToken)
-      .send({ expectedTicketVersion: 3, expectedActionVersion: 2, description: "Replace and verify the network cable." });
-    expect(completedEdit.status).toBe(200);
-    expect(completedEdit.body.action.version).toBe(3);
-    expect(completedEdit.body.ticketVersion).toBe(4);
+    await getPrisma().user.update({ where: { id: secondStaffId }, data: { isActive: false } });
+    try {
+      const completedEdit = await agent.patch(`/api/tickets/${ticketNumber}/actions-taken/${actionId}`)
+        .set("X-CSRF-Token", csrfToken)
+        .send({ expectedTicketVersion: 3, expectedActionVersion: 2, description: "Replace and verify the network cable." });
+      expect(completedEdit.status).toBe(200);
+      expect(completedEdit.body.action.version).toBe(3);
+      expect(completedEdit.body.ticketVersion).toBe(4);
+    } finally {
+      await getPrisma().user.update({ where: { id: secondStaffId }, data: { isActive: true } });
+    }
 
     const revisions = await agent.get(`/api/tickets/${ticketNumber}/actions-taken/${actionId}/revisions`).query({ pageSize: "10" });
     expect(revisions.status).toBe(200);
@@ -241,5 +248,51 @@ describe("Lab 4 Actions Taken API", () => {
     expect(invalidPage.status).toBe(400);
     const repeatedPageSize = await agent.get(`/api/tickets/${ticketNumber}/actions-taken`).query({ pageSize: ["10", "25"] });
     expect(repeatedPageSize.status).toBe(400);
+  });
+
+  it("rechecks that the acting Staff remains active and eligible inside each write transaction", async () => {
+    await login();
+    const prisma = getPrisma();
+    const initialActionCount = await prisma.actionTaken.count({ where: { ticket: { ticketNumber } } });
+    const [user, session, ticket] = await Promise.all([
+      prisma.user.findUniqueOrThrow({ where: { id: staffId } }),
+      prisma.session.findFirstOrThrow({ where: { userId: staffId, revokedAt: null }, orderBy: { createdAt: "desc" } }),
+      prisma.ticket.findUniqueOrThrow({ where: { ticketNumber }, select: { workflowVersion: true } }),
+    ]);
+    const context: AuthContext = { user, session, token: "stale-session-test-context" };
+    const created = await createActionTaken(context, ticketNumber, {
+      clientRequestId: randomUUID(),
+      expectedTicketVersion: ticket.workflowVersion,
+      description: "Confirm the workstation network connection.",
+      followUpRequired: false,
+    });
+
+    try {
+      await prisma.user.update({ where: { id: staffId }, data: { isActive: false } });
+      await expect(createActionTaken(context, ticketNumber, {
+        clientRequestId: randomUUID(),
+        expectedTicketVersion: created.ticketVersion,
+        description: "Create an Action after Staff deactivation.",
+        followUpRequired: false,
+      })).rejects.toMatchObject({ details: { statusCode: 403, code: "FORBIDDEN" } });
+      expect(await prisma.actionTaken.count({ where: { ticket: { ticketNumber } } })).toBe(initialActionCount + 1);
+      expect(await prisma.ticket.findUniqueOrThrow({ where: { ticketNumber }, select: { workflowVersion: true } }))
+        .toMatchObject({ workflowVersion: created.ticketVersion });
+      expect(await prisma.session.findUniqueOrThrow({ where: { id: session.id }, select: { revokedAt: true } }))
+        .toMatchObject({ revokedAt: null });
+
+      await prisma.user.update({ where: { id: staffId }, data: { isActive: true, role: "REQUESTER" } });
+      await expect(updateActionTaken(context, ticketNumber, String(created.action.id), {
+        expectedTicketVersion: created.ticketVersion,
+        expectedActionVersion: 0,
+        description: "Edit an Action after Staff demotion.",
+      })).rejects.toMatchObject({ details: { statusCode: 403, code: "FORBIDDEN" } });
+      expect(await prisma.actionTaken.findUniqueOrThrow({ where: { id: created.action.id }, select: { description: true, version: true } }))
+        .toMatchObject({ description: "Confirm the workstation network connection.", version: 0 });
+      expect(await prisma.ticket.findUniqueOrThrow({ where: { ticketNumber }, select: { workflowVersion: true } }))
+        .toMatchObject({ workflowVersion: created.ticketVersion });
+    } finally {
+      await prisma.user.update({ where: { id: staffId }, data: { isActive: true, role: "IT_STAFF" } });
+    }
   });
 });

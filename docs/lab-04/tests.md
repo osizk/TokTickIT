@@ -11,13 +11,13 @@ For compactness, the exact path prefixes in this table are `S = server/tests/lab
 | UNIT-01 | Unit; S`action-validation.unit.test.ts` | FR-02,05; BR-02,04,05,06; AC-02,03 | Trim boundaries, wrong types/unknown actor/date fields, default assignee, conditional note, Result completion and cancellation reason. | Partial: Issue #56 validation subset passed; full matrix remains open. |
 | UNIT-02 | Unit; S`workflow-rules.unit.test.ts` | FR-04,07; BR-07,08,11,12,15; AC-05,07,08,10 | Every allowed/forbidden Action/Ticket transition, terminal edits, gate combinations, cancellation and legacy zero-Action rules. | Partial: Issue #56 Action rules passed; Ticket workflow/gate assertions remain open. |
 | UNIT-03 | Unit; S`dashboard-calculations.unit.test.ts` | FR-09,10; BR-17,18; AC-11,13 | Distinct Tickets vs Actions, active states, zero counts, UTC seven-day edges/future dates, Asia/Bangkok display, deterministic ties. | Planned |
-| API-01 | API; S`actions-taken.api.test.ts` | FR-01,02,03,04,05,06; BR-01–09; AC-01–05 | Real create/list/edit/assign/complete/cancel, Owner≠actors, completed correction, immutable prefix snapshots, no-op, scoped pagination, validation and rollback. | Partial: create/read/edit/assign/complete and validation passed; remaining lifecycle assertions stay open. |
+| API-01 | API; S`actions-taken.api.test.ts` | FR-01,02,03,04,05,06; BR-01–09; AC-01–05 | Real create/list/edit/assign/complete/cancel, Owner≠actors, completed correction with inactive assignee, actor active-role recheck inside each write transaction, immutable prefix snapshots, no-op, scoped pagination, validation and rollback. | Partial: implemented lifecycle subset plus stale-actor and inactive-assignee corrections passed; remaining lifecycle assertions stay open. |
 | API-02 | API; S`authorization.api.test.ts` | FR-01,10,13,14; BR-01,03,16,22; AC-01,12,18 | Missing/expired/revoked/password-gated sessions, CSRF/Origin, Requester mutation403, own read, cross-owner/resource404, Staff/Admin access and sanitized errors. | Partial: Action-session, role, and ownership checks passed; full authorization matrix remains open. |
 | API-03 | API; S`concurrency.api.test.ts` | FR-03,06,07,08; BR-09,10,12,14; AC-04,06,08 | Same-key concurrent create one row/revision; different payload409; replay after stale version; edit/edit, resolve/create, resolve/follow-up, assignment/Admin races; forced transaction failure; bounded conflict retry. | Partial: idempotency, stale replay, rollback, and assignment race passed; Ticket workflow races remain open. |
 | API-04 | API; S`ticket-workflow.api.test.ts` | FR-07,08,12; BR-11–15; AC-07–10 | Full matrix, confirmation/reason, each gate predicate, event order, advisory indication, reopen clearing, terminal legacy behavior, atomic Ticket/Action cancellation rollback. | Planned |
 | API-05 | API; S`requester-dashboard.api.test.ts` | FR-10,11; BR-16,18,19; AC-12–14 | Session scope, all owned statuses, exact metrics, bounds/ties/zero, attention and recent, shared filtered totals, unsupported identity query400. | Planned |
 | API-06 | API; S`staff-dashboard.api.test.ts` | FR-09,11; BR-17–19; AC-11,13,14 | Unassigned/my-owned/urgent/distinct my-Action metrics, current-user Action rows, status/IT-priority counts, bounded lists, drill-down and Owner≠assignee. | Planned |
-| API-07 | Migration/API; S`migration-regression.api.test.ts` | FR-07,12; BR-15,21; AC-10,16,17 | Upgrade actual pre-Lab-4 fixture, preserve all prior rows/files/hash/changed-password state/non-fixture User; seed twice and after edits; collision skip; counter monotonic; backup/restore disposable rehearsal. | Partial: additive migration, fixture defaults, and repeat-seed preservation passed; full recovery rehearsal remains open. |
+| API-07 | Migration/API; S`migration-regression.api.test.ts` | FR-07,12; BR-15,21; AC-10,16,17 | Apply the real Lab 4 migration to an actual pre-Lab-4 schema, preserve Ticket/Attachment/changed-password state; seed twice and after edits; collision skip; counter monotonic; backup/restore disposable rehearsal. | Partial: real migration and preservation plus repeat-seed checks passed; collision/counter and full recovery rehearsal remain open. |
 | API-08 | API; S`user-assignment-safety.api.test.ts` | FR-02,13; BR-02,05,20; AC-02,15 | Inactive/non-staff assignee, User active-Action conflict and session unchanged, self/last-Admin and owned-Ticket precedence, eligible role change and historical actors, concurrent eligibility change. | Partial: active-Action deactivation/demotion protection and assignment race passed; remaining safety cases stay open. |
 | PERF-01 | Performance-smoke; S`dashboard-performance.api.test.ts` | FR-09,10; BR-16–19; AC-13 | Representative 500-Ticket/1000-Action fixture; aggregate query count stays bounded as fixture doubles (no N+1), arrays capped5, response does not contain complete collections. Record elapsed diagnostics, no invented production SLA. | Planned |
 | UI-01 | Component; C`ActionsTaken.test.tsx` | FR-01–06; BR-01–10,22; AC-01–06,19 | Inline selected editor/focus, read-only Requester, actor/Owner distinction, all states, rules/draft retention, busy guard, same-key retry/conflict/reload and immutable history display. | Planned |
@@ -369,11 +369,11 @@ npm.cmd test -- --run tests/lab-04/action-validation.unit.test.ts tests/lab-04/w
 
 ```text
 Test Files  7 passed (7)
-     Tests  26 passed (26)
-Duration  11.21s
+     Tests  27 passed (27)
+Duration  14.02s
 ```
 
-The seven executed files cover strict Action validation and workflow rules; authenticated Action create/read/edit/assignment/completion; authorization and safe cross-owner reads; same-key idempotency, stale replay, and transaction rollback; deactivation/demotion safety and assignment races; additive migration and preservation; and repeated-seed stability. This is the implemented Issue #56 subset, not completion of every assertion listed in the broader UNIT/API matrix. In particular, Ticket status workflow, dashboards, UI, Playwright, and release screenshots remain pending for their later Issues.
+The seven executed files cover strict Action validation and workflow rules; authenticated Action create/read/edit/assignment/completion; transaction-time active actor checks; narrative correction after an assignee becomes inactive; authorization and safe cross-owner reads; idempotency, stale replay, rollback and assignment races; a real pre-Lab-4-to-Lab-4 migration; and repeated-seed stability. This is the implemented Issue #56 subset, not completion of every assertion listed in the broader UNIT/API matrix. In particular, Ticket status workflow, dashboards, UI, Playwright, and release screenshots remain pending for their later Issues.
 
 Complete server regression command:
 
@@ -392,7 +392,43 @@ The full server regression initially exposed two stale fixture assumptions: the 
 
 ### Later full-regression rerun on 2026-10-05
 
-The subsequent full command exited 1: `Test Files 9 failed | 24 passed (33); Tests 7 failed | 84 passed | 24 skipped (115)`. The Lab 4 focused suite still passes (7 files/26 tests), and the server TypeScript build succeeds. A read-only check confirmed the configured `toktickit_test` database has an active Amina account whose stored password does not match the local `LAB3_REQUESTER_INITIAL_PASSWORD`; inherited authenticated Lab 1–2 tests consequently received 401/429. No credential or database reset was performed. The failed setup also exposed that the inherited attachment-rollback test could call `deleteMany` without a ticket number when setup aborts; cleanup now skips database/file restoration steps unless their exact fixture targets were initialized. Its post-guard test still stops at the known local credential mismatch, with no cleanup error. Full regression remains unverified until the student restores a matching disposable Requester test credential or authorizes another isolated test database.
+The subsequent full command exited 1: `Test Files 9 failed | 24 passed (33); Tests 7 failed | 84 passed | 24 skipped (115)`. The Lab 4 focused suite still passed (7 files/26 tests), and a read-only check confirmed the configured `toktickit_test` database had an active Amina account whose stored password did not match the local `LAB3_REQUESTER_INITIAL_PASSWORD`; inherited authenticated Lab 1–2 tests consequently received 401/429. No credential or database reset was performed. The failed setup also exposed that the inherited attachment-rollback test could call cleanup without initialized fixture targets; cleanup now skips restoration unless exact targets were initialized. This failure is historical and was superseded by the isolated full rerun recorded below.
+
+### Review fixes and isolated full regression on 2026-10-06
+
+These results were run on the uncommitted review-fix worktree based on `07f8349224cd43ed3bf9f5d4b8d202e9c35d43f9`; they are not claimed as results from that unchanged commit or from `main`. The database URL came from local `server/.env.test`, whose database name was validated to end in `_test`. To avoid changing the existing `public` schema or its manual data, migration, seed, and full regression ran in the new schema `toktickit_full_regression_test_6de8b825986944e8b0569cb7ee14bf1d`; the runner dropped only that generated schema after completion.
+
+The two Action regression assertions were added before the service fix. The first pre-fix invocation did not reach Vitest because the sandbox blocked Node's parent-directory resolution (`Cannot read directory "../../..": Access is denied`); therefore no expected-red assertion result is claimed. The post-fix focused and full runs below did start and pass.
+
+The isolated migration command applied all 7 migrations, including `20261004100000_lab4_actions_foundation`. Seed succeeded with 4 categories, 7 Related Systems, 5 Requesters, 15 Tickets, 3 Actions, and 3 Action revisions. The migration regression applied the actual Lab 4 migration only after creating legacy Ticket/Attachment and changed-password data under the six pre-Lab-4 migrations, then verified those records and credentials remained intact. The migration/seed test also reran seed twice and verified it did not overwrite edited fixtures.
+
+Focused Issue #56 command and result:
+
+```powershell
+cd server
+npm.cmd test -- --run tests/lab-04/action-validation.unit.test.ts tests/lab-04/workflow-rules.unit.test.ts tests/lab-04/actions-taken.api.test.ts tests/lab-04/authorization.api.test.ts tests/lab-04/concurrency.api.test.ts tests/lab-04/user-assignment-safety.api.test.ts tests/lab-04/migration-regression.api.test.ts
+```
+
+```text
+Test Files  7 passed (7)
+     Tests  27 passed (27)
+Duration  14.02s
+```
+
+Complete server regression command and result:
+
+```powershell
+cd server
+npm.cmd test -- --run
+```
+
+```text
+Test Files  33 passed (33)
+     Tests  116 passed (116)
+Duration  35.78s
+```
+
+Server build on this same worktree also passed with `npm.cmd run build` (`tsc`, exit code 0). The earlier credential-mismatch failures are resolved for the isolated run by fresh seed data using the local configured test passwords; the pre-existing test database schema and records were not reset or modified. Commit the review fixes and rerun before presenting a commit-specific result.
 
 Server build command and result:
 

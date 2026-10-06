@@ -18,7 +18,7 @@ const MAX_ATTACHMENTS_PER_TICKET = 5;
 const DEFAULT_ATTACHMENT_STORAGE_DIR = path.resolve(process.cwd(), "attachments");
 
 export interface ApiErrorShape {
-  statusCode: 400 | 404 | 409 | 413 | 415 | 500;
+  statusCode: 400 | 403 | 404 | 409 | 413 | 415 | 500;
   code: string;
   message: string;
   fieldErrors?: Record<string, string>;
