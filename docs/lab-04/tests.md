@@ -394,9 +394,9 @@ The full server regression initially exposed two stale fixture assumptions: the 
 
 The subsequent full command exited 1: `Test Files 9 failed | 24 passed (33); Tests 7 failed | 84 passed | 24 skipped (115)`. The Lab 4 focused suite still passed (7 files/26 tests), and a read-only check confirmed the configured `toktickit_test` database had an active Amina account whose stored password did not match the local `LAB3_REQUESTER_INITIAL_PASSWORD`; inherited authenticated Lab 1–2 tests consequently received 401/429. No credential or database reset was performed. The failed setup also exposed that the inherited attachment-rollback test could call cleanup without initialized fixture targets; cleanup now skips restoration unless exact targets were initialized. This failure is historical and was superseded by the isolated full rerun recorded below.
 
-### Review fixes and isolated full regression on 2026-10-06
+### Pre-commit review-fix verification (superseded)
 
-These results were run on the uncommitted review-fix worktree based on `07f8349224cd43ed3bf9f5d4b8d202e9c35d43f9`; they are not claimed as results from that unchanged commit or from `main`. The database URL came from local `server/.env.test`, whose database name was validated to end in `_test`. To avoid changing the existing `public` schema or its manual data, migration, seed, and full regression ran in the new schema `toktickit_full_regression_test_6de8b825986944e8b0569cb7ee14bf1d`; the runner dropped only that generated schema after completion.
+These earlier results were run on the uncommitted review-fix worktree based on `07f8349224cd43ed3bf9f5d4b8d202e9c35d43f9`. They are retained as history, not as the current commit-bound result; see the successful rerun on `a90f94f9e5916463b715b42c099c8fda447cc807` below. That earlier run used a generated schema in the validated `_test` database and dropped only that schema afterward.
 
 The two Action regression assertions were added before the service fix. The first pre-fix invocation did not reach Vitest because the sandbox blocked Node's parent-directory resolution (`Cannot read directory "../../..": Access is denied`); therefore no expected-red assertion result is claimed. The post-fix focused and full runs below did start and pass.
 
@@ -428,7 +428,7 @@ Test Files  33 passed (33)
 Duration  35.78s
 ```
 
-Server build on this same worktree also passed with `npm.cmd run build` (`tsc`, exit code 0). The earlier credential-mismatch failures are resolved for the isolated run by fresh seed data using the local configured test passwords; the pre-existing test database schema and records were not reset or modified. Commit the review fixes and rerun before presenting a commit-specific result.
+Server build on that worktree also passed with `npm.cmd run build` (`tsc`, exit code 0). The earlier credential-mismatch failures were avoided for that isolated run by fresh seed data using the local configured test passwords; the pre-existing test database schema and records were not reset or modified.
 
 Server build command and result:
 
@@ -444,7 +444,72 @@ npm.cmd run build
 Exit code: 0
 ```
 
-Guarded test-database migration and repeated seed verification used `server/.env.test` and database `toktickit_test`. Migration reported 7 migrations found and no pending migrations. Two consecutive seed runs each reported 4 categories, 7 related systems, 7 requesters, 15 Tickets, 3 Actions, and 3 Action revisions; each created 0 new Lab 3/Lab 4 Ticket graphs and 0 Actions, leaving all 3 reserved Lab 4 fixture numbers unchanged. The migration test also confirmed reserved fixtures with 0/1/2 Actions and that repeated seed does not overwrite a user-edited Action description. Only the disposable `_test` database was used.
+### Commit-bound review-fix verification on 2026-10-06
+
+All results below were rerun after commit `a90f94f9e5916463b715b42c099c8fda447cc807` (branch `feature/22-Lab4ActionsFoundation`). The database URL was read from local `server/.env.test` and validated as the disposable database `toktickit_test`. The run created the previously absent scratch schema `toktickit_full_regression_test_26048_1791303742821`, applied migrations and ran seed/tests/build there, then dropped only that generated schema. The existing `public` schema and its manual data were not reset or changed.
+
+Migration and repeated-seed output:
+
+```text
+7 migrations found in prisma/migrations
+Applying migration `20260811000000_init`
+Applying migration `20260826100000_lab2_data_reference`
+Applying migration `20260915090000_lab3_auth_foundation`
+Applying migration `20260916100000_lab3_requester_regression`
+Applying migration `20260917100000_lab3_staff_queue`
+Applying migration `20260917110000_lab3_ticket_operations`
+Applying migration `20261004100000_lab4_actions_foundation`
+All migrations have been successfully applied.
+
+Seed run 1: Ensured 4 categories, 7 related systems, 5 requesters, 15 Tickets, 3 Actions, and 3 Action revisions; created 12 Lab 3 and 3 Lab 4 Ticket graphs and 3 Actions.
+Seed run 2: Ensured 4 categories, 7 related systems, 5 requesters, 15 Tickets, 3 Actions, and 3 Action revisions; created 0 Ticket graphs and 0 Actions; all 3 existing Lab 4 fixture numbers were unchanged.
+```
+
+Focused Issue #56 command and result on the commit above:
+
+```powershell
+cd server
+npm.cmd test -- --run tests/lab-04/action-validation.unit.test.ts tests/lab-04/workflow-rules.unit.test.ts tests/lab-04/actions-taken.api.test.ts tests/lab-04/authorization.api.test.ts tests/lab-04/concurrency.api.test.ts tests/lab-04/user-assignment-safety.api.test.ts tests/lab-04/migration-regression.api.test.ts
+```
+
+```text
+Test Files  7 passed (7)
+     Tests  27 passed (27)
+Start at  23:22:30
+Duration  13.58s
+```
+
+Complete server regression command and result on the same commit:
+
+```powershell
+cd server
+npm.cmd test -- --run
+```
+
+```text
+Test Files  33 passed (33)
+     Tests  116 passed (116)
+Start at  23:22:44
+Duration  35.83s
+```
+
+Server build on the same commit:
+
+```powershell
+cd server
+npm.cmd run build
+```
+
+```text
+> toktickit-server@1.0.0 build
+> tsc
+
+Exit code: 0
+```
+
+Node emitted the existing non-blocking `DEP0169` `url.parse()` deprecation warning during Prisma/test startup; all commands exited successfully with no failed or skipped tests. One initial unprivileged attempt stopped during seed at Node's OS-user lookup (`uv_os_get_passwd`, `ERR_SYSTEM_ERROR`); it dropped its temporary schema. The complete rerun above succeeded with elevated local execution and also cleaned up only its generated schema.
+
+An earlier repeated-seed check on the existing `toktickit_test` schema found no pending migrations and reported 7 Requesters alongside 4 Categories, 7 Related Systems, 15 Tickets, 3 Actions, and 3 Action revisions. That was a separate pre-existing test schema; the commit-bound isolated run above used a fresh schema and reported its own exact counts. The migration regression additionally confirmed the real Lab 4 migration preserves legacy Ticket/Attachment and changed-password data and that repeated seeding does not overwrite edited fixtures.
 
 No UI/client or browser test is claimed for Issue #56. Remaining release checklist items in Section 5 stay unchecked until actually completed.
 
