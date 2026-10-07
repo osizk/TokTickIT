@@ -63,9 +63,9 @@ describe("POST /api/tickets/:ticketNumber/attachments filesystem compensation", 
 
   afterAll(async () => {
     const prisma = getPrisma();
-    await prisma.ticket.deleteMany({ where: { ticketNumber } });
-    await restoreRequesterFirstLogin(requesterId);
-    await rm(storageDir, { recursive: true, force: true });
+    if (ticketNumber) await prisma.ticket.deleteMany({ where: { ticketNumber } });
+    if (requesterId) await restoreRequesterFirstLogin(requesterId);
+    if (storageDir) await rm(storageDir, { recursive: true, force: true });
     await prisma.$disconnect();
   });
 

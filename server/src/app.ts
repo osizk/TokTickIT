@@ -33,6 +33,7 @@ import {
 import { validateEmail, validatePassword } from "./auth-validation.js";
 import { createPublicComment, indicateResolution, listPublicComments } from "./comment-service.js";
 import { createInternalNote, listInternalNotes } from "./note-service.js";
+import { createActionTaken, listActionRevisions, listActionsTaken, updateActionTaken, validateActionQueryKeys } from "./actions-taken-service.js";
 import {
   getStaffTicket,
   listStaffAssignees,
@@ -398,6 +399,56 @@ app.patch("/api/staff/tickets/:ticketNumber/status", async (req: Request, res: R
     const context = await requireStaff(req);
     assertCsrf(context, req);
     const result = await updateStaffStatus(req.params.ticketNumber, req.body);
+    markUncached(res);
+    res.status(200).json(result);
+  } catch (error) {
+    sendTicketError(res, error);
+  }
+});
+
+app.get("/api/tickets/:ticketNumber/actions-taken", async (req: Request, res: Response) => {
+  try {
+    const reader = await requireTicketReader(req);
+    validateActionQueryKeys(req.query as Record<string, unknown>);
+    const result = await listActionsTaken(reader.context, req.params.ticketNumber, req.query);
+    markUncached(res);
+    res.status(200).json(result);
+  } catch (error) {
+    sendTicketError(res, error);
+  }
+});
+
+app.post("/api/tickets/:ticketNumber/actions-taken", async (req: Request, res: Response) => {
+  try {
+    assertAllowedOrigin(req);
+    const context = await requireStaff(req);
+    assertCsrf(context, req);
+    const result = await createActionTaken(context, req.params.ticketNumber, req.body);
+    markUncached(res);
+    res.status(result.replayed ? 200 : 201).json(result);
+  } catch (error) {
+    sendTicketError(res, error);
+  }
+});
+
+app.patch("/api/tickets/:ticketNumber/actions-taken/:actionId", async (req: Request, res: Response) => {
+  try {
+    assertAllowedOrigin(req);
+    const context = await requireStaff(req);
+    assertCsrf(context, req);
+    const result = await updateActionTaken(context, req.params.ticketNumber, req.params.actionId, req.body);
+    markUncached(res);
+    res.status(200).json(result);
+  } catch (error) {
+    sendTicketError(res, error);
+  }
+});
+
+app.get("/api/tickets/:ticketNumber/actions-taken/:actionId/revisions", async (req: Request, res: Response) => {
+  try {
+    const reader = await requireTicketReader(req);
+    validateActionQueryKeys(req.query as Record<string, unknown>);
+    const result = await listActionRevisions(reader.context, req.params.ticketNumber, req.params.actionId, req.query);
     markUncached(res);
     res.status(200).json(result);
   } catch (error) {

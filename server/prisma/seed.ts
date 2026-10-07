@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { getPrisma } from "../src/prisma.js";
 import { hashPassword } from "../src/auth-service.js";
 import { validatePassword } from "../src/auth-validation.js";
@@ -43,6 +44,15 @@ const queueTicketFixtures = [
   { requesterEmail: "davi@example.test", category: "Network", relatedSystem: "Campus Wi-Fi", requestedPriority: "URGENT", itPriority: "URGENT", status: "WAITING_FOR_REQUESTER", ownerEmail: "michael.staff@example.test", summary: "Wireless signal report requested", description: "The queue owner is waiting for the requester to confirm the affected room and time." },
 ] as const;
 
+const actionTicketFixtures = [
+  { numberSuffix: 910001, requesterEmail: "amina@example.test", category: "Hardware", relatedSystem: "Laptop Fleet", status: "OPEN", ownerEmail: null, summary: "Laptop fan makes an unusual noise", description: "The laptop fan makes a loud noise during ordinary office use.", actions: [] },
+  { numberSuffix: 910002, requesterEmail: "ben@example.test", category: "Network", relatedSystem: "Campus Wi-Fi", status: "IN_PROGRESS", ownerEmail: "michael.staff@example.test", summary: "Investigate intermittent wireless access", description: "Wireless access drops briefly in the east wing during the afternoon.", actions: [{ description: "Review the wireless controller logs.", status: "IN_PROGRESS", result: null, followUpRequired: false, followUpNote: null, attachmentNotes: null }] },
+  { numberSuffix: 910003, requesterEmail: "chloe@example.test", category: "Software", relatedSystem: "Employee Portal", status: "IN_PROGRESS", ownerEmail: "jon.staff@example.test", summary: "Resolve duplicate portal notifications", description: "The employee portal sends duplicate notifications for a single approval.", actions: [
+    { description: "Confirm the notification rule configuration.", status: "COMPLETED", result: "Duplicate rule identified and corrected in the test environment.", followUpRequired: false, followUpNote: null, attachmentNotes: "Configuration checked.", completed: true },
+    { description: "Monitor the next scheduled approval notification.", status: "OPEN", result: null, followUpRequired: true, followUpNote: "Confirm that only one notification is delivered.", attachmentNotes: null },
+  ] },
+] as const;
+
 async function main() {
   const prisma = getPrisma();
   const requesterPassword = requireSeedPassword("LAB3_REQUESTER_INITIAL_PASSWORD");
@@ -58,30 +68,27 @@ async function main() {
   };
 
   let createdQueueTickets = 0;
+  let createdActionTickets = 0;
+  let createdActions = 0;
+  let existingActionTicketNumbers = 0;
 
   await prisma.$transaction(async (tx) => {
     for (const name of categories) {
-      await tx.category.upsert({
-        where: { name },
-        update: { isActive: true },
-        create: { name, isActive: true },
-      });
+      if (!await tx.category.findUnique({ where: { name }, select: { id: true } })) {
+        await tx.category.create({ data: { name, isActive: true } });
+      }
     }
 
     for (const name of relatedSystems) {
-      await tx.relatedSystem.upsert({
-        where: { name },
-        update: { isActive: true },
-        create: { name, isActive: true },
-      });
+      if (!await tx.relatedSystem.findUnique({ where: { name }, select: { id: true } })) {
+        await tx.relatedSystem.create({ data: { name, isActive: true } });
+      }
     }
 
     for (const requester of requesters) {
-      await tx.requester.upsert({
-        where: { email: requester.email },
-        update: { name: requester.name, isActive: requester.isActive },
-        create: requester,
-      });
+      if (!await tx.requester.findUnique({ where: { email: requester.email }, select: { id: true } })) {
+        await tx.requester.create({ data: requester });
+      }
     }
 
     // Credentials are backfilled for every legacy Requester row, not only the
@@ -131,12 +138,13 @@ async function main() {
       tx.requester.findMany({ where: { email: { in: requesters.map(({ email }) => email) } } }),
       tx.category.findMany({ where: { name: { in: categories } } }),
       tx.relatedSystem.findMany({ where: { name: { in: relatedSystems } } }),
-      tx.user.findMany({ where: { email: { in: staffUsers.map(({ email }) => email) } }, select: { id: true, email: true } }),
+      tx.user.findMany({ where: { isActive: true, role: { in: ["IT_STAFF", "ADMINISTRATOR"] } }, select: { id: true, email: true }, orderBy: [{ name: "asc" }, { id: "asc" }] }),
     ]);
     const requesterByEmail = new Map(requesterRows.map((row) => [row.email, row]));
     const categoryByName = new Map(categoryRows.map((row) => [row.name, row]));
     const relatedSystemByName = new Map(relatedSystemRows.map((row) => [row.name, row]));
     const ownerByEmail = new Map(ownerRows.map((row) => [row.email, row]));
+    const fallbackOwner = ownerRows[0];
     const seedYear = new Date().getUTCFullYear();
 
     for (const [index, fixture] of queueTicketFixtures.entries()) {
@@ -147,7 +155,7 @@ async function main() {
       const requester = requesterByEmail.get(fixture.requesterEmail);
       const category = categoryByName.get(fixture.category);
       const relatedSystem = relatedSystemByName.get(fixture.relatedSystem);
-      const ticketOwner = fixture.ownerEmail ? ownerByEmail.get(fixture.ownerEmail) : undefined;
+      const ticketOwner = fixture.ownerEmail ? ownerByEmail.get(fixture.ownerEmail) ?? fallbackOwner : undefined;
       if (!requester || !category || !relatedSystem || (fixture.ownerEmail && !ticketOwner)) {
         throw new Error(`Unable to create queue seed Ticket ${ticketNumber}: required reference data is missing.`);
       }
@@ -171,6 +179,103 @@ async function main() {
         },
       });
       createdQueueTickets += 1;
+    }
+
+    // Lab 4 seed graphs are reserved, create-only Ticket numbers. If a number
+    // is already present, leave the complete existing business graph alone.
+    // This avoids turning an accidental/user-created collision into fixture data.
+    const actionActor = fallbackOwner;
+    if (actionActor) {
+      for (const fixture of actionTicketFixtures) {
+        const ticketNumber = `TKT-${seedYear}-${String(fixture.numberSuffix).padStart(6, "0")}`;
+        if (await tx.ticket.findUnique({ where: { ticketNumber }, select: { id: true } })) {
+          existingActionTicketNumbers += 1;
+          continue;
+        }
+        const requester = requesterByEmail.get(fixture.requesterEmail);
+        const category = categoryByName.get(fixture.category);
+        const relatedSystem = relatedSystemByName.get(fixture.relatedSystem);
+        const owner = fixture.ownerEmail ? ownerByEmail.get(fixture.ownerEmail) ?? fallbackOwner : undefined;
+        if (!requester || !category || !relatedSystem || (fixture.ownerEmail && !owner)) {
+          throw new Error(`Unable to create Lab 4 seed Ticket ${ticketNumber}: required reference data is missing.`);
+        }
+        const createdAt = new Date(Date.UTC(seedYear, 8, 10 + (fixture.numberSuffix % 10), 9, 0));
+        const ticket = await tx.ticket.create({
+          data: {
+            ticketNumber,
+            requesterId: requester.id,
+            categoryId: category.id,
+            relatedSystemId: relatedSystem.id,
+            requestedPriority: "MEDIUM",
+            itPriority: fixture.numberSuffix === 910003 ? "HIGH" : "LOW",
+            status: fixture.status,
+            summary: fixture.summary,
+            description: fixture.description,
+            ticketOwnerId: owner?.id ?? null,
+            createdAt,
+            updatedAt: createdAt,
+          },
+        });
+        createdActionTickets += 1;
+        for (const [actionIndex, actionFixture] of fixture.actions.entries()) {
+          const assignee = ownerRows.find((row) => row.id !== (owner?.id ?? actionActor.id)) ?? actionActor;
+          const completedAt = "completed" in actionFixture && actionFixture.completed ? new Date(createdAt.getTime() + 60 * 60 * 1000) : null;
+          const fingerprint = createHash("sha256").update(JSON.stringify({
+            ticketNumber,
+            description: actionFixture.description,
+            assigneeUserId: assignee.id,
+            result: actionFixture.result,
+            followUpRequired: actionFixture.followUpRequired,
+            followUpNote: actionFixture.followUpNote,
+            attachmentNotes: actionFixture.attachmentNotes,
+          })).digest("hex");
+          const action = await tx.actionTaken.create({
+            data: {
+              ticketId: ticket.id,
+              assigneeUserId: assignee.id,
+              createdByUserId: actionActor.id,
+              ...(completedAt ? { performedByUserId: actionActor.id } : {}),
+              description: actionFixture.description,
+              result: actionFixture.result,
+              followUpRequired: actionFixture.followUpRequired,
+              followUpNote: actionFixture.followUpNote,
+              attachmentNotes: actionFixture.attachmentNotes,
+              status: actionFixture.status,
+              ...(completedAt ? { completedAt } : {}),
+              clientRequestId: `00000000-0000-4000-8000-${String(fixture.numberSuffix).padStart(6, "0")}${String(actionIndex + 1).padStart(6, "0")}`,
+              requestFingerprint: fingerprint,
+              createdAt,
+              updatedAt: completedAt ?? createdAt,
+            },
+          });
+          await tx.actionTakenRevision.create({
+            data: {
+              actionId: action.id,
+              revisionNumber: 1,
+              actorUserId: actionActor.id,
+              changedAt: createdAt,
+              snapshot: {
+                description: action.description,
+                result: action.result,
+                followUpRequired: action.followUpRequired,
+                followUpNote: action.followUpNote,
+                attachmentNotes: action.attachmentNotes,
+                status: action.status,
+                cancellationReason: null,
+                assigneeUserId: action.assigneeUserId,
+                createdByUserId: action.createdByUserId,
+                performedByUserId: action.performedByUserId,
+                createdAt: action.createdAt.toISOString(),
+                updatedAt: action.updatedAt.toISOString(),
+                completedAt: action.completedAt?.toISOString() ?? null,
+                cancelledAt: null,
+                version: action.version,
+              },
+            },
+          });
+          createdActions += 1;
+        }
+      }
     }
 
     // Seed one stable public conversation and one private operational note
@@ -216,12 +321,14 @@ async function main() {
     `;
   });
 
-  const [totalRequesters, totalTickets] = await Promise.all([
+  const [totalRequesters, totalTickets, totalActions, totalActionRevisions] = await Promise.all([
     prisma.requester.count(),
     prisma.ticket.count(),
+    prisma.actionTaken.count(),
+    prisma.actionTakenRevision.count(),
   ]);
   console.log(
-    `Seeded ${categories.length} categories, ${relatedSystems.length} related systems, and ${totalRequesters} requesters; ensured ${totalTickets} Tickets (${createdQueueTickets} created this run); all existing Requesters received idempotent credential backfill.`,
+    `Ensured ${categories.length} categories, ${relatedSystems.length} related systems, ${totalRequesters} requesters, ${totalTickets} Tickets, ${totalActions} Actions, and ${totalActionRevisions} Action revisions (${createdQueueTickets} Lab 3 and ${createdActionTickets} Lab 4 Ticket graphs created this run, ${createdActions} Actions created, ${existingActionTicketNumbers} existing Lab 4 fixture numbers left unchanged); all existing Requesters received idempotent credential backfill.`,
   );
 }
 
