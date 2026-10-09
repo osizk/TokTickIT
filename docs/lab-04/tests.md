@@ -813,6 +813,31 @@ dist/assets/index-MFyozoXo.js   285.21 kB │ gzip: 76.04 kB
 
 Commands exited 0, with no skipped tests. Async test handling was corrected so the final full run has no React act warnings. PR description distinguishes the clean committed result (77) from local corrections (85). No commit/push, new browser/E2E capture or server rerun is claimed for this round. The local corrections require commit-bound verification when submitted.
 
+### Committed review-fix verification — 9 October 2026
+
+After committing the second-round corrections, reran from clean commit `9d26bfdcfd3cc19218fa0e37727d4e37e554b431`. This supersedes the local-worktree result above. Subsequent evidence-only edits do not change product code or tests.
+
+```text
+cd client
+git rev-parse HEAD
+9d26bfdcfd3cc19218fa0e37727d4e37e554b431
+npm.cmd test -- --run
+Test Files  15 passed (15)
+     Tests  85 passed (85)
+Start at 22:29:25
+Duration 16.40s
+npm.cmd run build
+> tsc && vite build
+vite v6.4.3 building for production...
+✓ 36 modules transformed.
+dist/index.html                   0.39 kB │ gzip:  0.26 kB
+dist/assets/index-ppuTSGFd.css  253.01 kB │ gzip: 35.25 kB
+dist/assets/index-MFyozoXo.js   285.21 kB │ gzip: 76.04 kB
+✓ built in 747ms
+```
+
+Both commands exited 0; no skipped tests or React act warnings. No new server, browser or E2E rerun is claimed. PR #65 remains pending re-review, not approved or merged.
+
 ## 5. Release and visual checklist — actual work only
 
 - [ ] Student and teammate approve engineering decisions; four public contracts merged before implementation.
