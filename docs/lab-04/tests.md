@@ -1,6 +1,6 @@
 # Lab 4 Tests and Evidence
 
-Issue #55 establishes the contract baseline. Issue #56 implementation evidence is recorded in Section 4; later UI, workflow, dashboard, and E2E evidence remains pending for its planned Issues. Normative requirements: [specification.md](specification.md); [API](api-spec.md); [UI](ui-spec.md). Each ID below maps to an intended concrete test path. **Planned** means no automated test for that row has been run; **Partial** means Issue #56 verified only a subset of its assertions, with the remaining scope still open. Never check an unobserved result or claim candidate output came from final `main`.
+Issue #55 establishes the contract baseline. Issue #56 implementation evidence and the current Issue #57 UI worktree evidence are recorded in Section 4; later workflow, dashboard, and E2E evidence remains pending for its planned Issues. Normative requirements: [specification.md](specification.md); [API](api-spec.md); [UI](ui-spec.md). Each ID below maps to an intended concrete test path. **Planned** means no automated test for that row has been run; **Partial** means some but not all assertions for that row have been verified. Issue evidence names the subset actually covered. Never check an unobserved result or claim candidate output came from final `main`.
 
 ## 1. Planned test matrix
 
@@ -20,11 +20,11 @@ For compactness, the exact path prefixes in this table are `S = server/tests/lab
 | API-07 | Migration/API; S`migration-regression.api.test.ts` | FR-07,12; BR-15,21; AC-10,16,17 | Apply the real Lab 4 migration to an actual pre-Lab-4 schema, preserve Ticket/Attachment/changed-password state; seed twice and after edits; collision skip; counter monotonic; backup/restore disposable rehearsal. | Partial: real migration and preservation plus repeat-seed checks passed; collision/counter and full recovery rehearsal remain open. |
 | API-08 | API; S`user-assignment-safety.api.test.ts` | FR-02,13; BR-02,05,20; AC-02,15 | Inactive/non-staff assignee, User active-Action conflict and session unchanged, self/last-Admin and owned-Ticket precedence, eligible role change and historical actors, concurrent eligibility change. | Partial: active-Action deactivation/demotion protection and assignment race passed; remaining safety cases stay open. |
 | PERF-01 | Performance-smoke; S`dashboard-performance.api.test.ts` | FR-09,10; BR-16–19; AC-13 | Representative 500-Ticket/1000-Action fixture; aggregate query count stays bounded as fixture doubles (no N+1), arrays capped5, response does not contain complete collections. Record elapsed diagnostics, no invented production SLA. | Planned |
-| UI-01 | Component; C`ActionsTaken.test.tsx` | FR-01–06; BR-01–10,22; AC-01–06,19 | Inline selected editor/focus, read-only Requester, actor/Owner distinction, all states, rules/draft retention, busy guard, same-key retry/conflict/reload and immutable history display. | Planned |
+| UI-01 | Component; C`ActionsTaken.test.tsx` | FR-01–06; BR-01–10,22; AC-01–06,19 | Inline create/edit, required/optional markers, conditional requirements, plain-language field errors/focus, Requester and terminal-Ticket read-only views, lifecycle confirmation/reason, stale-draft retention, safe retry with stable idempotency key, active assignee and User-management safety feedback. | Partial: 12 Action component tests pass; focused Staff keyboard/responsive/revision browser checks passed. Broader pagination, busy-guard and authenticated lifecycle E2E remain open. |
 | UI-02 | Component; C`TicketWorkflow.test.tsx` | FR-07,08; BR-11–15,22; AC-06–10,19 | Legal target controls, gate explanation, confirmation/cancel reason, protected direct calls, reload on stale version, indication vs status, ordered history. | Planned |
 | UI-03 | Component; C`RequesterDashboard.test.tsx` | FR-10,11,14; BR-16,18,19,22; AC-12–14,19 | Loading/zero/error/Retry/session expiry, correct owned cards/lists/links, time display, navigation/deep link and account-cache reset. | Planned |
 | UI-04 | Component; C`StaffDashboard.test.tsx` | FR-09,11,14; BR-17–19,22; AC-11,14,19 | Current-user assigned Actions and real metric links, capped summaries, all states/refresh, role navigation, keyboard semantics. | Planned |
-| STYLE-01 | Style/responsive; C`ZenGreen.styles.test.tsx` | FR-14; BR-22; AC-19 | Token and breakpoint/style contracts; browser visual/overflow/accessibility checks remain E2E/MAN, not jsdom viewport claims. | Planned |
+| STYLE-01 | Style/responsive; C`ZenGreen.styles.test.tsx` | FR-14; BR-22; AC-19 | Token and breakpoint/style contracts; browser visual/overflow/accessibility checks remain E2E/MAN, not jsdom viewport claims. | Partial: 3 style tests passed; real Staff Action forms inspected at desktop/tablet/mobile and breakpoint boundaries without page overflow. Full role/page visual and screen-reader checks remain open. |
 | E2E-01 | Browser; E`actions-taken-flow.spec.ts` | FR-01–06,13,14; BR-01–10,20,22; AC-01–06,15,18 | Authenticate real roles; create multiple Actions on one Ticket, assign/edit/complete/cancel, inactive rejection, read-only Requester, conflict/retry and attachment continuity; assert actual persisted records. | Planned |
 | E2E-02 | Browser; E`ticket-resolution.spec.ts` | FR-07,08,14; BR-11–15,22; AC-07–10,18 | Failed gate via direct API, complete/follow-up correction then resolve/close/reopen/cancel, confirmed transitions, retained events/revisions, advisory indication and legacy Ticket. | Planned |
 | E2E-03 | Browser; E`dashboards.spec.ts` | FR-09–11,14; BR-16–19,22; AC-11–14,18,19 | Requester/Staff/Admin dashboard roles, metrics-to-list totals, real Action links, zero/failure, 3 sizes/boundaries, keyboard/axe and no page overflow. | Planned |
@@ -512,6 +512,165 @@ Node emitted the existing non-blocking `DEP0169` `url.parse()` deprecation warni
 An earlier repeated-seed check on the existing `toktickit_test` schema found no pending migrations and reported 7 Requesters alongside 4 Categories, 7 Related Systems, 15 Tickets, 3 Actions, and 3 Action revisions. That was a separate pre-existing test schema; the commit-bound isolated run above used a fresh schema and reported its own exact counts. The migration regression additionally confirmed the real Lab 4 migration preserves legacy Ticket/Attachment and changed-password data and that repeated seeding does not overwrite edited fixtures.
 
 No UI/client or browser test is claimed for Issue #56. Remaining release checklist items in Section 5 stay unchecked until actually completed.
+
+### Issue #57 — Actions Taken UI (uncommitted worktree evidence)
+
+Work is on `feature/23-Lab4ActionsUI`, based on `lab4-staging` commit `6cabca6acda5853a825180bf318a782b6a1edfb5`. These checks ran against the current uncommitted Issue #57 worktree, not against that base commit as an isolated commit; rerun and record the resulting commit SHA after the Issue is committed. The planned red phase was observed before implementation: component/style coverage failed because the Actions Taken UI and its styles did not exist, and the User Management active-Action conflict did not yet provide actionable guidance.
+
+Full client regression command, run after implementation and inherited-test updates:
+
+```powershell
+cd client
+npm.cmd test -- --run
+```
+
+```text
+Test Files  15 passed (15)
+     Tests  69 passed (69)
+Start at  21:44:17
+Duration  14.91s (transform 1.02s, setup 2.32s, collect 6.64s, tests 46.91s, environment 15.55s, prepare 2.56s)
+```
+
+This includes `client/tests/lab-04/ActionsTaken.test.tsx` (9 tests), `client/tests/lab-04/ZenGreen.styles.test.tsx` (2), `client/tests/lab-03/StaffTicketDetail.test.tsx` (4, including terminal-Ticket read-only behavior), `client/tests/lab-03/UserManagement.test.tsx` (6, including unfinished-Action safety feedback), and `client/tests/lab-02/RequesterTicketDetail.test.tsx` (2, updated for the Requester read-only Actions section). All 15 client test files passed; no failures or skips were reported.
+
+Client production build command and result:
+
+```powershell
+cd client
+npm.cmd run build
+```
+
+```text
+> toktickit-client@1.0.0 build
+> tsc && vite build
+
+vite v6.4.3 building for production...
+transforming...
+✓ 36 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.39 kB │ gzip:  0.27 kB
+dist/assets/index-DTBx-d_D.css  252.75 kB │ gzip: 35.18 kB
+dist/assets/index-CB1vuN2o.js   282.71 kB │ gzip: 75.36 kB
+✓ built in 651ms
+```
+
+Manual browser verification, real responsive screenshots, Playwright/E2E, and authenticated API/database behavior have not been tested in this Issue turn. The component tests use mocked APIs and do not replace those later checks. No commit, push, PR, review, merge, or Project status change is claimed.
+
+### Issue #57 UI clarity follow-up — observed 9 October 2026
+
+Added visible required asterisks, explicit `(optional)` labels, and clearer conditional requirements and validation guidance to the Action forms. The tests were written first and failed before the UI change:
+
+```text
+cd client
+npm.cmd test -- --run tests/lab-04/ActionsTaken.test.tsx tests/lab-04/ZenGreen.styles.test.tsx
+Test Files  2 failed (2)
+     Tests  4 failed | 10 passed (14)
+```
+
+After replacing the still-generic summary copy with a direct next step, the updated assertion was run before changing the UI message and failed as expected:
+
+```text
+Test Files  1 failed (1)
+     Tests  1 failed | 10 passed (11)
+```
+
+Focused verification after the changes:
+
+```text
+Test Files  2 passed (2)
+     Tests  14 passed (14)
+Start at 13:13:57
+Duration 6.33s
+```
+
+The first full-client rerun exposed a missing mock for the new Action-history request in the inherited Staff Ticket Queue navigation test; its real request received 401 and triggered the app's normal session-expiry redirect. After adding the empty Action-history response to that test setup, the isolated queue regression passed (1 file/5 tests), and the complete client suite passed:
+
+```text
+Test Files  15 passed (15)
+     Tests  72 passed (72)
+Start at 13:14:10
+Duration 14.29s
+```
+
+The production build also passed on this same uncommitted worktree:
+
+```text
+> npm.cmd run build
+> tsc && vite build
+vite v6.4.3 building for production...
+✓ 36 modules transformed.
+✓ built in 703ms
+dist/index.html                   0.39 kB │ gzip:  0.26 kB
+dist/assets/index-ppuTSGFd.css  253.01 kB │ gzip: 35.25 kB
+dist/assets/index-VSHBuafL.js   285.01 kB │ gzip: 75.97 kB
+```
+
+These are local uncommitted-worktree results, not tied to a commit SHA or final `main`. Browser/manual accessibility review, screenshots, and Playwright remain pending; component/style tests do not prove real browser rendering or keyboard/screen-reader behavior.
+
+### Issue #57 real browser verification — 9 October 2026
+
+The student signed in as IT Staff Michael Brown in the real local application using the guarded `server/.env.test` database. No development database was used. Browser checks inspected existing Ticket `TKT-2026-910001`; no Action was saved, started, completed or cancelled during this browser inspection. The invalid form submissions remained client-side.
+
+- [x] Enter opens Create Action and focuses its heading; invalid Save focuses Description and displays actionable field errors.
+- [x] Red required markers, optional Result/Attachment Notes, and conditional required Follow-up Note are visible; short Follow-up Note is rejected.
+- [x] Tab moves from Description to Assignee with visible focus; Cancel Create and Cancel edit return focus to their originating buttons.
+- [x] Completed Action inline edit requires Result and retains narrative fields; existing five persisted revisions show actors, timestamps and previous values.
+- [x] Real layouts inspected at 1440×1000, 900×1000 and 390×844. Boundary checks at widths 767, 768, 991 and 992 also passed: document scroll width was never greater than viewport width.
+- [x] Sanitized genuine browser screenshots retained with captions below; no generated images used.
+
+The browser check found lost keyboard focus after cancelling Create. A regression was added and failed first (1 file: 1 failed/11 passed); returning focus to the existing Create button fixed it. Focused Action/style tests then passed 2 files/15 tests. The complete client regression passed 15 files/73 tests, with no skipped tests:
+
+```text
+cd client
+npm.cmd test -- --run
+Test Files  15 passed (15)
+     Tests  73 passed (73)
+Start at 14:03:06
+Duration 14.39s
+```
+
+The first build detected an unsupported Testing Library matcher option in the new test; removing that option restored the build:
+
+```text
+cd client
+npm.cmd run build
+> tsc && vite build
+vite v6.4.3 building for production...
+✓ 36 modules transformed.
+dist/index.html                   0.39 kB │ gzip:  0.26 kB
+dist/assets/index-ppuTSGFd.css  253.01 kB │ gzip: 35.25 kB
+dist/assets/index-BTbWbmYc.js   285.11 kB │ gzip: 76.01 kB
+✓ built in 717ms
+```
+
+Relevant real API/authorization/User-assignment safety regressions also passed:
+
+```text
+cd server
+npm.cmd test -- --run tests/lab-04/actions-taken.api.test.ts tests/lab-04/authorization.api.test.ts tests/lab-04/user-assignment-safety.api.test.ts
+✓ tests/lab-04/actions-taken.api.test.ts (3 tests)
+✓ tests/lab-04/user-assignment-safety.api.test.ts (2 tests)
+✓ tests/lab-04/authorization.api.test.ts (3 tests)
+Test Files  3 passed (3)
+     Tests  8 passed (8)
+Start at 14:03:24
+Duration 4.97s
+```
+
+![Desktop Action validation](../../artifacts/lab-04/screenshots/actions-taken/desktop-validation.jpg)
+
+Figure 57.1 — Real desktop required/optional fields, conditional Follow-up Note and first-invalid-field focus. Supports UI-01/STYLE-01 and AC-03/19.
+
+![Tablet Action editor](../../artifacts/lab-04/screenshots/actions-taken/tablet-editor.jpg)
+
+Figure 57.2 — Real tablet two-column editor with visible focus and reachable Cancel/Save controls. Supports STYLE-01 and AC-19.
+
+![Mobile Action editor](../../artifacts/lab-04/screenshots/actions-taken/mobile-editor.jpg)
+
+Figure 57.3 — Real mobile stacked Action fields with readable help, required/optional cues and visible focus. Supports STYLE-01 and AC-19.
+
+These results describe the uncommitted Issue #57 worktree, not final `main`. The prior browser-pending statements above are historical. Full lifecycle/Requester-role browser automation, screen-reader testing, broad visual evidence and complete inherited E2E remain planned for Issue #59; the release checklist below is deliberately not prechecked. Full server regression was not rerun in this UI follow-up; the three focused server files above were rerun.
 
 ## 5. Release and visual checklist — actual work only
 

@@ -22,6 +22,9 @@ type EditorState = {
 const roles: ManagedRole[] = ["REQUESTER", "IT_STAFF", "ADMINISTRATOR"];
 
 function safeMessage(error: unknown, fallback: string): string {
+  if (error instanceof ApiClientError && error.code === "USER_HAS_ACTIVE_ACTIONS") {
+    return "This User has unfinished assigned Actions. Reassign or finish those Actions before deactivating the User or changing their role.";
+  }
   return error instanceof ApiClientError && error.message ? error.message : fallback;
 }
 

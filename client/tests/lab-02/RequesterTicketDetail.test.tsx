@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import TicketDetail from "../../src/TicketDetail.js";
 import * as api from "../../src/api.js";
@@ -44,6 +44,11 @@ describe("Ticket Detail", () => {
     vi.spyOn(api, "fetchTicket").mockResolvedValue(ticket);
     vi.spyOn(api, "fetchTicketAttachments").mockResolvedValue([activeAttachment, removedAttachment]);
     vi.spyOn(api, "fetchTicketComments").mockResolvedValue([]);
+    vi.spyOn(api, "fetchActionsTaken").mockResolvedValue({
+      actions: [],
+      pagination: { page: 1, pageSize: 25, totalItems: 0, totalPages: 0, hasPreviousPage: false, hasNextPage: false },
+      ticketVersion: 0,
+    });
   });
 
   afterEach(() => {
@@ -66,7 +71,10 @@ describe("Ticket Detail", () => {
       expect(screen.getByLabelText(field)).toHaveAttribute("readonly");
     }
     expect(screen.getByRole("heading", { name: "Public Comments" })).toBeInTheDocument();
-    expect(screen.queryByText(/Actions Taken|Internal Notes/)).not.toBeInTheDocument();
+    const actions = screen.getByRole("region", { name: "Actions Taken" });
+    expect(await screen.findByText("No Actions Taken have been recorded for this Ticket.")).toBeInTheDocument();
+    expect(within(actions).queryByRole("button", { name: /Create Action|Edit Action|Start Work|Complete Action|Cancel Action/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Internal Notes" })).not.toBeInTheDocument();
   });
 
   it("keeps Ticket and Attachment loading states independent and offers safe retry", async () => {
