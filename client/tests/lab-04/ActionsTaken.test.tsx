@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import ActionsTaken from "../../src/ActionsTaken.js";
 import * as api from "../../src/api.js";
@@ -79,6 +79,32 @@ describe("Lab 4 Actions Taken UI", () => {
     await user.click(screen.getByRole("button", { name: "Show revision history" }));
     expect(screen.getByRole("heading", { name: "Revision 1" })).toBeInTheDocument();
     expect(api.fetchActionRevisions).toHaveBeenCalledTimes(2);
+  });
+
+  it.each(["Create Action", "Edit Action"])("closes %s when read-only is enabled and does not reopen it later", async (name) => {
+    const user = userEvent.setup();
+    const { rerender } = render(<ActionsTaken ticketNumber={ticketNumber} currentUserId={8} />);
+    await user.click(await screen.findByRole("button", { name }));
+    expect(screen.getByRole("form")).toBeInTheDocument();
+    rerender(<ActionsTaken ticketNumber={ticketNumber} currentUserId={8} readOnly />);
+    expect(screen.queryByRole("form")).not.toBeInTheDocument();
+    await act(async () => { rerender(<ActionsTaken ticketNumber={ticketNumber} currentUserId={8} />); });
+    expect(screen.queryByRole("form")).not.toBeInTheDocument();
+    expect(api.createActionTaken).not.toHaveBeenCalled();
+    expect(api.updateActionTaken).not.toHaveBeenCalled();
+  });
+
+  it.each(["Complete Action", "Cancel Action"])("closes the %s confirmation when read-only is enabled", async (name) => {
+    const user = userEvent.setup();
+    vi.mocked(api.fetchActionsTaken).mockResolvedValueOnce({ actions: [{ ...action, status: "IN_PROGRESS" }], pagination, ticketVersion: 3 } as never);
+    const { rerender } = render(<ActionsTaken ticketNumber={ticketNumber} currentUserId={8} />);
+    await user.click(await screen.findByRole("button", { name }));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    rerender(<ActionsTaken ticketNumber={ticketNumber} currentUserId={8} readOnly />);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    await act(async () => { rerender(<ActionsTaken ticketNumber={ticketNumber} currentUserId={8} />); });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(api.updateActionTaken).not.toHaveBeenCalled();
   });
 
   it("marks required fields clearly and identifies optional fields", async () => {

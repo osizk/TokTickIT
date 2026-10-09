@@ -159,6 +159,13 @@ export default function ActionsTaken({ ticketNumber, readOnly = false, currentUs
   useEffect(() => { void loadActions(page); }, [loadActions, listRetry, page]);
 
   useEffect(() => {
+    if (!readOnly) return;
+    setCreateOpen(false);
+    setEditingId(null);
+    setConfirmAction(null);
+  }, [readOnly]);
+
+  useEffect(() => {
     if (readOnly) return;
     let cancelled = false;
     setAssigneeState("loading");
@@ -503,7 +510,7 @@ export default function ActionsTaken({ ticketNumber, readOnly = false, currentUs
                 {(action.status === "OPEN" || action.status === "IN_PROGRESS") && <><button className="zen-button zen-button-primary" type="button" onClick={() => confirmCompletion(action)} disabled={editBusy}>Complete Action</button><button className="zen-button zen-button-link" type="button" onClick={() => { setCancelReason(""); setCancelError(null); setConfirmAction({ kind: "cancel", action }); }} disabled={editBusy}>Cancel Action</button></>}
               </div>}
             </div>
-            {editing && <form className="action-taken-editor" aria-label={`Edit Action ${action.id}`} onSubmit={(event) => void submitEdit(event, action)} noValidate>
+            {editing && !readOnly && <form className="action-taken-editor" aria-label={`Edit Action ${action.id}`} onSubmit={(event) => void submitEdit(event, action)} noValidate>
               <h4 ref={editHeadingRef} tabIndex={-1}>Edit Action</h4>
               {renderFields(editDraft, setEditDraft, editErrors, editBusy, action.status !== "COMPLETED", `edit-${action.id}`, action.status === "COMPLETED")}
               {editError && <div className="zen-state zen-state-error" role="alert"><p>{editError}</p>{editError.includes("latest version") && <button className="zen-button zen-button-secondary" type="button" onClick={() => void reloadCurrentAction()}>Reload current Action</button>}</div>}
