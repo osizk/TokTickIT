@@ -20,7 +20,7 @@ For compactness, the exact path prefixes in this table are `S = server/tests/lab
 | API-07 | Migration/API; S`migration-regression.api.test.ts` | FR-07,12; BR-15,21; AC-10,16,17 | Apply the real Lab 4 migration to an actual pre-Lab-4 schema, preserve Ticket/Attachment/changed-password state; seed twice and after edits; collision skip; counter monotonic; backup/restore disposable rehearsal. | Partial: real migration and preservation plus repeat-seed checks passed; collision/counter and full recovery rehearsal remain open. |
 | API-08 | API; S`user-assignment-safety.api.test.ts` | FR-02,13; BR-02,05,20; AC-02,15 | Inactive/non-staff assignee, User active-Action conflict and session unchanged, self/last-Admin and owned-Ticket precedence, eligible role change and historical actors, concurrent eligibility change. | Partial: active-Action deactivation/demotion protection and assignment race passed; remaining safety cases stay open. |
 | PERF-01 | Performance-smoke; S`dashboard-performance.api.test.ts` | FR-09,10; BR-16–19; AC-13 | Representative 500-Ticket/1000-Action fixture; aggregate query count stays bounded as fixture doubles (no N+1), arrays capped5, response does not contain complete collections. Record elapsed diagnostics, no invented production SLA. | Planned |
-| UI-01 | Component; C`ActionsTaken.test.tsx` | FR-01–06; BR-01–10,22; AC-01–06,19 | Inline create/edit, required/optional markers, conditional requirements, plain-language field errors/focus, Requester and terminal-Ticket read-only views, lifecycle confirmation/reason, stale-draft retention, safe retry with stable idempotency key, active assignee and User-management safety feedback. | Partial: 12 Action component tests pass; focused Staff keyboard/responsive/revision browser checks passed. Broader pagination, busy-guard and authenticated lifecycle E2E remain open. |
+| UI-01 | Component; C`ActionsTaken.test.tsx` | FR-01–06; BR-01–10,22; AC-01–06,19 | Inline create/edit, required/optional markers, conditional requirements, plain-language field errors/focus, Requester and terminal-Ticket read-only views, lifecycle confirmation/reason, stale-draft retention, safe retry with stable idempotency key, active assignee and User-management safety feedback. | Partial: 14 Action component tests pass, including history error/retry and empty Result; Staff detail tests cover all three terminal statuses. Focused Staff keyboard/responsive/revision browser checks passed before this review fix. Broader pagination, busy-guard and authenticated lifecycle E2E remain open. |
 | UI-02 | Component; C`TicketWorkflow.test.tsx` | FR-07,08; BR-11–15,22; AC-06–10,19 | Legal target controls, gate explanation, confirmation/cancel reason, protected direct calls, reload on stale version, indication vs status, ordered history. | Planned |
 | UI-03 | Component; C`RequesterDashboard.test.tsx` | FR-10,11,14; BR-16,18,19,22; AC-12–14,19 | Loading/zero/error/Retry/session expiry, correct owned cards/lists/links, time display, navigation/deep link and account-cache reset. | Planned |
 | UI-04 | Component; C`StaffDashboard.test.tsx` | FR-09,11,14; BR-17–19,22; AC-11,14,19 | Current-user assigned Actions and real metric links, capped summaries, all states/refresh, role navigation, keyboard semantics. | Planned |
@@ -708,6 +708,53 @@ Duration 3.38s
 ```
 
 All commands exited 0; no skipped tests. This is Issue #57 candidate evidence, not a complete Lab 4 release or final-main claim.
+
+### PR #65 review corrections — 9 October 2026
+
+The student's supplied partner review identified three actual UI defects. Fixed only the existing frontend behavior, without API/database changes:
+
+- `RESOLVED`, `CLOSED` and `CANCELLED` Tickets all render Actions read-only, matching BR-15. The Staff detail regression is parameterized across all three states.
+- History Retry calls the existing loader directly, keeps the panel open, clears its error and shows loading. A fail → Retry → successful revision → hide/show test proves the request is retried once and successful cached history still toggles normally.
+- Every Action renders a Result row; a null Result displays `Not recorded`, verified with an OPEN Action fixture.
+
+Tests ran before implementation and failed for exactly these defects:
+
+```text
+cd client
+npm.cmd test -- --run tests/lab-04/ActionsTaken.test.tsx tests/lab-03/StaffTicketDetail.test.tsx
+Test Files  2 failed (2)
+     Tests  3 failed | 17 passed (20)
+```
+
+After the fixes, the same command passed:
+
+```text
+Test Files  2 passed (2)
+     Tests  20 passed (20)
+Start at 20:34:42
+Duration 7.15s
+```
+
+Full client regression and production build on the revised uncommitted worktree based on `64627d6`:
+
+```text
+cd client
+npm.cmd test -- --run
+Test Files  15 passed (15)
+     Tests  77 passed (77)
+Start at 20:35:00
+Duration 15.16s
+npm.cmd run build
+> tsc && vite build
+vite v6.4.3 building for production...
+✓ 36 modules transformed.
+dist/index.html                   0.39 kB │ gzip:  0.26 kB
+dist/assets/index-ppuTSGFd.css  253.01 kB │ gzip: 35.25 kB
+dist/assets/index-Deuiu-n0.js   285.18 kB │ gzip: 76.03 kB
+✓ built in 1.32s
+```
+
+Both commands exited 0; no skipped tests. Existing screenshots are historical pre-review-fix captures and were not replaced. No new browser/E2E or server rerun, commit, push, PR update or approval is claimed in this correction round.
 
 ## 5. Release and visual checklist — actual work only
 

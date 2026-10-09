@@ -56,6 +56,31 @@ describe("Lab 4 Actions Taken UI", () => {
     expect(within(section).queryByText(/Internal Notes|stored path|storage\/|uploads\//i)).not.toBeInTheDocument();
   });
 
+  it("shows an explicit empty Result for an OPEN Action", async () => {
+    vi.mocked(api.fetchActionsTaken).mockResolvedValueOnce({ actions: [{ ...action, status: "OPEN", result: null }], pagination, ticketVersion: 3 } as never);
+    render(<ActionsTaken ticketNumber={ticketNumber} readOnly />);
+    const resultLabel = await screen.findByText("Result", { selector: "dt" });
+    expect(resultLabel.nextElementSibling).toHaveTextContent("Not recorded");
+  });
+
+  it("retries failed revision loading without closing the panel and preserves show/hide", async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.fetchActionRevisions)
+      .mockRejectedValueOnce(new Error("Network failure"))
+      .mockResolvedValueOnce({ revisions: [{ id: 1, revisionNumber: 1, actor: action.createdBy, changedAt: action.createdAt, snapshot: action }], pagination } as never);
+    render(<ActionsTaken ticketNumber={ticketNumber} readOnly />);
+    await user.click(await screen.findByRole("button", { name: "Show revision history" }));
+    await user.click(await screen.findByRole("button", { name: "Retry history" }));
+    expect(await screen.findByRole("heading", { name: "Revision 1" })).toBeInTheDocument();
+    expect(api.fetchActionRevisions).toHaveBeenCalledTimes(2);
+    expect(screen.getByRole("button", { name: "Hide revision history" })).toHaveAttribute("aria-expanded", "true");
+    await user.click(screen.getByRole("button", { name: "Hide revision history" }));
+    expect(screen.queryByRole("heading", { name: "Revision 1" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Show revision history" }));
+    expect(screen.getByRole("heading", { name: "Revision 1" })).toBeInTheDocument();
+    expect(api.fetchActionRevisions).toHaveBeenCalledTimes(2);
+  });
+
   it("marks required fields clearly and identifies optional fields", async () => {
     const user = userEvent.setup();
     render(<ActionsTaken ticketNumber={ticketNumber} currentUserId={8} />);

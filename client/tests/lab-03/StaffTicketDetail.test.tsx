@@ -54,8 +54,8 @@ describe("Lab 3 Staff Ticket Detail operations", () => {
     expect(screen.getByText("Never shown to Requesters.")).toBeInTheDocument();
   });
 
-  it("keeps Actions Taken read-only on a terminal Ticket", async () => {
-    vi.mocked(api.fetchStaffTicket).mockResolvedValueOnce({ ...ticket, status: "CLOSED" });
+  it.each(["RESOLVED", "CLOSED", "CANCELLED"] as const)("keeps Actions Taken read-only on a %s Ticket", async (status) => {
+    vi.mocked(api.fetchStaffTicket).mockResolvedValueOnce({ ...ticket, status });
     render(<StaffTicketDetail ticketNumber={ticket.ticketNumber} currentUserId={8} navigate={vi.fn()} />);
 
     const actions = await screen.findByRole("region", { name: "Actions Taken" });

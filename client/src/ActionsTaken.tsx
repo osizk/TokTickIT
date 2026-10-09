@@ -401,6 +401,7 @@ export default function ActionsTaken({ ticketNumber, readOnly = false, currentUs
   }
 
   async function loadRevisions(actionId: number) {
+    setRevisionStates((states) => ({ ...states, [actionId]: { open: true, loading: true, error: null, revisions: states[actionId]?.revisions ?? [] } }));
     try {
       const result = await fetchActionRevisions(ticketNumber, actionId);
       setRevisionStates((current) => ({ ...current, [actionId]: { open: true, loading: false, error: null, revisions: result.revisions } }));
@@ -417,7 +418,6 @@ export default function ActionsTaken({ ticketNumber, readOnly = false, currentUs
     } else if (current && !current.error) {
       setRevisionStates((states) => ({ ...states, [actionId]: { ...current, open: true } }));
     } else {
-      setRevisionStates((states) => ({ ...states, [actionId]: { open: true, loading: true, error: null, revisions: current?.revisions ?? [] } }));
       void loadRevisions(actionId);
     }
   }
@@ -493,7 +493,7 @@ export default function ActionsTaken({ ticketNumber, readOnly = false, currentUs
                 <div><dt>Follow-up Note</dt><dd>{action.followUpNote ?? "Not recorded"}</dd></div>
                 <div><dt>Attachment Notes</dt><dd>{action.attachmentNotes ?? "Not recorded"}</dd></div>
                 <div><dt>Updated</dt><dd>{formatDate(action.updatedAt)}</dd></div>
-                {action.result && <div className="action-taken-wide"><dt>Result</dt><dd>{action.result}</dd></div>}
+                <div className="action-taken-wide"><dt>Result</dt><dd>{action.result ?? "Not recorded"}</dd></div>
                 {action.cancellationReason && <div className="action-taken-wide"><dt>Cancellation reason</dt><dd>{action.cancellationReason}; cancelled {formatDate(action.cancelledAt)}</dd></div>}
               </dl>
               <button className="zen-button zen-button-link" type="button" aria-expanded={Boolean(revision?.open)} onClick={() => toggleRevisions(action.id)}>{revision?.open ? "Hide revision history" : "Show revision history"}</button>
@@ -510,7 +510,7 @@ export default function ActionsTaken({ ticketNumber, readOnly = false, currentUs
               <div className="zen-form-actions"><button className="zen-button zen-button-secondary" type="button" onClick={closeEdit} disabled={editBusy}>Cancel edit</button><button className="zen-button zen-button-primary" type="submit" disabled={editBusy || (action.status !== "COMPLETED" && assigneeState !== "success")}>{editBusy ? "Saving..." : "Save Action"}</button></div>
             </form>}
             {revision?.open && <div className="action-revision-history" aria-label={`Revision history for Action ${action.id}`}>
-              {revision.loading ? <p className="zen-state zen-state-info" role="status">Loading Action history...</p> : revision.error ? <div className="zen-state zen-state-error" role="alert"><p>{revision.error}</p><button className="zen-button zen-button-secondary" type="button" onClick={() => toggleRevisions(action.id)}>Retry history</button></div> : revision.revisions.length === 0 ? <p className="zen-state zen-state-info" role="status">No Action revisions have been recorded.</p> : <ol className="action-revision-list" aria-label="Action revision history">{revision.revisions.map((item) => <li key={item.id}><h4>Revision {item.revisionNumber}</h4><p>Changed {formatDate(item.changedAt)} by {identityLabel(item.actor)}</p><dl><div><dt>Description</dt><dd>{item.snapshot.description}</dd></div><div><dt>Result</dt><dd>{item.snapshot.result ?? "Not recorded"}</dd></div><div><dt>Status</dt><dd>{item.snapshot.status}</dd></div><div><dt>Follow-up required</dt><dd>{item.snapshot.followUpRequired ? "Yes" : "No"}</dd></div><div><dt>Follow-up Note</dt><dd>{item.snapshot.followUpNote ?? "Not recorded"}</dd></div><div><dt>Attachment Notes</dt><dd>{item.snapshot.attachmentNotes ?? "Not recorded"}</dd></div><div><dt>Cancellation reason</dt><dd>{item.snapshot.cancellationReason ?? "Not recorded"}</dd></div></dl></li>)}</ol>}
+              {revision.loading ? <p className="zen-state zen-state-info" role="status">Loading Action history...</p> : revision.error ? <div className="zen-state zen-state-error" role="alert"><p>{revision.error}</p><button className="zen-button zen-button-secondary" type="button" onClick={() => void loadRevisions(action.id)}>Retry history</button></div> : revision.revisions.length === 0 ? <p className="zen-state zen-state-info" role="status">No Action revisions have been recorded.</p> : <ol className="action-revision-list" aria-label="Action revision history">{revision.revisions.map((item) => <li key={item.id}><h4>Revision {item.revisionNumber}</h4><p>Changed {formatDate(item.changedAt)} by {identityLabel(item.actor)}</p><dl><div><dt>Description</dt><dd>{item.snapshot.description}</dd></div><div><dt>Result</dt><dd>{item.snapshot.result ?? "Not recorded"}</dd></div><div><dt>Status</dt><dd>{item.snapshot.status}</dd></div><div><dt>Follow-up required</dt><dd>{item.snapshot.followUpRequired ? "Yes" : "No"}</dd></div><div><dt>Follow-up Note</dt><dd>{item.snapshot.followUpNote ?? "Not recorded"}</dd></div><div><dt>Attachment Notes</dt><dd>{item.snapshot.attachmentNotes ?? "Not recorded"}</dd></div><div><dt>Cancellation reason</dt><dd>{item.snapshot.cancellationReason ?? "Not recorded"}</dd></div></dl></li>)}</ol>}
             </div>}
           </li>;
         })}
