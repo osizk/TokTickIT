@@ -672,6 +672,43 @@ Figure 57.3 — Real mobile stacked Action fields with readable help, required/o
 
 These results describe the uncommitted Issue #57 worktree, not final `main`. The prior browser-pending statements above are historical. Full lifecycle/Requester-role browser automation, screen-reader testing, broad visual evidence and complete inherited E2E remain planned for Issue #59; the release checklist below is deliberately not prechecked. Full server regression was not rerun in this UI follow-up; the three focused server files above were rerun.
 
+### Issue #57 committed-candidate rerun
+
+Tested clean implementation commit: `1d0e048a7ba00ba1874fce7cbefac9ac9f8030f2` on `feature/23-Lab4ActionsUI`. This evidence-only update does not change the tested product code or tests.
+
+```text
+cd client
+git rev-parse HEAD
+1d0e048a7ba00ba1874fce7cbefac9ac9f8030f2
+npm.cmd test -- --run
+Test Files  15 passed (15)
+     Tests  73 passed (73)
+Start at 14:05:54
+Duration 14.30s
+npm.cmd run build
+> tsc && vite build
+vite v6.4.3 building for production...
+✓ 36 modules transformed.
+dist/index.html                   0.39 kB │ gzip:  0.26 kB
+dist/assets/index-ppuTSGFd.css  253.01 kB │ gzip: 35.25 kB
+dist/assets/index-BTbWbmYc.js   285.11 kB │ gzip: 76.01 kB
+✓ built in 701ms
+
+cd ../server
+git rev-parse HEAD
+1d0e048a7ba00ba1874fce7cbefac9ac9f8030f2
+npm.cmd test -- --run tests/lab-04/actions-taken.api.test.ts tests/lab-04/authorization.api.test.ts tests/lab-04/user-assignment-safety.api.test.ts
+✓ tests/lab-04/actions-taken.api.test.ts (3 tests) 730ms
+✓ tests/lab-04/user-assignment-safety.api.test.ts (2 tests) 564ms
+✓ tests/lab-04/authorization.api.test.ts (3 tests) 507ms
+Test Files  3 passed (3)
+     Tests  8 passed (8)
+Start at 14:06:07
+Duration 3.38s
+```
+
+All commands exited 0; no skipped tests. This is Issue #57 candidate evidence, not a complete Lab 4 release or final-main claim.
+
 ## 5. Release and visual checklist — actual work only
 
 - [ ] Student and teammate approve engineering decisions; four public contracts merged before implementation.
