@@ -1595,6 +1595,10 @@ textarea:focus-visible {
   text-align: center;
 }
 
+.action-revision-pagination {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
 @media (max-width: 767px) {
   .action-taken-card {
     flex-direction: column;

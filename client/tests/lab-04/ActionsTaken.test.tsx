@@ -63,6 +63,61 @@ describe("Lab 4 Actions Taken UI", () => {
     expect(resultLabel.nextElementSibling).toHaveTextContent("Not recorded");
   });
 
+  it("keeps Create Action disabled until Actions finish loading", async () => {
+    const user = userEvent.setup();
+    let resolveActions: (value: unknown) => void = () => {};
+    vi.mocked(api.fetchActionsTaken).mockReturnValueOnce(new Promise((resolve) => { resolveActions = resolve; }) as never);
+    render(<ActionsTaken ticketNumber={ticketNumber} currentUserId={8} />);
+    const createButton = screen.getByRole("button", { name: "Create Action" });
+    expect(createButton).toBeDisabled();
+    await act(async () => { resolveActions({ actions: [action], pagination, ticketVersion: 3 }); });
+    await waitFor(() => expect(createButton).toBeEnabled());
+  });
+
+  it("keeps Create Action disabled after a list failure until retry succeeds", async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.fetchActionsTaken).mockRejectedValueOnce(new Error("Network failure"));
+    render(<ActionsTaken ticketNumber={ticketNumber} currentUserId={8} />);
+    const createButton = screen.getByRole("button", { name: "Create Action" });
+    expect(createButton).toBeDisabled();
+    await screen.findByRole("alert");
+    expect(createButton).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Retry Actions" }));
+    await waitFor(() => expect(createButton).toBeEnabled());
+  });
+
+  it("paginates revision history beyond the first 25 records", async () => {
+    const user = userEvent.setup();
+    const revisions = Array.from({ length: 25 }, (_, index) => ({
+      id: index + 1,
+      revisionNumber: index + 1,
+      actor: action.createdBy,
+      changedAt: action.createdAt,
+      snapshot: action,
+    }));
+    vi.mocked(api.fetchActionRevisions)
+      .mockResolvedValueOnce({
+        revisions,
+        pagination: { page: 1, pageSize: 25, totalItems: 26, totalPages: 2, hasPreviousPage: false, hasNextPage: true },
+      } as never)
+      .mockResolvedValueOnce({
+        revisions: [{ id: 26, revisionNumber: 26, actor: action.createdBy, changedAt: action.createdAt, snapshot: action }],
+        pagination: { page: 2, pageSize: 25, totalItems: 26, totalPages: 2, hasPreviousPage: true, hasNextPage: false },
+      } as never)
+      .mockResolvedValueOnce({ revisions, pagination } as never);
+    render(<ActionsTaken ticketNumber={ticketNumber} readOnly />);
+    await user.click(await screen.findByRole("button", { name: "Show revision history" }));
+    expect(await screen.findByRole("heading", { name: "Revision 1" })).toBeInTheDocument();
+    expect(screen.getByText("Revision page 1 of 2")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Next revisions" }));
+    expect(await screen.findByRole("heading", { name: "Revision 26" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Revision 1" })).not.toBeInTheDocument();
+    expect(api.fetchActionRevisions).toHaveBeenNthCalledWith(2, ticketNumber, 41, 2, 25);
+    await user.click(screen.getByRole("button", { name: "Previous revisions" }));
+    expect(await screen.findByRole("heading", { name: "Revision 1" })).toBeInTheDocument();
+    expect(api.fetchActionRevisions).toHaveBeenNthCalledWith(3, ticketNumber, 41, 1, 25);
+  });
+
   it("retries failed revision loading without closing the panel and preserves show/hide", async () => {
     const user = userEvent.setup();
     vi.mocked(api.fetchActionRevisions)

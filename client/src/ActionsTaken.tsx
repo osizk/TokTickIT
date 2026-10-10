@@ -30,7 +30,7 @@ type ActionDraft = {
 };
 type FieldErrors = Partial<Record<keyof ActionDraft, string>>;
 type ConfirmAction = { kind: "complete"; action: ActionRecord } | { kind: "cancel"; action: ActionRecord };
-type RevisionState = { open: boolean; loading: boolean; error: string | null; revisions: ActionRevision[] };
+type RevisionState = { open: boolean; loading: boolean; error: string | null; revisions: ActionRevision[]; page: number; totalPages: number };
 
 const emptyDraft = (): ActionDraft => ({ description: "", assigneeUserId: "", result: "", followUpRequired: false, followUpNote: "", attachmentNotes: "" });
 
@@ -407,13 +407,13 @@ export default function ActionsTaken({ ticketNumber, readOnly = false, currentUs
     await changeStatus(confirmAction.action, "CANCELLED", reason);
   }
 
-  async function loadRevisions(actionId: number) {
-    setRevisionStates((states) => ({ ...states, [actionId]: { open: true, loading: true, error: null, revisions: states[actionId]?.revisions ?? [] } }));
+  async function loadRevisions(actionId: number, requestedPage = 1) {
+    setRevisionStates((states) => ({ ...states, [actionId]: { ...states[actionId], open: true, loading: true, error: null, revisions: [], page: requestedPage, totalPages: states[actionId]?.totalPages ?? 0 } }));
     try {
-      const result = await fetchActionRevisions(ticketNumber, actionId);
-      setRevisionStates((current) => ({ ...current, [actionId]: { open: true, loading: false, error: null, revisions: result.revisions } }));
+      const result = await fetchActionRevisions(ticketNumber, actionId, requestedPage, 25);
+      setRevisionStates((current) => ({ ...current, [actionId]: { open: true, loading: false, error: null, revisions: result.revisions, page: result.pagination.page, totalPages: result.pagination.totalPages } }));
     } catch (error) {
-      setRevisionStates((current) => ({ ...current, [actionId]: { ...current[actionId], open: true, loading: false, error: errorMessage(error, "Unable to load Action history."), revisions: [] } }));
+      setRevisionStates((current) => ({ ...current, [actionId]: { ...current[actionId], open: true, loading: false, error: errorMessage(error, "Unable to load Action history."), revisions: [], page: requestedPage, totalPages: current[actionId]?.totalPages ?? 0 } }));
     }
   }
 
@@ -425,7 +425,7 @@ export default function ActionsTaken({ ticketNumber, readOnly = false, currentUs
     } else if (current && !current.error) {
       setRevisionStates((states) => ({ ...states, [actionId]: { ...current, open: true } }));
     } else {
-      void loadRevisions(actionId);
+      void loadRevisions(actionId, current?.page ?? 1);
     }
   }
 
@@ -477,7 +477,7 @@ export default function ActionsTaken({ ticketNumber, readOnly = false, currentUs
   }
 
   return <section className="zen-comment-section actions-taken" aria-labelledby="actions-taken-heading">
-    <div className="zen-section-heading"><div><p className="zen-eyebrow">Public work record</p><h2 id="actions-taken-heading">Actions Taken</h2></div>{!readOnly && <button ref={createButtonRef} className="zen-button zen-button-primary" type="button" onClick={openCreate} disabled={createOpen || editingId !== null}>Create Action</button>}</div>
+    <div className="zen-section-heading"><div><p className="zen-eyebrow">Public work record</p><h2 id="actions-taken-heading">Actions Taken</h2></div>{!readOnly && <button ref={createButtonRef} className="zen-button zen-button-primary" type="button" onClick={openCreate} disabled={listState !== "success" || createOpen || editingId !== null}>Create Action</button>}</div>
     {listState === "loading" && <p className="zen-state zen-state-info" role="status">Loading Actions Taken...</p>}
     {listState === "error" && <div className="zen-state zen-state-error" role="alert"><p>{listError}</p><button className="zen-button zen-button-secondary" type="button" onClick={() => setListRetry((value) => value + 1)}>Retry Actions</button></div>}
     {listState === "success" && totalItems === 0 && <p className="zen-state zen-state-info" role="status">No Actions Taken have been recorded for this Ticket.</p>}
@@ -517,7 +517,7 @@ export default function ActionsTaken({ ticketNumber, readOnly = false, currentUs
               <div className="zen-form-actions"><button className="zen-button zen-button-secondary" type="button" onClick={closeEdit} disabled={editBusy}>Cancel edit</button><button className="zen-button zen-button-primary" type="submit" disabled={editBusy || (action.status !== "COMPLETED" && assigneeState !== "success")}>{editBusy ? "Saving..." : "Save Action"}</button></div>
             </form>}
             {revision?.open && <div className="action-revision-history" aria-label={`Revision history for Action ${action.id}`}>
-              {revision.loading ? <p className="zen-state zen-state-info" role="status">Loading Action history...</p> : revision.error ? <div className="zen-state zen-state-error" role="alert"><p>{revision.error}</p><button className="zen-button zen-button-secondary" type="button" onClick={() => void loadRevisions(action.id)}>Retry history</button></div> : revision.revisions.length === 0 ? <p className="zen-state zen-state-info" role="status">No Action revisions have been recorded.</p> : <ol className="action-revision-list" aria-label="Action revision history">{revision.revisions.map((item) => <li key={item.id}><h4>Revision {item.revisionNumber}</h4><p>Changed {formatDate(item.changedAt)} by {identityLabel(item.actor)}</p><dl><div><dt>Description</dt><dd>{item.snapshot.description}</dd></div><div><dt>Result</dt><dd>{item.snapshot.result ?? "Not recorded"}</dd></div><div><dt>Status</dt><dd>{item.snapshot.status}</dd></div><div><dt>Follow-up required</dt><dd>{item.snapshot.followUpRequired ? "Yes" : "No"}</dd></div><div><dt>Follow-up Note</dt><dd>{item.snapshot.followUpNote ?? "Not recorded"}</dd></div><div><dt>Attachment Notes</dt><dd>{item.snapshot.attachmentNotes ?? "Not recorded"}</dd></div><div><dt>Cancellation reason</dt><dd>{item.snapshot.cancellationReason ?? "Not recorded"}</dd></div></dl></li>)}</ol>}
+              {revision.loading ? <p className="zen-state zen-state-info" role="status">Loading Action history...</p> : revision.error ? <div className="zen-state zen-state-error" role="alert"><p>{revision.error}</p><button className="zen-button zen-button-secondary" type="button" onClick={() => void loadRevisions(action.id, revision.page)}>Retry history</button></div> : revision.revisions.length === 0 ? <p className="zen-state zen-state-info" role="status">No Action revisions have been recorded.</p> : <><ol className="action-revision-list" aria-label="Action revision history">{revision.revisions.map((item) => <li key={item.id}><h4>Revision {item.revisionNumber}</h4><p>Changed {formatDate(item.changedAt)} by {identityLabel(item.actor)}</p><dl><div><dt>Description</dt><dd>{item.snapshot.description}</dd></div><div><dt>Result</dt><dd>{item.snapshot.result ?? "Not recorded"}</dd></div><div><dt>Status</dt><dd>{item.snapshot.status}</dd></div><div><dt>Follow-up required</dt><dd>{item.snapshot.followUpRequired ? "Yes" : "No"}</dd></div><div><dt>Follow-up Note</dt><dd>{item.snapshot.followUpNote ?? "Not recorded"}</dd></div><div><dt>Attachment Notes</dt><dd>{item.snapshot.attachmentNotes ?? "Not recorded"}</dd></div><div><dt>Cancellation reason</dt><dd>{item.snapshot.cancellationReason ?? "Not recorded"}</dd></div></dl></li>)}</ol>{revision.totalPages > 1 && <div className="action-taken-pagination action-revision-pagination"><span>Revision page {revision.page} of {revision.totalPages}</span><button className="zen-button zen-button-secondary" type="button" onClick={() => void loadRevisions(action.id, revision.page - 1)} disabled={revision.loading || revision.page <= 1}>Previous revisions</button><button className="zen-button zen-button-secondary" type="button" onClick={() => void loadRevisions(action.id, revision.page + 1)} disabled={revision.loading || revision.page >= revision.totalPages}>Next revisions</button></div>}</>}
             </div>}
           </li>;
         })}

@@ -20,7 +20,7 @@ For compactness, the exact path prefixes in this table are `S = server/tests/lab
 | API-07 | Migration/API; S`migration-regression.api.test.ts` | FR-07,12; BR-15,21; AC-10,16,17 | Apply the real Lab 4 migration to an actual pre-Lab-4 schema, preserve Ticket/Attachment/changed-password state; seed twice and after edits; collision skip; counter monotonic; backup/restore disposable rehearsal. | Partial: real migration and preservation plus repeat-seed checks passed; collision/counter and full recovery rehearsal remain open. |
 | API-08 | API; S`user-assignment-safety.api.test.ts` | FR-02,13; BR-02,05,20; AC-02,15 | Inactive/non-staff assignee, User active-Action conflict and session unchanged, self/last-Admin and owned-Ticket precedence, eligible role change and historical actors, concurrent eligibility change. | Partial: active-Action deactivation/demotion protection and assignment race passed; remaining safety cases stay open. |
 | PERF-01 | Performance-smoke; S`dashboard-performance.api.test.ts` | FR-09,10; BR-16–19; AC-13 | Representative 500-Ticket/1000-Action fixture; aggregate query count stays bounded as fixture doubles (no N+1), arrays capped5, response does not contain complete collections. Record elapsed diagnostics, no invented production SLA. | Planned |
-| UI-01 | Component; C`ActionsTaken.test.tsx` | FR-01–06; BR-01–10,22; AC-01–06,19 | Inline create/edit, required/optional markers, conditional requirements, plain-language field errors/focus, Requester and terminal-Ticket read-only views, lifecycle confirmation/reason, stale-draft retention, safe retry with stable idempotency key, active assignee and User-management safety feedback. | Partial: 18 Action component tests pass, including history retry, empty Result and read-only editor/dialog transitions; 10 Staff detail tests include all terminal statuses and loading/error guards. Focused Staff browser checks passed before the review fixes. Broader pagination, busy-guard and authenticated lifecycle E2E remain open. |
+| UI-01 | Component; C`ActionsTaken.test.tsx` | FR-01–06; BR-01–10,22; AC-01–06,19 | Inline create/edit, required/optional markers, conditional requirements, plain-language field errors/focus, Requester and terminal-Ticket read-only views, lifecycle confirmation/reason, stale-draft retention, safe retry with stable idempotency key, active assignee and User-management safety feedback. | Partial: 21 Action component tests pass, including Create Action loading/error/retry gating and revision-history pagination; 10 Staff detail tests include all terminal statuses and loading/error guards. Focused Staff browser checks passed before the review fixes. Authenticated lifecycle E2E remains open. |
 | UI-02 | Component; C`TicketWorkflow.test.tsx` | FR-07,08; BR-11–15,22; AC-06–10,19 | Legal target controls, gate explanation, confirmation/cancel reason, protected direct calls, reload on stale version, indication vs status, ordered history. | Planned |
 | UI-03 | Component; C`RequesterDashboard.test.tsx` | FR-10,11,14; BR-16,18,19,22; AC-12–14,19 | Loading/zero/error/Retry/session expiry, correct owned cards/lists/links, time display, navigation/deep link and account-cache reset. | Planned |
 | UI-04 | Component; C`StaffDashboard.test.tsx` | FR-09,11,14; BR-17–19,22; AC-11,14,19 | Current-user assigned Actions and real metric links, capped summaries, all states/refresh, role navigation, keyboard semantics. | Planned |
@@ -837,6 +837,50 @@ dist/assets/index-MFyozoXo.js   285.21 kB │ gzip: 76.04 kB
 ```
 
 Both commands exited 0; no skipped tests or React act warnings. No new server, browser or E2E rerun is claimed. PR #65 remains pending re-review, not approved or merged.
+
+### PR #65 follow-up — Create Action loading guard and revision pagination
+
+These changes are local on `feature/23-Lab4ActionsUI`, based on pushed head `c29ac55fb3893c228a4faf0a8edd37330e50bfb6`; they have not been committed or pushed. The red run reproduced both reported defects and the missing loading/error guard:
+
+```text
+cd client
+npm.cmd test -- --run tests/lab-04/ActionsTaken.test.tsx
+Before fix: 1 file failed; 3 failed / 18 passed (21)
+```
+
+Create Action is now disabled until the list response supplies the current Ticket version. Its loading test holds the request open; its error test confirms it stays disabled until Retry succeeds. Revision history uses the existing API pagination at 25 records per page, with Previous/Next controls and page count; a 26-revision test verifies navigation in both directions and exact page requests.
+
+Focused rerun and production build:
+
+```text
+cd client
+npm.cmd test -- --run tests/lab-04/ActionsTaken.test.tsx
+Test Files  1 passed (1)
+     Tests  21 passed (21)
+Start at 13:24:55
+Duration 7.73s
+npm.cmd run build
+> tsc && vite build
+vite v6.4.3 building for production...
+✓ 36 modules transformed.
+dist/index.html                   0.39 kB │ gzip:  0.27 kB
+dist/assets/index-DF3oHQfJ.css  253.08 kB │ gzip: 35.26 kB
+dist/assets/index-LHu-N5T-.js   285.99 kB │ gzip: 76.18 kB
+✓ built in 1.38s
+```
+
+The focused commands exited 0. The complete client suite also passed on this worktree:
+
+```text
+cd client
+npm.cmd test -- --run
+Test Files  15 passed (15)
+     Tests  88 passed (88)
+Start at 13:26:06
+Duration 14.53s
+```
+
+No browser/E2E checks were rerun for this follow-up.
 
 ## 5. Release and visual checklist — actual work only
 
