@@ -840,7 +840,7 @@ Both commands exited 0; no skipped tests or React act warnings. No new server, b
 
 ### PR #65 follow-up — Create Action loading guard and revision pagination
 
-These changes are local on `feature/23-Lab4ActionsUI`, based on pushed head `c29ac55fb3893c228a4faf0a8edd37330e50bfb6`; they have not been committed or pushed. The red run reproduced both reported defects and the missing loading/error guard:
+The fixes were committed and pushed in `5480ccbf8902193e081b7c54c2612b1638360ac6`. The earlier red run below reproduced both reported defects and the missing loading/error guard; the passing results that follow were rerun at the pushed PR head. At test time, the only pre-existing modified file was `docs/lab-04/ai-use.md`; no client source or test file differed from the tested commit.
 
 ```text
 cd client
@@ -850,15 +850,17 @@ Before fix: 1 file failed; 3 failed / 18 passed (21)
 
 Create Action is now disabled until the list response supplies the current Ticket version. Its loading test holds the request open; its error test confirms it stays disabled until Retry succeeds. Revision history uses the existing API pagination at 25 records per page, with Previous/Next controls and page count; a 26-revision test verifies navigation in both directions and exact page requests.
 
-Focused rerun and production build:
+Full client rerun and production build on commit `5480ccbf8902193e081b7c54c2612b1638360ac6`:
 
 ```text
 cd client
-npm.cmd test -- --run tests/lab-04/ActionsTaken.test.tsx
-Test Files  1 passed (1)
-     Tests  21 passed (21)
-Start at 13:24:55
-Duration 7.73s
+git rev-parse HEAD
+5480ccbf8902193e081b7c54c2612b1638360ac6
+npm.cmd test -- --run
+Test Files  15 passed (15)
+     Tests  88 passed (88)
+Start at 17:32:29
+Duration 18.57s
 npm.cmd run build
 > tsc && vite build
 vite v6.4.3 building for production...
@@ -866,21 +868,10 @@ vite v6.4.3 building for production...
 dist/index.html                   0.39 kB │ gzip:  0.27 kB
 dist/assets/index-DF3oHQfJ.css  253.08 kB │ gzip: 35.26 kB
 dist/assets/index-LHu-N5T-.js   285.99 kB │ gzip: 76.18 kB
-✓ built in 1.38s
+✓ built in 709ms
 ```
 
-The focused commands exited 0. The complete client suite also passed on this worktree:
-
-```text
-cd client
-npm.cmd test -- --run
-Test Files  15 passed (15)
-     Tests  88 passed (88)
-Start at 13:26:06
-Duration 14.53s
-```
-
-No browser/E2E checks were rerun for this follow-up.
+Both commands exited 0. No browser/E2E checks were rerun for this follow-up.
 
 ## 5. Release and visual checklist — actual work only
 
