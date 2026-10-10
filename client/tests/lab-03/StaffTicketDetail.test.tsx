@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import StaffTicketDetail from "../../src/StaffTicketDetail.js";
 import * as api from "../../src/api.js";
@@ -32,6 +32,7 @@ describe("Lab 3 Staff Ticket Detail operations", () => {
     vi.spyOn(api, "fetchTicketAttachments").mockResolvedValue([]);
     vi.spyOn(api, "fetchTicketComments").mockResolvedValue([]);
     vi.spyOn(api, "fetchInternalNotes").mockResolvedValue([]);
+    vi.spyOn(api, "fetchActionsTaken").mockResolvedValue({ actions: [], pagination: { page: 1, pageSize: 25, totalItems: 0, totalPages: 0, hasPreviousPage: false, hasNextPage: false }, ticketVersion: 0 });
     vi.spyOn(api, "updateStaffTicketAssignment").mockResolvedValue({ ...ticket, ticketOwner: assignees[0] });
     vi.spyOn(api, "updateStaffTicketPriority").mockResolvedValue({ ...ticket, itPriority: "URGENT" });
     vi.spyOn(api, "updateStaffTicketStatus").mockResolvedValue({ ...ticket, status: "RESOLVED" });
@@ -51,6 +52,32 @@ describe("Lab 3 Staff Ticket Detail operations", () => {
     expect(screen.getByRole("heading", { name: "Public Comments" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Internal Notes" })).toBeInTheDocument();
     expect(screen.getByText("Never shown to Requesters.")).toBeInTheDocument();
+  });
+
+  it("does not mount Actions while the Ticket is loading", async () => {
+    vi.mocked(api.fetchStaffTicket).mockReturnValueOnce(new Promise(() => {}));
+    render(<StaffTicketDetail ticketNumber={ticket.ticketNumber} currentUserId={8} navigate={vi.fn()} />);
+    await act(async () => {});
+    expect(screen.getByText("Loading Staff Ticket Detail...")).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Actions Taken" })).not.toBeInTheDocument();
+    expect(api.fetchActionsTaken).not.toHaveBeenCalled();
+  });
+
+  it.each([403, 404, 500])("does not mount Actions when Ticket loading returns %s", async (status) => {
+    vi.mocked(api.fetchStaffTicket).mockRejectedValueOnce(new api.ApiClientError("Safe error", status));
+    render(<StaffTicketDetail ticketNumber={ticket.ticketNumber} currentUserId={8} navigate={vi.fn()} />);
+    await screen.findByRole("alert", { name: "Staff Ticket detail loading error" });
+    expect(screen.queryByRole("region", { name: "Actions Taken" })).not.toBeInTheDocument();
+    expect(api.fetchActionsTaken).not.toHaveBeenCalled();
+  });
+
+  it.each(["RESOLVED", "CLOSED", "CANCELLED"] as const)("keeps Actions Taken read-only on a %s Ticket", async (status) => {
+    vi.mocked(api.fetchStaffTicket).mockResolvedValueOnce({ ...ticket, status });
+    render(<StaffTicketDetail ticketNumber={ticket.ticketNumber} currentUserId={8} navigate={vi.fn()} />);
+
+    const actions = await screen.findByRole("region", { name: "Actions Taken" });
+    expect(await within(actions).findByText("No Actions Taken have been recorded for this Ticket.")).toBeInTheDocument();
+    expect(within(actions).queryByRole("button", { name: "Create Action" })).not.toBeInTheDocument();
   });
 
   it("requires confirmation for reassignment and terminal status changes", async () => {

@@ -83,6 +83,11 @@ describe("Lab 3 Staff Ticket Queue", () => {
     vi.spyOn(api, "fetchTicketAttachments").mockResolvedValue([]);
     vi.spyOn(api, "fetchTicketComments").mockResolvedValue([]);
     vi.spyOn(api, "fetchInternalNotes").mockResolvedValue([]);
+    vi.spyOn(api, "fetchActionsTaken").mockResolvedValue({
+      actions: [],
+      pagination: { page: 1, pageSize: 25, totalItems: 0, totalPages: 0, hasPreviousPage: false, hasNextPage: false },
+      ticketVersion: 1,
+    });
   });
 
   afterEach(() => {

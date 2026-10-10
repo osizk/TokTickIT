@@ -15,6 +15,7 @@ import {
   indicateTicketResolution,
   removeTicketAttachment,
 } from "./api.js";
+import ActionsTaken from "./ActionsTaken.js";
 
 const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
 const MIME_BY_EXTENSION: Record<string, string> = {
@@ -350,7 +351,7 @@ export default function TicketDetail({ requester, ticketNumber, navigate }: Tick
         <div>
           <p className="zen-eyebrow">Requester workspace</p>
           <h1 id="ticket-detail-heading">Ticket Detail</h1>
-          <p className="zen-lead">Review your Ticket and manage its supporting Attachments.</p>
+          <p className="zen-lead">Review your Ticket, Actions Taken, and supporting Attachments.</p>
         </div>
         <button className="zen-button zen-button-secondary" type="button" onClick={() => navigate("/tickets")}>Back to My Tickets</button>
       </div>
@@ -388,6 +389,8 @@ export default function TicketDetail({ requester, ticketNumber, navigate }: Tick
         </form>
         <div className="zen-resolution-action"><button className="zen-button zen-button-secondary" type="button" onClick={() => void handleResolutionIndication()} disabled={resolutionSubmitting}>{resolutionSubmitting ? "Saving..." : "Problem appears resolved"}</button>{resolutionMessage && <p className="zen-state zen-state-success" role="status">{resolutionMessage}</p>}</div>
       </section>
+
+      <ActionsTaken ticketNumber={ticketNumber} readOnly />
 
       <section className="zen-attachment-section" aria-labelledby="ticket-attachments-heading">
         <div className="zen-section-heading">
