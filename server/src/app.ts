@@ -38,6 +38,7 @@ import {
   getStaffTicket,
   listStaffAssignees,
   listStaffTickets,
+  listTicketWorkflowEvents,
   updateStaffAssignment,
   updateStaffPriority,
   updateStaffStatus,
@@ -372,7 +373,7 @@ app.patch("/api/staff/tickets/:ticketNumber/assignment", async (req: Request, re
     assertAllowedOrigin(req);
     const context = await requireStaff(req);
     assertCsrf(context, req);
-    const result = await updateStaffAssignment(req.params.ticketNumber, req.body);
+    const result = await updateStaffAssignment(req.params.ticketNumber, req.body, context.user.id);
     markUncached(res);
     res.status(200).json(result);
   } catch (error) {
@@ -385,7 +386,7 @@ app.patch("/api/staff/tickets/:ticketNumber/priority", async (req: Request, res:
     assertAllowedOrigin(req);
     const context = await requireStaff(req);
     assertCsrf(context, req);
-    const result = await updateStaffPriority(req.params.ticketNumber, req.body);
+    const result = await updateStaffPriority(req.params.ticketNumber, req.body, context.user.id);
     markUncached(res);
     res.status(200).json(result);
   } catch (error) {
@@ -398,7 +399,18 @@ app.patch("/api/staff/tickets/:ticketNumber/status", async (req: Request, res: R
     assertAllowedOrigin(req);
     const context = await requireStaff(req);
     assertCsrf(context, req);
-    const result = await updateStaffStatus(req.params.ticketNumber, req.body);
+    const result = await updateStaffStatus(req.params.ticketNumber, req.body, context.user.id);
+    markUncached(res);
+    res.status(200).json(result);
+  } catch (error) {
+    sendTicketError(res, error);
+  }
+});
+
+app.get("/api/tickets/:ticketNumber/workflow-events", async (req: Request, res: Response) => {
+  try {
+    const reader = await requireTicketReader(req);
+    const result = await listTicketWorkflowEvents(req.params.ticketNumber, reader.staff ? undefined : reader.requesterId, req.query as Record<string, unknown>);
     markUncached(res);
     res.status(200).json(result);
   } catch (error) {

@@ -41,6 +41,7 @@ const queueResponse: api.StaffTicketResponse = {
       resolutionIndication: null,
       createdAt: "2026-08-27T08:30:00.000Z",
       updatedAt: "2026-08-27T09:30:00.000Z",
+      workflowVersion: 0,
     },
     {
       id: 2,
@@ -57,9 +58,15 @@ const queueResponse: api.StaffTicketResponse = {
       resolutionIndication: null,
       createdAt: "2026-08-26T08:30:00.000Z",
       updatedAt: "2026-08-26T09:30:00.000Z",
+      workflowVersion: 0,
     },
   ],
   pagination: { page: 1, pageSize: 10, totalItems: 2, totalPages: 1, hasPreviousPage: false, hasNextPage: false },
+};
+const detailTicket: api.StaffTicketDetail = {
+  ...queueResponse.items[0],
+  allowedTransitions: ["IN_PROGRESS", "WAITING_FOR_REQUESTER", "RESOLVED", "CANCELLED"],
+  resolutionGate: { canResolve: true, canClose: false, unmetConditions: [] },
 };
 
 async function openQueue(user: ReturnType<typeof userEvent.setup>) {
@@ -79,7 +86,8 @@ describe("Lab 3 Staff Ticket Queue", () => {
     vi.spyOn(api, "fetchRelatedSystems").mockResolvedValue(systems);
     vi.spyOn(api, "fetchStaffAssignees").mockResolvedValue(assignees);
     vi.spyOn(api, "fetchStaffTickets").mockResolvedValue(queueResponse);
-    vi.spyOn(api, "fetchStaffTicket").mockResolvedValue(queueResponse.items[0]);
+    vi.spyOn(api, "fetchStaffTicket").mockResolvedValue(detailTicket);
+    vi.spyOn(api, "fetchTicketWorkflowEvents").mockResolvedValue({ events: [], pagination: { page: 1, pageSize: 25, totalItems: 0, totalPages: 0, hasPreviousPage: false, hasNextPage: false } });
     vi.spyOn(api, "fetchTicketAttachments").mockResolvedValue([]);
     vi.spyOn(api, "fetchTicketComments").mockResolvedValue([]);
     vi.spyOn(api, "fetchInternalNotes").mockResolvedValue([]);

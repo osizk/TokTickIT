@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { randomUUID } from "node:crypto";
 import { execFile } from "node:child_process";
 import { cp, copyFile, mkdtemp, mkdir, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -26,7 +27,6 @@ let originalSystem: { isActive: boolean } | undefined;
 let originalUser: { name: string; passwordHash: string | null; mustChangePassword: boolean } | undefined;
 let changedPasswordHash: string | undefined;
 let seedActionId: number | undefined;
-let originalSeedActionDescription: string | undefined;
 
 function assertDisposableTestDatabase(): void {
   const databaseName = new URL(process.env.DATABASE_URL ?? "").pathname.slice(1);
@@ -158,8 +158,12 @@ async function restoreAndCleanup() {
   assertDisposableTestDatabase();
   const prisma = getPrisma();
   if (attachmentId) await prisma.attachment.deleteMany({ where: { id: attachmentId } });
+  if (ticketId) {
+    const actions = await prisma.actionTaken.findMany({ where: { ticketId }, select: { id: true } });
+    await prisma.actionTakenRevision.deleteMany({ where: { actionId: { in: actions.map((action) => action.id) } } });
+    await prisma.actionTaken.deleteMany({ where: { ticketId } });
+  }
   if (ticketId) await prisma.ticket.deleteMany({ where: { id: ticketId } });
-  if (seedActionId && originalSeedActionDescription) await prisma.actionTaken.update({ where: { id: seedActionId }, data: { description: originalSeedActionDescription } });
   if (requesterId && originalRequester) await prisma.requester.update({ where: { id: requesterId }, data: originalRequester });
   if (categoryId && originalCategory) await prisma.category.update({ where: { id: categoryId }, data: originalCategory });
   if (relatedSystemId && originalSystem) await prisma.relatedSystem.update({ where: { id: relatedSystemId }, data: originalSystem });
@@ -227,8 +231,10 @@ describe("Lab 4 migration and repeat seed regression", () => {
 
   it("runs the guarded seed twice without duplicating graphs or overwriting user-edited references and credentials", async () => {
     const prisma = getPrisma();
-    await runTestSeed();
     const seedYear = new Date().getUTCFullYear();
+    const fixtureNumbers = [910001, 910002, 910003].map((suffix) => `TKT-${seedYear}-${String(suffix).padStart(6, "0")}`);
+    const existingNumbers = new Set((await prisma.ticket.findMany({ where: { ticketNumber: { in: fixtureNumbers } }, select: { ticketNumber: true } })).map((ticket) => ticket.ticketNumber));
+    await runTestSeed();
     const [emptyTicket, oneActionTicket, multipleActionTicket] = await Promise.all([
       prisma.ticket.findUniqueOrThrow({ where: { ticketNumber: `TKT-${seedYear}-910001` } }),
       prisma.ticket.findUniqueOrThrow({ where: { ticketNumber: `TKT-${seedYear}-910002` } }),
@@ -239,14 +245,46 @@ describe("Lab 4 migration and repeat seed regression", () => {
       prisma.actionTaken.count({ where: { ticketId: oneActionTicket.id } }),
       prisma.actionTaken.findMany({ where: { ticketId: multipleActionTicket.id }, orderBy: [{ createdAt: "asc" }, { id: "asc" }] }),
     ]);
-    expect(emptyCount).toBe(0);
-    expect(oneCount).toBe(1);
-    expect(multipleActions).toHaveLength(2);
-    expect(multipleActions.map((action) => action.status)).toEqual(["COMPLETED", "OPEN"]);
-    const editableSeedAction = multipleActions[0];
-    seedActionId = editableSeedAction.id;
-    originalSeedActionDescription = editableSeedAction.description;
-    await prisma.actionTaken.update({ where: { id: seedActionId }, data: { description: "Student-edited seeded Action" } });
+    // Create-only seed fixtures may already contain student data; assert their template only when this run created them.
+    if (!existingNumbers.has(fixtureNumbers[0])) expect(emptyCount).toBe(0);
+    if (!existingNumbers.has(fixtureNumbers[1])) expect(oneCount).toBe(1);
+    if (!existingNumbers.has(fixtureNumbers[2])) {
+      expect(multipleActions).toHaveLength(2);
+      expect(multipleActions.map((action) => action.status)).toEqual(["COMPLETED", "OPEN"]);
+    }
+    const actionCreatedAt = new Date();
+    const snapshot = {
+      description: "Existing test Action",
+      result: null,
+      followUpRequired: false,
+      followUpNote: null,
+      attachmentNotes: null,
+      status: "OPEN",
+      cancellationReason: null,
+      assigneeUserId: userId!,
+      createdByUserId: userId!,
+      performedByUserId: null,
+      createdAt: actionCreatedAt.toISOString(),
+      updatedAt: actionCreatedAt.toISOString(),
+      completedAt: null,
+      cancelledAt: null,
+      version: 0,
+    };
+    const existingAction = await prisma.actionTaken.create({
+      data: {
+        ticketId: ticketId!,
+        assigneeUserId: userId!,
+        createdByUserId: userId!,
+        description: snapshot.description,
+        clientRequestId: randomUUID(),
+        requestFingerprint: "a".repeat(64),
+        createdAt: actionCreatedAt,
+        updatedAt: actionCreatedAt,
+        revisions: { create: { revisionNumber: 1, actorUserId: userId!, changedAt: actionCreatedAt, snapshot } },
+      },
+    });
+    seedActionId = existingAction.id;
+    await prisma.actionTaken.update({ where: { id: seedActionId }, data: { description: "Student-edited test Action" } });
     const countsBefore = await Promise.all([
       prisma.category.count(),
       prisma.relatedSystem.count(),
@@ -278,7 +316,7 @@ describe("Lab 4 migration and repeat seed regression", () => {
     expect(category.isActive).toBe(false);
     expect(relatedSystem.isActive).toBe(false);
     expect(user).toMatchObject({ name: "Student-edited Staff", passwordHash: changedPasswordHash, mustChangePassword: false });
-    expect(preservedAction.description).toBe("Student-edited seeded Action");
+    expect(preservedAction.description).toBe("Student-edited test Action");
     expect((await prisma.ticket.findUniqueOrThrow({ where: { id: ticketId } })).workflowVersion).toBe(0);
     expect((await prisma.attachment.findUniqueOrThrow({ where: { id: attachmentId } })).ticketId).toBe(ticketId);
   }, 60_000);

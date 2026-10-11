@@ -133,11 +133,12 @@ describe("Lab 3 IT Staff Ticket Queue API", () => {
       requestedPriority: "URGENT",
       itPriority: "LOW",
       status: "WAITING_FOR_REQUESTER",
+      workflowVersion: 0,
       ticketOwner: { id: staffBId, name: "Queue Staff B", email: staffBEmail, role: "ADMINISTRATOR" },
     });
     expect(Object.keys(response.body.items[0]).sort()).toEqual([
       "category", "createdAt", "description", "id", "itPriority", "relatedSystem", "requester",
-      "requestedPriority", "resolutionIndication", "status", "summary", "ticketNumber", "ticketOwner", "updatedAt",
+      "requestedPriority", "resolutionIndication", "status", "summary", "ticketNumber", "ticketOwner", "updatedAt", "workflowVersion",
     ].sort());
   });
 
@@ -191,12 +192,16 @@ describe("Lab 3 IT Staff Ticket Queue API", () => {
       requestedPriority: "LOW",
       itPriority: "URGENT",
       status: "NEW",
+      workflowVersion: 0,
       ticketOwner: null,
     });
     expect(Object.keys(response.body.ticket).sort()).toEqual([
       "category", "createdAt", "description", "id", "itPriority", "relatedSystem", "requester",
       "requestedPriority", "resolutionIndication", "status", "summary", "ticketNumber", "ticketOwner", "updatedAt",
+      "allowedTransitions", "resolutionGate", "workflowVersion",
     ].sort());
+    expect(response.body.ticket.allowedTransitions).toEqual(["OPEN", "CANCELLED"]);
+    expect(response.body.ticket.resolutionGate).toEqual({ canResolve: false, canClose: false, unmetConditions: ["OWNER_REQUIRED", "COMPLETED_ACTION_REQUIRED"] });
 
     const missing = await staffA.get("/api/staff/tickets/TKT-2096-999999");
     expect(missing.status).toBe(404);

@@ -46,6 +46,7 @@ model User {
   createdActions        ActionTaken[]         @relation("ActionCreator")
   performedActions      ActionTaken[]         @relation("ActionPerformer")
   actionRevisions       ActionTakenRevision[]
+  workflowEvents        TicketWorkflowEvent[]
 
   @@index([isActive, role, name])
 }
@@ -133,6 +134,7 @@ model Ticket {
   publicComments              PublicComment[]
   internalNotes               InternalNote[]
   actionsTaken                ActionTaken[]
+  workflowEvents              TicketWorkflowEvent[]
 
   @@index([requesterId, updatedAt, id])
   @@index([requesterId, createdAt, id])
@@ -185,6 +187,22 @@ model ActionTakenRevision {
   actor          User        @relation(fields: [actorUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   @@unique([actionId, revisionNumber])
+}
+
+model TicketWorkflowEvent {
+  id              Int         @id @default(autoincrement())
+  ticketId        Int
+  actorUserId     Int
+  fromStatus      TicketStatus
+  toStatus        TicketStatus
+  reason          String?
+  workflowVersion Int
+  createdAt       DateTime    @default(now())
+  ticket          Ticket      @relation(fields: [ticketId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  actor           User        @relation(fields: [actorUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([ticketId, workflowVersion])
+  @@index([ticketId, createdAt, id])
 }
 
 model PublicComment {

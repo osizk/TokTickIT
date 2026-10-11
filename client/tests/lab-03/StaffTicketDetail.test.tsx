@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import StaffTicketDetail from "../../src/StaffTicketDetail.js";
 import * as api from "../../src/api.js";
 
-const ticket: api.StaffTicket = {
+const ticket: api.StaffTicketDetail = {
   id: 1,
   ticketNumber: "TKT-2026-000001",
   requester: { id: 1, name: "Amina Rahman", email: "amina@example.test" },
@@ -17,8 +17,11 @@ const ticket: api.StaffTicket = {
   description: "The connection drops repeatedly during class.",
   ticketOwner: { id: 8, name: "Michael Brown", email: "michael@example.com", role: "IT_STAFF" },
   resolutionIndication: null,
+  workflowVersion: 0,
   createdAt: "2026-09-13T10:00:00.000Z",
   updatedAt: "2026-09-13T10:05:00.000Z",
+  allowedTransitions: ["IN_PROGRESS", "WAITING_FOR_REQUESTER", "RESOLVED", "CANCELLED"],
+  resolutionGate: { canResolve: true, canClose: false, unmetConditions: [] },
 };
 const assignees: api.StaffAssignee[] = [
   { id: 8, name: "Michael Brown", email: "michael@example.test", role: "IT_STAFF" },
@@ -32,6 +35,7 @@ describe("Lab 3 Staff Ticket Detail operations", () => {
     vi.spyOn(api, "fetchTicketAttachments").mockResolvedValue([]);
     vi.spyOn(api, "fetchTicketComments").mockResolvedValue([]);
     vi.spyOn(api, "fetchInternalNotes").mockResolvedValue([]);
+    vi.spyOn(api, "fetchTicketWorkflowEvents").mockResolvedValue({ events: [], pagination: { page: 1, pageSize: 25, totalItems: 0, totalPages: 0, hasPreviousPage: false, hasNextPage: false } });
     vi.spyOn(api, "fetchActionsTaken").mockResolvedValue({ actions: [], pagination: { page: 1, pageSize: 25, totalItems: 0, totalPages: 0, hasPreviousPage: false, hasNextPage: false }, ticketVersion: 0 });
     vi.spyOn(api, "updateStaffTicketAssignment").mockResolvedValue({ ...ticket, ticketOwner: assignees[0] });
     vi.spyOn(api, "updateStaffTicketPriority").mockResolvedValue({ ...ticket, itPriority: "URGENT" });
@@ -89,13 +93,13 @@ describe("Lab 3 Staff Ticket Detail operations", () => {
     await user.click(screen.getByRole("button", { name: "Assign / Reassign" }));
     expect(await screen.findByRole("dialog", { name: "Confirm reassignment" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Confirm" }));
-    await waitFor(() => expect(api.updateStaffTicketAssignment).toHaveBeenCalledWith(ticket.ticketNumber, 9, true));
+    await waitFor(() => expect(api.updateStaffTicketAssignment).toHaveBeenCalledWith(ticket.ticketNumber, 9, 0, true));
 
     await user.selectOptions(screen.getByRole("combobox", { name: "Status" }), "RESOLVED");
     await user.click(screen.getByRole("button", { name: "Save Status" }));
     expect(await screen.findByRole("dialog", { name: "Change status to RESOLVED?" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Confirm" }));
-    await waitFor(() => expect(api.updateStaffTicketStatus).toHaveBeenCalledWith(ticket.ticketNumber, "RESOLVED", true));
+    await waitFor(() => expect(api.updateStaffTicketStatus).toHaveBeenCalledWith(ticket.ticketNumber, "RESOLVED", 0, true, undefined));
   });
 
   it("posts a public comment and a staff-only internal note", async () => {
