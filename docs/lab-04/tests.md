@@ -21,7 +21,7 @@ For compactness, the exact path prefixes in this table are `S = server/tests/lab
 | API-08 | API; S`user-assignment-safety.api.test.ts` | FR-02,13; BR-02,05,20; AC-02,15 | Inactive/non-staff assignee, User active-Action conflict and session unchanged, self/last-Admin and owned-Ticket precedence, eligible role change and historical actors, concurrent eligibility change. | Partial: active-Action deactivation/demotion protection and assignment race passed; remaining safety cases stay open. |
 | PERF-01 | Performance-smoke; S`dashboard-performance.api.test.ts` | FR-09,10; BR-16–19; AC-13 | Representative 500-Ticket/1000-Action fixture; aggregate query count stays bounded as fixture doubles (no N+1), arrays capped5, response does not contain complete collections. Record elapsed diagnostics, no invented production SLA. | Planned |
 | UI-01 | Component; C`ActionsTaken.test.tsx` | FR-01–06; BR-01–10,22; AC-01–06,19 | Inline create/edit, required/optional markers, conditional requirements, plain-language field errors/focus, Requester and terminal-Ticket read-only views, lifecycle confirmation/reason, stale-draft retention, safe retry with stable idempotency key, active assignee and User-management safety feedback. | Partial: 21 Action component tests pass, including Create Action loading/error/retry gating and revision-history pagination; 10 Staff detail tests include all terminal statuses and loading/error guards. Focused Staff browser checks passed before the review fixes. Authenticated lifecycle E2E remains open. |
-| UI-02 | Component; C`TicketWorkflow.test.tsx` | FR-07,08; BR-11–15,22; AC-06–10,19 | Legal target controls, gate explanation, confirmation/cancel reason, protected direct calls, reload on stale version, indication vs status, ordered history. | Partial: 3 workflow UI tests passed for gate guidance, legal targets, cancellation reason, stale reload, advisory indication and history; full visual/accessibility/E2E assertions remain open. |
+| UI-02 | Component; C`TicketWorkflow.test.tsx` | FR-07,08; BR-11–15,22; AC-06–10,19 | Legal target controls, gate explanation, confirmation/cancel reason, protected direct calls, reload on stale version, indication vs status, ordered history. | Partial: 5 workflow UI tests passed, including history pagination reset when switching Tickets and Asia/Bangkok timestamp formatting; full visual/accessibility/E2E assertions remain open. |
 | UI-03 | Component; C`RequesterDashboard.test.tsx` | FR-10,11,14; BR-16,18,19,22; AC-12–14,19 | Loading/zero/error/Retry/session expiry, correct owned cards/lists/links, time display, navigation/deep link and account-cache reset. | Planned |
 | UI-04 | Component; C`StaffDashboard.test.tsx` | FR-09,11,14; BR-17–19,22; AC-11,14,19 | Current-user assigned Actions and real metric links, capped summaries, all states/refresh, role navigation, keyboard semantics. | Planned |
 | STYLE-01 | Style/responsive; C`ZenGreen.styles.test.tsx` | FR-14; BR-22; AC-19 | Token and breakpoint/style contracts; browser visual/overflow/accessibility checks remain E2E/MAN, not jsdom viewport claims. | Partial: 3 style tests passed; real Staff Action forms inspected at desktop/tablet/mobile and breakpoint boundaries without page overflow. Full role/page visual and screen-reader checks remain open. |
@@ -875,7 +875,7 @@ Both commands exited 0. No browser/E2E checks were rerun for this follow-up.
 
 ### Issue #58 — Ticket workflow and resolution gate
 
-The tested and pushed implementation commit is `a83f77b194fe5880e90142984b075750a5e3c495` on `feature/24-Lab4TicketWorkflow`, based on current `lab4-staging` commit `aa4f51ac178433b89a14dcd33f2be425e45bdad0`. The migration and automated database tests used the guarded disposable `toktickit_test` database; no reset or development-database mutation was performed. PR [#66](https://github.com/osizk/TokTickIT/pull/66) is open into `lab4-staging`; no review, approval, merge, or Project status change is claimed.
+The tested and pushed implementation commit is `a83f77b194fe5880e90142984b075750a5e3c495` on `feature/24-Lab4TicketWorkflow`, based on current `lab4-staging` commit `aa4f51ac178433b89a14dcd33f2be425e45bdad0`. The evidence-only follow-up `b8e2fb3` bound the recorded results to that tested commit. The migration and automated database tests used the guarded disposable `toktickit_test` database; no reset or development-database mutation was performed. PR #66 was closed unmerged after discovering it was created under the wrong GitHub account; replacement PR [#67](https://github.com/osizk/TokTickIT/pull/67) is open into `lab4-staging`. No review, approval, merge, or Project status change is claimed.
 
 Issue coverage adds the persisted `TicketWorkflowEvent` history, backend transition matrix and action-based resolution gate, transaction-time active actor/owner checks, optimistic `workflowVersion`, safe ordered history retrieval, Ticket cancellation with unfinished-Action revisions, and Requester resolution indication as an advisory value. Client controls use server-permitted targets, display gate reasons/history, collect cancellation reasons, and offer reload after stale writes. An inherited status-update caller now omits an empty cancellation reason on non-cancellation transitions. Regression fixtures were updated for the required version and new response fields. The repeat-seed test now preserves pre-existing create-only seed graphs and uses its own unique Ticket for Action-preservation checks rather than assuming reserved fixture numbers are pristine.
 
@@ -934,6 +934,34 @@ exit code 0
 ```
 
 Prisma schema validation/generation and guarded `prisma:test:migrate` also passed earlier in this worktree; migration `20261011100000_lab4_ticket_workflow` was applied to the `_test` database. No real-browser screenshots, Playwright workflow E2E, or screen-reader audit are claimed here. Those remain release/Issue #61 evidence rather than checked Issue #58 results.
+
+### PR #67 review fixes — verification before follow-up commit
+
+These results were run from a worktree based on PR branch tip `b8e2fb3`, before the follow-up commit. Two regression tests first failed before the implementation changes: one showed the new Ticket still requested history page 2, and one showed the formatter omitted the Bangkok timezone. After the fixes:
+
+```text
+cd client
+npm.cmd test -- --run tests/lab-04/TicketWorkflow.test.tsx
+Test Files  1 passed (1)
+     Tests  5 passed (5)
+```
+
+```text
+cd client
+npm.cmd test -- --run
+Test Files  16 passed (16)
+     Tests  93 passed (93)
+```
+
+```text
+cd client
+npm.cmd run build
+> tsc && vite build
+37 modules transformed.
+✓ built in 706ms
+```
+
+The full server suite was not rerun because these follow-up changes affect only the client.
 
 ## 5. Release and visual checklist — actual work only
 

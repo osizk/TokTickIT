@@ -52,6 +52,64 @@ describe("Lab 4 Ticket workflow UI", () => {
     expect(screen.getByText(/By Michael Brown.*Workflow version 4/)).toBeInTheDocument();
   });
 
+  it("resets history pagination when the displayed Ticket changes", async () => {
+    const user = userEvent.setup();
+    const nextTicketNumber = "TKT-2026-000059";
+    const event = (id: number, ticketNumber: string, reason: string | null): api.TicketWorkflowEvent => ({
+      id, ticketNumber,
+      actor: { id: 8, name: "Michael Brown", email: "michael@example.test", role: "IT_STAFF" },
+      fromStatus: "OPEN", toStatus: "IN_PROGRESS", reason, workflowVersion: id,
+      createdAt: "2026-10-11T09:00:00.000Z",
+    });
+    vi.mocked(api.fetchTicketWorkflowEvents).mockImplementation(async (ticketNumber, requestedPage = 1) => {
+      if (ticketNumber === ticket.ticketNumber) {
+        if (requestedPage === 1) {
+          return {
+            events: Array.from({ length: 25 }, (_, index) => event(index + 1, ticketNumber, null)),
+            pagination: { ...pagination, totalItems: 26, totalPages: 2, hasNextPage: true },
+          };
+        }
+        return {
+          events: [event(26, ticketNumber, "Old Ticket page two")],
+          pagination: { ...pagination, page: 2, totalItems: 26, totalPages: 2, hasPreviousPage: true },
+        };
+      }
+      if (requestedPage === 1) {
+        return {
+          events: [event(100, ticketNumber, "New Ticket first page")],
+          pagination: { ...pagination, totalItems: 1, totalPages: 1 },
+        };
+      }
+      return {
+        events: [],
+        pagination: { ...pagination, page: requestedPage, totalItems: 1, totalPages: 1, hasPreviousPage: true },
+      };
+    });
+
+    const { rerender } = render(<TicketWorkflow ticketNumber={ticket.ticketNumber} status={ticket.status} workflowVersion={ticket.workflowVersion} resolutionIndication={ticket.resolutionIndication} />);
+    expect(await screen.findByText("Page 1 of 2")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Next history page" }));
+    expect(await screen.findByText("Reason: Old Ticket page two")).toBeInTheDocument();
+
+    rerender(<TicketWorkflow ticketNumber={nextTicketNumber} status={ticket.status} workflowVersion={ticket.workflowVersion} resolutionIndication={ticket.resolutionIndication} />);
+
+    expect(await screen.findByText("Reason: New Ticket first page")).toBeInTheDocument();
+    await waitFor(() => expect(api.fetchTicketWorkflowEvents).toHaveBeenLastCalledWith(nextTicketNumber, 1));
+    expect(screen.queryByText("Page 2 of 2")).not.toBeInTheDocument();
+  });
+
+  it("formats workflow event timestamps in the Bangkok timezone", async () => {
+    const toLocaleString = vi.spyOn(Date.prototype, "toLocaleString");
+    vi.mocked(api.fetchTicketWorkflowEvents).mockResolvedValueOnce({
+      events: [{ id: 7, ticketNumber: ticket.ticketNumber, actor: { id: 8, name: "Michael Brown", email: "michael@example.test", role: "IT_STAFF" }, fromStatus: "OPEN", toStatus: "IN_PROGRESS", reason: null, workflowVersion: 4, createdAt: "2026-10-11T09:00:00.000Z" }],
+      pagination: { ...pagination, totalItems: 1, totalPages: 1 },
+    });
+    render(<TicketWorkflow ticketNumber={ticket.ticketNumber} status={ticket.status} workflowVersion={ticket.workflowVersion} resolutionIndication={ticket.resolutionIndication} />);
+
+    expect(await screen.findByText(/By Michael Brown.*Workflow version 4/)).toBeInTheDocument();
+    expect(toLocaleString).toHaveBeenCalledWith(undefined, { timeZone: "Asia/Bangkok" });
+  });
+
   it("shows resolution prerequisites and only permits legal Status targets", async () => {
     const user = userEvent.setup();
     render(<StaffTicketDetail ticketNumber={ticket.ticketNumber} navigate={vi.fn()} />);

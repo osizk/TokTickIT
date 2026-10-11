@@ -26,7 +26,7 @@ const GATE_MESSAGES: Record<ResolutionGate["unmetConditions"][number], string> =
 
 function formatDate(value: string): string {
   const date = new Date(value);
-  return Number.isNaN(date.valueOf()) ? value : date.toLocaleString();
+  return Number.isNaN(date.valueOf()) ? value : date.toLocaleString(undefined, { timeZone: "Asia/Bangkok" });
 }
 
 function WorkflowEventList({ events }: { events: TicketWorkflowEvent[] }) {
@@ -47,6 +47,8 @@ export default function TicketWorkflow({ ticketNumber, status, workflowVersion, 
   const [retry, setRetry] = useState(0);
   const [history, setHistory] = useState<TicketWorkflowHistory | null>(null);
   const [state, setState] = useState<"loading" | "success" | "error">("loading");
+
+  useEffect(() => { setPage(1); }, [ticketNumber]);
 
   useEffect(() => {
     let cancelled = false;
