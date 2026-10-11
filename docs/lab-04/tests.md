@@ -201,7 +201,7 @@ All Issues are sequential. Issue #55 approved merge precedes #56; each later app
 | #56 Actions foundation/APIs | feature/22-Lab4ActionsFoundation; UNIT-01/02, API-01/02/03/07/08 | Observed implementation evidence is recorded below; UI/dashboard/E2E remain for later Issues. |
 | #57 Actions UI | feature/23-Lab4ActionsUI; UI-01 | Component tests, inherited client regression/build; real selected-record/read-only/validation captures. |
 | #58 Ticket workflow | feature/24-Lab4TicketWorkflow; UNIT-02, API-03/04, UI-02 | Commit-bound evidence below: full server/client regressions and builds passed. E2E/manual screenshots and wider matrix completion remain pending. |
-| #59 Dashboard APIs | feature/25-Lab4DashboardAPIs; UNIT-03, API-02/05/06/07, PERF-01 | TDD red then green; 13 focused dashboard/role tests, full server regression (38 files/160 tests, including migration/seed), server build; bounded query smoke. Detailed worktree evidence below. |
+| #59 Dashboard APIs | feature/25-Lab4DashboardAPIs; UNIT-03, API-02/05/06/07, PERF-01 | [PR #68](https://github.com/osizk/TokTickIT/pull/68) is open to `lab4-staging`; TDD red then green; 13 focused dashboard/role tests, full server regression (38 files/160 tests, including migration/seed), server build; bounded query smoke. Detailed commit-bound evidence below. |
 | #60 Dashboards UI | feature/26-Lab4DashboardsUI; UI-03/04, STYLE-01 | Routes/role states/links/current-user Actions, client regression/build; real responsive captures. |
 | #61 Final regression | feature/27-Lab4FinalRegression; E2E-01/02/03 and regressions | Full server/client/E2E, builds, migration/repeated seed/recovery, responsive/a11y/visual/API evidence. |
 | #62 Release evidence | feature/28-Lab4ReleaseEvidence; DOC-01/evidence gap audit | Final traceability/README/reviewer/real AI selection/authorized reflection; actual Project/history/reviews; release-candidate then required final-main verification. |
@@ -999,7 +999,7 @@ npm.cmd run build
 exit code 0
 ```
 
-No skips were reported by the full server run. The dashboard API and query/filter work is verified here; Staff/Requester dashboard UI, responsive screenshots, browser E2E and visual/accessibility evidence belong to Issues #60–61 and remain pending. This evidence-only documentation follow-up does not change the tested server code.
+No skips were reported by the full server run. The dashboard API and query/filter work is verified here; Staff/Requester dashboard UI, responsive screenshots, browser E2E and visual/accessibility evidence belong to Issues #60–61 and remain pending. [PR #68](https://github.com/osizk/TokTickIT/pull/68) is open for teammate review; no approval or merge is claimed. Evidence-only documentation follow-ups do not change the tested server code.
 
 ## 5. Release and visual checklist — actual work only
 
