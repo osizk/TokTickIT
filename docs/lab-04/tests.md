@@ -1,6 +1,6 @@
 # Lab 4 Tests and Evidence
 
-Issue #55 establishes the contract baseline. Issue #56, #57, and commit-bound Issue #58 candidate evidence are recorded in Section 4; dashboards, full E2E, and release evidence remain pending. Normative requirements: [specification.md](specification.md); [API](api-spec.md); [UI](ui-spec.md). Each ID below maps to an intended concrete test path. **Planned** means no automated test for that row has been run; **Partial** means some but not all assertions for that row have been verified. Issue evidence names the subset actually covered. Never check an unobserved result or claim candidate output came from final `main`.
+Issue #55 establishes the contract baseline. Issues #56–59 and their verified implementation evidence are recorded in Section 4; dashboard UI, full E2E, and release evidence remain pending. Normative requirements: [specification.md](specification.md); [API](api-spec.md); [UI](ui-spec.md). Each ID below maps to an intended concrete test path. **Planned** means no automated test for that row has been run; **Partial** means some but not all assertions for that row have been verified. Issue evidence names the subset actually covered. Never check an unobserved result or claim candidate output came from final `main`.
 
 ## 1. Planned test matrix
 
@@ -10,16 +10,16 @@ For compactness, the exact path prefixes in this table are `S = server/tests/lab
 | --- | --- | --- | --- | --- |
 | UNIT-01 | Unit; S`action-validation.unit.test.ts` | FR-02,05; BR-02,04,05,06; AC-02,03 | Trim boundaries, wrong types/unknown actor/date fields, default assignee, conditional note, Result completion and cancellation reason. | Partial: Issue #56 validation subset passed; full matrix remains open. |
 | UNIT-02 | Unit; S`workflow-rules.unit.test.ts` | FR-04,07; BR-07,08,11,12,15; AC-05,07,08,10 | Every allowed/forbidden Action/Ticket transition, terminal edits, gate combinations, cancellation and legacy zero-Action rules. | Partial: all 37 unit tests passed, including exhaustive Action/Ticket status-pair checks and gate predicates; broader lifecycle/API/browser assertions remain open. |
-| UNIT-03 | Unit; S`dashboard-calculations.unit.test.ts` | FR-09,10; BR-17,18; AC-11,13 | Distinct Tickets vs Actions, active states, zero counts, UTC seven-day edges/future dates, Asia/Bangkok display, deterministic ties. | Planned |
+| UNIT-03 | Unit; S`dashboard-calculations.unit.test.ts` | FR-09,10; BR-17,18; AC-11,13 | Distinct Tickets vs Actions, active states, zero counts, UTC seven-day edges/future dates, Asia/Bangkok display, deterministic ties. | Passed in Issue #59 worktree; 4 tests. |
 | API-01 | API; S`actions-taken.api.test.ts` | FR-01,02,03,04,05,06; BR-01–09; AC-01–05 | Real create/list/edit/assign/complete/cancel, Owner≠actors, completed correction with inactive assignee, actor active-role recheck inside each write transaction, immutable prefix snapshots, no-op, scoped pagination, validation and rollback. | Partial: implemented lifecycle subset plus stale-actor and inactive-assignee corrections passed; remaining lifecycle assertions stay open. |
-| API-02 | API; S`authorization.api.test.ts` | FR-01,10,13,14; BR-01,03,16,22; AC-01,12,18 | Missing/expired/revoked/password-gated sessions, CSRF/Origin, Requester mutation403, own read, cross-owner/resource404, Staff/Admin access and sanitized errors. | Partial: Action-session, role, and ownership checks passed; full authorization matrix remains open. |
+| API-02 | API; S`authorization.api.test.ts` | FR-01,10,13,14; BR-01,03,16,22; AC-01,12,18 | Missing/expired/revoked/password-gated sessions, CSRF/Origin, Requester mutation403, own read, cross-owner/resource404, Staff/Admin access and sanitized errors. | Partial: dashboard unauthenticated/wrong-role checks and existing session/role/ownership tests passed in full server run; complete authorization and browser matrix remains open. |
 | API-03 | API; S`concurrency.api.test.ts` | FR-03,06,07,08; BR-09,10,12,14; AC-04,06,08 | Same-key concurrent create one row/revision; different payload409; replay after stale version; edit/edit, resolve/create, resolve/follow-up, assignment/Admin races; forced transaction failure; bounded conflict retry. | Partial: existing idempotency/stale replay/rollback/race tests and Issue #58 version/no-op/stale Ticket mutations passed; workflow race scenarios remain open. |
 | API-04 | API; S`ticket-workflow.api.test.ts` | FR-07,08,12; BR-11–15; AC-07–10 | Full matrix, confirmation/reason, each gate predicate, event order, advisory indication, reopen clearing, terminal legacy behavior, atomic Ticket/Action cancellation rollback. | Partial: 4 workflow API tests passed, including gate rejection and success after a valid completed Action, cancellation effects, indication idempotency/reopen and history; exhaustive predicate/error/history isolation checks remain open. |
-| API-05 | API; S`requester-dashboard.api.test.ts` | FR-10,11; BR-16,18,19; AC-12–14 | Session scope, all owned statuses, exact metrics, bounds/ties/zero, attention and recent, shared filtered totals, unsupported identity query400. | Planned |
-| API-06 | API; S`staff-dashboard.api.test.ts` | FR-09,11; BR-17–19; AC-11,13,14 | Unassigned/my-owned/urgent/distinct my-Action metrics, current-user Action rows, status/IT-priority counts, bounded lists, drill-down and Owner≠assignee. | Planned |
+| API-05 | API; S`requester-dashboard.api.test.ts` | FR-10,11; BR-16,18,19; AC-12–14 | Session scope, all owned statuses, exact metrics, bounds/ties/zero, attention and recent, shared filtered totals, unsupported identity query400. | Passed in Issue #59 worktree; 4 tests. |
+| API-06 | API; S`staff-dashboard.api.test.ts` | FR-09,11; BR-17–19; AC-11,13,14 | Unassigned/my-owned/urgent/distinct my-Action metrics, current-user Action rows, status/IT-priority counts, bounded lists, drill-down and Owner≠assignee. | Passed in Issue #59 worktree; 4 tests. |
 | API-07 | Migration/API; S`migration-regression.api.test.ts` | FR-07,12; BR-15,21; AC-10,16,17 | Apply the real Lab 4 migration to an actual pre-Lab-4 schema, preserve Ticket/Attachment/changed-password state; seed twice and after edits; collision skip; counter monotonic; backup/restore disposable rehearsal. | Partial: real migration and preservation plus repeat-seed checks passed; collision/counter and full recovery rehearsal remain open. |
 | API-08 | API; S`user-assignment-safety.api.test.ts` | FR-02,13; BR-02,05,20; AC-02,15 | Inactive/non-staff assignee, User active-Action conflict and session unchanged, self/last-Admin and owned-Ticket precedence, eligible role change and historical actors, concurrent eligibility change. | Partial: active-Action deactivation/demotion protection and assignment race passed; remaining safety cases stay open. |
-| PERF-01 | Performance-smoke; S`dashboard-performance.api.test.ts` | FR-09,10; BR-16–19; AC-13 | Representative 500-Ticket/1000-Action fixture; aggregate query count stays bounded as fixture doubles (no N+1), arrays capped5, response does not contain complete collections. Record elapsed diagnostics, no invented production SLA. | Planned |
+| PERF-01 | Performance-smoke; S`dashboard-performance.api.test.ts` | FR-09,10; BR-16–19; AC-13 | Representative 500-Ticket/1000-Action fixture; aggregate query count stays bounded as fixture doubles (no N+1), arrays capped5, response does not contain complete collections. Record elapsed diagnostics, no invented production SLA. | Passed in Issue #59 worktree; 1 test. Query count remained 23 at both sizes; see §4. |
 | UI-01 | Component; C`ActionsTaken.test.tsx` | FR-01–06; BR-01–10,22; AC-01–06,19 | Inline create/edit, required/optional markers, conditional requirements, plain-language field errors/focus, Requester and terminal-Ticket read-only views, lifecycle confirmation/reason, stale-draft retention, safe retry with stable idempotency key, active assignee and User-management safety feedback. | Partial: 21 Action component tests pass, including Create Action loading/error/retry gating and revision-history pagination; 10 Staff detail tests include all terminal statuses and loading/error guards. Focused Staff browser checks passed before the review fixes. Authenticated lifecycle E2E remains open. |
 | UI-02 | Component; C`TicketWorkflow.test.tsx` | FR-07,08; BR-11–15,22; AC-06–10,19 | Legal target controls, gate explanation, confirmation/cancel reason, protected direct calls, reload on stale version, indication vs status, ordered history. | Partial: 5 workflow UI tests passed, including history pagination reset when switching Tickets and Asia/Bangkok timestamp formatting; full visual/accessibility/E2E assertions remain open. |
 | UI-03 | Component; C`RequesterDashboard.test.tsx` | FR-10,11,14; BR-16,18,19,22; AC-12–14,19 | Loading/zero/error/Retry/session expiry, correct owned cards/lists/links, time display, navigation/deep link and account-cache reset. | Planned |
@@ -50,14 +50,14 @@ The AC table in specification is authoritative; every AC-01–20 appears above w
 | AC-08 | UNIT-02; API-03,04; UI-02; E2E-02 | Partial: gate predicates, valid completion-to-resolution and cancellation effects passed; exhaustive concurrency/rollback/E2E remains open. |
 | AC-09 | API-04; REG-01; E2E-02 | Partial: versioned ordered status events and reopen history passed; complete role-isolation and inherited regression remains open. |
 | AC-10 | API-04,07; E2E-02 | Partial: legacy zero-Action reopen path and immutable workflow history passed; full event API/browser history coverage remains open. |
-| AC-11 | UNIT-03; API-06; UI-04; E2E-03 | Planned |
-| AC-12 | API-02,05; UI-03; E2E-03 | Planned |
-| AC-13 | UNIT-03; API-05,06; PERF-01; E2E-03 | Planned |
-| AC-14 | API-05,06; UI-03,04; E2E-03 | Planned |
+| AC-11 | UNIT-03; API-06; UI-04; E2E-03 | Partial: Staff metrics/status/priority API and drill-down checks passed; Staff dashboard UI/E2E remain pending. |
+| AC-12 | API-02,05; UI-03; E2E-03 | Partial: Requester-scoped dashboard API, zero-state and list-filter checks passed; dashboard UI/E2E remain pending. |
+| AC-13 | UNIT-03; API-05,06; PERF-01; E2E-03 | Partial: calculation, API, drill-down and bounded-query smoke tests passed; dashboard UI/E2E remain pending. |
+| AC-14 | API-05,06; UI-03,04; E2E-03 | Partial: both role-specific dashboard APIs passed; UI, responsive and E2E checks remain pending. |
 | AC-15 | API-08; REG-01; E2E-01 | Planned |
-| AC-16 | API-07; REG-01 | Planned |
+| AC-16 | API-07; REG-01 | Partial: real pre-Lab-4 migration and repeated-seed preservation tests passed in the server regression; counter, broader fixture-collision and full integration gates remain open. |
 | AC-17 | API-07; MAN-01 | Planned |
-| AC-18 | API-02; REG-01; E2E-01,02,03 | Planned |
+| AC-18 | API-02; REG-01; E2E-01,02,03 | Partial: server authorization and legacy server regressions passed; complete client, authenticated E2E and release-regression gates remain open. |
 | AC-19 | UI-01,02,03,04; STYLE-01; MAN-01 | Planned |
 | AC-20 | DOC-01; REG-01; MAN-01 | Contract checks underway; approval/release pending |
 
@@ -201,7 +201,7 @@ All Issues are sequential. Issue #55 approved merge precedes #56; each later app
 | #56 Actions foundation/APIs | feature/22-Lab4ActionsFoundation; UNIT-01/02, API-01/02/03/07/08 | Observed implementation evidence is recorded below; UI/dashboard/E2E remain for later Issues. |
 | #57 Actions UI | feature/23-Lab4ActionsUI; UI-01 | Component tests, inherited client regression/build; real selected-record/read-only/validation captures. |
 | #58 Ticket workflow | feature/24-Lab4TicketWorkflow; UNIT-02, API-03/04, UI-02 | Commit-bound evidence below: full server/client regressions and builds passed. E2E/manual screenshots and wider matrix completion remain pending. |
-| #59 Dashboard APIs | feature/25-Lab4DashboardAPIs; UNIT-03, API-05/06, PERF-01 | Exact seeded counts/shared list predicates/bounds/query smoke; server regression/build. |
+| #59 Dashboard APIs | feature/25-Lab4DashboardAPIs; UNIT-03, API-02/05/06/07, PERF-01 | [PR #68](https://github.com/osizk/TokTickIT/pull/68) is open to `lab4-staging`; TDD red then green; 13 focused dashboard/role tests, full server regression (38 files/160 tests, including migration/seed), server build; bounded query smoke. Detailed commit-bound evidence below. |
 | #60 Dashboards UI | feature/26-Lab4DashboardsUI; UI-03/04, STYLE-01 | Routes/role states/links/current-user Actions, client regression/build; real responsive captures. |
 | #61 Final regression | feature/27-Lab4FinalRegression; E2E-01/02/03 and regressions | Full server/client/E2E, builds, migration/repeated seed/recovery, responsive/a11y/visual/API evidence. |
 | #62 Release evidence | feature/28-Lab4ReleaseEvidence; DOC-01/evidence gap audit | Final traceability/README/reviewer/real AI selection/authorized reflection; actual Project/history/reviews; release-candidate then required final-main verification. |
@@ -670,7 +670,7 @@ Figure 57.2 — Real tablet two-column editor with visible focus and reachable C
 
 Figure 57.3 — Real mobile stacked Action fields with readable help, required/optional cues and visible focus. Supports STYLE-01 and AC-19.
 
-These results describe the uncommitted Issue #57 worktree, not final `main`. The prior browser-pending statements above are historical. Full lifecycle/Requester-role browser automation, screen-reader testing, broad visual evidence and complete inherited E2E remain planned for Issue #59; the release checklist below is deliberately not prechecked. Full server regression was not rerun in this UI follow-up; the three focused server files above were rerun.
+These results describe the uncommitted Issue #57 worktree, not final `main`. The prior browser-pending statements above are historical. Full lifecycle/Requester-role browser automation, screen-reader testing, broad visual evidence and complete inherited E2E remain planned for Issues #60–61; the release checklist below is deliberately not prechecked. Full server regression was not rerun in this UI follow-up; the three focused server files above were rerun.
 
 ### Issue #57 committed-candidate rerun
 
@@ -962,6 +962,44 @@ npm.cmd run build
 ```
 
 The full server suite was not rerun because these follow-up changes affect only the client.
+
+### Issue #59 — Dashboard APIs and calculations
+
+Implementation branch: `feature/25-Lab4DashboardAPIs`, created from the merged `lab4-staging` commit `74d63fac8d5414471d1725c2eb3d12a472f67387` (PR #67). The initial red checks ran against the pre-implementation worktree. Final focused, full-server and build verification was rerun against feature commit `83005d7b7c1705d1239e2aba14f853932bd63487`; this is candidate-branch evidence, not final `main` evidence.
+
+The planned dashboard tests were run before implementation and failed as expected: 4 files failed, with 11 tests failing and 1 passing. Failures showed that dashboard routes and the new list predicates were not implemented yet. After implementation and the added Staff drill-down assertions, against `83005d7b7c1705d1239e2aba14f853932bd63487`:
+
+```text
+cd server
+npm.cmd test -- --run --reporter=verbose tests/lab-04/dashboard-calculations.unit.test.ts tests/lab-04/requester-dashboard.api.test.ts tests/lab-04/staff-dashboard.api.test.ts tests/lab-04/dashboard-performance.api.test.ts
+Test Files  4 passed (4)
+     Tests  13 passed (13)
+Start at 23:40:38
+Duration 3.91s
+Dashboard smoke diagnostics: 500 Tickets/1,000 Actions=23 queries, 24 ms; 1,000 Tickets/2,000 Actions=23 queries, 19 ms.
+```
+
+Complete server regression, including the real pre-Lab-4 migration and repeated-seed preservation tests, against `83005d7b7c1705d1239e2aba14f853932bd63487`:
+
+```text
+cd server
+npm.cmd test -- --run
+Test Files  38 passed (38)
+     Tests  160 passed (160)
+Start at 23:40:49
+Duration 43.86s
+```
+
+Server production build against `83005d7b7c1705d1239e2aba14f853932bd63487`:
+
+```text
+cd server
+npm.cmd run build
+> tsc
+exit code 0
+```
+
+No skips were reported by the full server run. The dashboard API and query/filter work is verified here; Staff/Requester dashboard UI, responsive screenshots, browser E2E and visual/accessibility evidence belong to Issues #60–61 and remain pending. [PR #68](https://github.com/osizk/TokTickIT/pull/68) is open for teammate review; no approval or merge is claimed. Evidence-only documentation follow-ups do not change the tested server code.
 
 ## 5. Release and visual checklist — actual work only
 

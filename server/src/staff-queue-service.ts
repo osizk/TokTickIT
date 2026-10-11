@@ -2,6 +2,7 @@ import type { Request } from "express";
 import type { Prisma, PrismaClient, TicketPriority, TicketStatus } from "@prisma/client";
 import { getPrisma } from "./prisma.js";
 import { TicketApiError } from "./ticket-service.js";
+import { ACTIVE_ACTION_STATUSES, applyDashboardListPredicates, parseDashboardListPredicates, TICKET_STATUSES, type DashboardListPredicates } from "./dashboard-query.js";
 import {
   allowedTicketTransitions,
   evaluateResolutionGate,
@@ -24,16 +25,7 @@ const ORDERS = ["asc", "desc"] as const;
 const PAGE_SIZES = [10, 25, 50] as const;
 const PRIORITIES = ["LOW", "MEDIUM", "HIGH", "URGENT"] as const;
 const TICKET_NUMBER_PATTERN = /^TKT-\d{4}-\d{6}$/;
-export const STAFF_STATUSES = [
-  "NEW",
-  "OPEN",
-  "IN_PROGRESS",
-  "WAITING_FOR_REQUESTER",
-  "RESOLVED",
-  "CLOSED",
-  "REOPENED",
-  "CANCELLED",
-] as const;
+export const STAFF_STATUSES = TICKET_STATUSES;
 const QUERY_KEYS = new Set([
   "search",
   "categoryId",
@@ -46,6 +38,10 @@ const QUERY_KEYS = new Set([
   "order",
   "page",
   "pageSize",
+  "statusGroup",
+  "updatedSince",
+  "updatedBefore",
+  "actionAssignee",
 ]);
 
 type SortField = (typeof SORT_FIELDS)[number];
@@ -53,7 +49,7 @@ type SortOrder = (typeof ORDERS)[number];
 type PageSize = (typeof PAGE_SIZES)[number];
 export type StaffOwnerFilter = "me" | "unassigned" | number;
 
-export interface StaffQueueQuery {
+export interface StaffQueueQuery extends DashboardListPredicates {
   search?: string;
   categoryId?: number;
   relatedSystemId?: number;
@@ -61,6 +57,7 @@ export interface StaffQueueQuery {
   itPriority?: TicketPriority;
   status?: TicketStatus;
   owner?: StaffOwnerFilter;
+  actionAssignee?: "me";
   sort: SortField;
   order: SortOrder;
   page: number;
@@ -192,6 +189,14 @@ export function parseStaffQueueQuery(query: Request["query"]): StaffQueueQuery {
     | TicketPriority
     | undefined;
   const status = parseEnum(getSingleQueryValue(query, "status"), "status", STAFF_STATUSES) as TicketStatus | undefined;
+  const dashboardPredicates = parseDashboardListPredicates(query, validationError);
+  if (status && dashboardPredicates.statusGroup) {
+    throw validationError("statusGroup", "Use either status or statusGroup, not both.");
+  }
+  const actionAssigneeValue = getSingleQueryValue(query, "actionAssignee");
+  if (actionAssigneeValue !== undefined && actionAssigneeValue !== "me") {
+    throw validationError("actionAssignee", "Action assignee must be me.");
+  }
   const owner = parseOwner(getSingleQueryValue(query, "owner"));
   const sort = (parseEnum(getSingleQueryValue(query, "sort"), "sort", SORT_FIELDS) as SortField | undefined) ?? "updatedAt";
   const order = (parseEnum(getSingleQueryValue(query, "order"), "order", ORDERS) as SortOrder | undefined) ?? "desc";
@@ -209,7 +214,9 @@ export function parseStaffQueueQuery(query: Request["query"]): StaffQueueQuery {
     ...(requestedPriority ? { requestedPriority } : {}),
     ...(itPriority ? { itPriority } : {}),
     ...(status ? { status } : {}),
+    ...dashboardPredicates,
     ...(owner === undefined ? {} : { owner }),
+    ...(actionAssigneeValue === "me" ? { actionAssignee: "me" as const } : {}),
     sort,
     order,
     page,
@@ -236,7 +243,7 @@ async function validateReferenceFilters(query: StaffQueueQuery): Promise<void> {
   }
 }
 
-function buildWhere(authenticatedUserId: number, query: StaffQueueQuery): Prisma.TicketWhereInput {
+export function buildStaffTicketWhere(authenticatedUserId: number, query: StaffQueueQuery): Prisma.TicketWhereInput {
   const where: Prisma.TicketWhereInput = {};
   if (query.search) {
     where.OR = [
@@ -254,7 +261,11 @@ function buildWhere(authenticatedUserId: number, query: StaffQueueQuery): Prisma
   if (query.owner === "me") where.ticketOwnerId = authenticatedUserId;
   if (query.owner === "unassigned") where.ticketOwnerId = null;
   if (typeof query.owner === "number") where.ticketOwnerId = query.owner;
-  return where;
+  const filtered = applyDashboardListPredicates(where, query, query.actionAssignee === "me");
+  if (query.actionAssignee === "me") {
+    filtered.actionsTaken = { some: { assigneeUserId: authenticatedUserId, status: { in: ACTIVE_ACTION_STATUSES } } };
+  }
+  return filtered;
 }
 
 function buildOrderBy(query: StaffQueueQuery): Prisma.TicketOrderByWithRelationInput[] {
@@ -319,7 +330,7 @@ export async function listStaffTickets(request: Request, authenticatedUserId: nu
   const query = parseStaffQueueQuery(request.query);
   try {
     await validateReferenceFilters(query);
-    const where = buildWhere(authenticatedUserId, query);
+    const where = buildStaffTicketWhere(authenticatedUserId, query);
     const prisma = getPrisma();
     const [totalItems, tickets] = await prisma.$transaction([
       prisma.ticket.count({ where }),

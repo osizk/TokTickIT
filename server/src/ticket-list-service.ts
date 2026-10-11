@@ -2,6 +2,7 @@ import type { Request } from "express";
 import type { Prisma, TicketPriority, TicketStatus } from "@prisma/client";
 import { getPrisma } from "./prisma.js";
 import { TicketApiError, parseRequesterId } from "./ticket-service.js";
+import { applyDashboardListPredicates, parseDashboardListPredicates, TICKET_STATUSES, type DashboardListPredicates } from "./dashboard-query.js";
 
 const SORT_FIELDS = [
   "updatedAt",
@@ -13,7 +14,6 @@ const SORT_FIELDS = [
 const ORDERS = ["asc", "desc"] as const;
 const PAGE_SIZES = [10, 25, 50] as const;
 const PRIORITIES = ["LOW", "MEDIUM", "HIGH", "URGENT"] as const;
-const STATUSES = ["NEW"] as const;
 const QUERY_KEYS = new Set([
   "search",
   "categoryId",
@@ -24,13 +24,16 @@ const QUERY_KEYS = new Set([
   "order",
   "page",
   "pageSize",
+  "statusGroup",
+  "updatedSince",
+  "updatedBefore",
 ]);
 
 type SortField = (typeof SORT_FIELDS)[number];
 type SortOrder = (typeof ORDERS)[number];
 type PageSize = (typeof PAGE_SIZES)[number];
 
-export interface TicketListQuery {
+export interface TicketListQuery extends DashboardListPredicates {
   search?: string;
   categoryId?: number;
   relatedSystemId?: number;
@@ -147,9 +150,13 @@ export function parseTicketListQuery(query: Request["query"]): TicketListQuery {
   const priority = parseEnum(getSingleQueryValue(query, "priority"), "priority", PRIORITIES) as
     | TicketPriority
     | undefined;
-  const status = parseEnum(getSingleQueryValue(query, "status"), "status", STATUSES) as
+  const status = parseEnum(getSingleQueryValue(query, "status"), "status", TICKET_STATUSES) as
     | TicketStatus
     | undefined;
+  const dashboardPredicates = parseDashboardListPredicates(query, validationError);
+  if (status && dashboardPredicates.statusGroup) {
+    throw validationError("statusGroup", "Use either status or statusGroup, not both.");
+  }
   const sort =
     (parseEnum(getSingleQueryValue(query, "sort"), "sort", SORT_FIELDS) as SortField | undefined) ??
     "updatedAt";
@@ -169,6 +176,7 @@ export function parseTicketListQuery(query: Request["query"]): TicketListQuery {
     ...(relatedSystemId === undefined ? {} : { relatedSystemId }),
     ...(priority ? { priority } : {}),
     ...(status ? { status } : {}),
+    ...dashboardPredicates,
     sort,
     order,
     page,
@@ -176,7 +184,7 @@ export function parseTicketListQuery(query: Request["query"]): TicketListQuery {
   };
 }
 
-function buildWhere(requesterId: number, query: TicketListQuery): Prisma.TicketWhereInput {
+export function buildRequesterTicketWhere(requesterId: number, query: TicketListQuery): Prisma.TicketWhereInput {
   const where: Prisma.TicketWhereInput = { requesterId };
 
   if (query.search) {
@@ -199,7 +207,7 @@ function buildWhere(requesterId: number, query: TicketListQuery): Prisma.TicketW
     where.status = query.status;
   }
 
-  return where;
+  return applyDashboardListPredicates(where, query);
 }
 
 function buildOrderBy(query: TicketListQuery): Prisma.TicketOrderByWithRelationInput[] {
@@ -256,7 +264,7 @@ export async function listTickets(request: Request, authenticatedRequesterId?: n
       });
     }
 
-    const where = buildWhere(requesterId, query);
+    const where = buildRequesterTicketWhere(requesterId, query);
     const [totalItems, tickets] = await prisma.$transaction([
       prisma.ticket.count({ where }),
       prisma.ticket.findMany({
