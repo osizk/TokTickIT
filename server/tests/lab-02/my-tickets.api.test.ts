@@ -112,7 +112,7 @@ describe("GET /api/tickets", () => {
       "pageSize=20",
       "categoryId=abc",
       "priority=CRITICAL",
-      "status=OPEN",
+      "status=UNKNOWN",
       "sort=createdAt&order=sideways",
       "unknown=value",
       `search=${"x".repeat(101)}`,

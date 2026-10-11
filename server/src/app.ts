@@ -50,6 +50,7 @@ import {
   updateAdminUser,
   UserManagementError,
 } from "./user-management-service.js";
+import { getRequesterDashboard, getStaffDashboard } from "./dashboard-service.js";
 
 export const app = express();
 
@@ -279,6 +280,28 @@ app.get("/api/requesters", async (req: Request, res: Response) => {
   } catch (error) {
     if (error instanceof AuthError) sendAuthError(res, error);
     else sendReferenceError(res, "Unable to load requesters.");
+  }
+});
+
+app.get("/api/dashboard/requester", async (req: Request, res: Response) => {
+  try {
+    const { requesterId } = await requireRequester(req);
+    const result = await getRequesterDashboard(requesterId, req.query);
+    markUncached(res);
+    res.status(200).json(result);
+  } catch (error) {
+    sendTicketError(res, error);
+  }
+});
+
+app.get("/api/dashboard/staff", async (req: Request, res: Response) => {
+  try {
+    const context = await requireStaff(req);
+    const result = await getStaffDashboard(context.user.id, req.query);
+    markUncached(res);
+    res.status(200).json(result);
+  } catch (error) {
+    sendTicketError(res, error);
   }
 });
 
