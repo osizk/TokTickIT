@@ -236,7 +236,7 @@ export interface CreatedTicket {
   attachments: TicketAttachment[];
 }
 
-export type TicketDetail = Omit<CreatedTicket, "attachments"> & { resolutionIndication?: ResolutionIndication | null };
+export type TicketDetail = Omit<CreatedTicket, "attachments"> & { resolutionIndication?: ResolutionIndication | null; workflowVersion: number };
 
 export interface CreateTicketInput {
   categoryId: number;
@@ -406,8 +406,36 @@ export interface StaffTicket {
   description: string;
   ticketOwner: StaffAssignee | null;
   resolutionIndication: ResolutionIndication | null;
+  workflowVersion: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export type ResolutionGateReason = "OWNER_REQUIRED" | "OWNER_INELIGIBLE" | "COMPLETED_ACTION_REQUIRED" | "UNFINISHED_ACTIONS" | "FOLLOW_UP_REQUIRED";
+export interface ResolutionGate {
+  canResolve: boolean;
+  canClose: boolean;
+  unmetConditions: ResolutionGateReason[];
+}
+export interface StaffTicketDetail extends StaffTicket {
+  allowedTransitions: TicketStatus[];
+  resolutionGate: ResolutionGate;
+}
+
+export interface TicketWorkflowEvent {
+  id: number;
+  ticketNumber: string;
+  actor: ActionIdentity;
+  fromStatus: TicketStatus;
+  toStatus: TicketStatus;
+  reason: string | null;
+  workflowVersion: number;
+  createdAt: string;
+}
+
+export interface TicketWorkflowHistory {
+  events: TicketWorkflowEvent[];
+  pagination: TicketListPagination;
 }
 
 export interface StaffTicketQuery {
@@ -618,7 +646,8 @@ function isTicketDetail(value: unknown): value is TicketDetail {
     typeof candidate.summary === "string" &&
     typeof candidate.description === "string" &&
     typeof candidate.createdAt === "string" &&
-    typeof candidate.updatedAt === "string"
+    typeof candidate.updatedAt === "string" &&
+    typeof candidate.workflowVersion === "number" && Number.isSafeInteger(candidate.workflowVersion) && candidate.workflowVersion >= 0
   );
 }
 
@@ -769,6 +798,19 @@ function isResolutionIndication(value: unknown): value is ResolutionIndication {
   return typeof candidate.indicatedAt === "string" && isRequester(candidate.indicatedBy);
 }
 
+function isResolutionGate(value: unknown): value is ResolutionGate {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  const allowed = ["OWNER_REQUIRED", "OWNER_INELIGIBLE", "COMPLETED_ACTION_REQUIRED", "UNFINISHED_ACTIONS", "FOLLOW_UP_REQUIRED"];
+  return typeof candidate.canResolve === "boolean" && typeof candidate.canClose === "boolean" && Array.isArray(candidate.unmetConditions) && candidate.unmetConditions.every((reason) => allowed.includes(reason as string));
+}
+
+function isStaffTicketDetail(value: unknown): value is StaffTicketDetail {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  return isStaffTicket(value) && Array.isArray(candidate.allowedTransitions) && candidate.allowedTransitions.every(isTicketStatus) && isResolutionGate(candidate.resolutionGate);
+}
+
 function isStaffTicket(value: unknown): value is StaffTicket {
   if (typeof value !== "object" || value === null) return false;
   const candidate = value as Record<string, unknown>;
@@ -781,7 +823,8 @@ function isStaffTicket(value: unknown): value is StaffTicket {
     isTicketStatus(candidate.status) && typeof candidate.summary === "string" && typeof candidate.description === "string" &&
     (candidate.ticketOwner === null || isStaffAssignee(candidate.ticketOwner)) &&
     (candidate.resolutionIndication === null || isResolutionIndication(candidate.resolutionIndication)) &&
-    typeof candidate.createdAt === "string" && typeof candidate.updatedAt === "string"
+    typeof candidate.createdAt === "string" && typeof candidate.updatedAt === "string" &&
+    typeof candidate.workflowVersion === "number" && Number.isSafeInteger(candidate.workflowVersion) && candidate.workflowVersion >= 0
   );
 }
 
@@ -823,7 +866,7 @@ export async function fetchStaffTickets(query: StaffTicketQuery): Promise<StaffT
   return body;
 }
 
-export async function fetchStaffTicket(ticketNumber: string): Promise<StaffTicket> {
+export async function fetchStaffTicket(ticketNumber: string): Promise<StaffTicketDetail> {
   if (!ticketNumber) throw new ApiClientError("Unable to load Staff Ticket.", 400);
   let response: Response;
   try {
@@ -840,10 +883,32 @@ export async function fetchStaffTicket(ticketNumber: string): Promise<StaffTicke
     throw new ApiClientError("Unable to load Staff Ticket.", response.status, details.code, details.fieldErrors);
   }
   const result = body as { ticket?: unknown } | null;
-  if (!result || !isStaffTicket(result.ticket)) {
+  if (!result || !isStaffTicketDetail(result.ticket)) {
     throw new ApiClientError("Unable to load Staff Ticket.", response.status);
   }
   return result.ticket;
+}
+
+function isTicketWorkflowEvent(value: unknown): value is TicketWorkflowEvent {
+  if (typeof value !== "object" || value === null) return false;
+  const event = value as Record<string, unknown>;
+  return typeof event.id === "number" && Number.isSafeInteger(event.id) && event.id > 0 &&
+    typeof event.ticketNumber === "string" && /^TKT-\d{4}-\d{6}$/.test(event.ticketNumber) &&
+    isActionIdentity(event.actor) && isTicketStatus(event.fromStatus) && isTicketStatus(event.toStatus) &&
+    (event.reason === null || typeof event.reason === "string") &&
+    typeof event.workflowVersion === "number" && Number.isSafeInteger(event.workflowVersion) && event.workflowVersion > 0 &&
+    typeof event.createdAt === "string";
+}
+
+export async function fetchTicketWorkflowEvents(ticketNumber: string, page = 1, pageSize: TicketListPageSize = 25): Promise<TicketWorkflowHistory> {
+  if (!ticketNumber) throw new ApiClientError("Unable to load Ticket workflow history.", 400);
+  const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
+  const body = await actionRequest(`/api/tickets/${encodeURIComponent(ticketNumber)}/workflow-events?${params}`, { headers: authenticatedHeaders() }, "Unable to load Ticket workflow history.");
+  const result = body as { events?: unknown; pagination?: unknown } | null;
+  if (!result || !Array.isArray(result.events) || !result.events.every(isTicketWorkflowEvent) || !isTicketListPagination(result.pagination)) {
+    throw new ApiClientError("Unable to load Ticket workflow history.", 200);
+  }
+  return result as TicketWorkflowHistory;
 }
 
 export async function fetchStaffAssignees(): Promise<StaffAssignee[]> {
@@ -1041,16 +1106,16 @@ async function patchStaffTicket(
   return result.ticket;
 }
 
-export function updateStaffTicketAssignment(ticketNumber: string, ownerUserId: number | null, confirm = false): Promise<StaffTicket> {
-  return patchStaffTicket(ticketNumber, "assignment", { ownerUserId, ...(confirm ? { confirm: true } : {}) });
+export function updateStaffTicketAssignment(ticketNumber: string, ownerUserId: number | null, expectedVersion: number, confirm = false): Promise<StaffTicket> {
+  return patchStaffTicket(ticketNumber, "assignment", { ownerUserId, expectedVersion, ...(confirm ? { confirm: true } : {}) });
 }
 
-export function updateStaffTicketPriority(ticketNumber: string, itPriority: TicketPriority): Promise<StaffTicket> {
-  return patchStaffTicket(ticketNumber, "priority", { itPriority });
+export function updateStaffTicketPriority(ticketNumber: string, itPriority: TicketPriority, expectedVersion: number): Promise<StaffTicket> {
+  return patchStaffTicket(ticketNumber, "priority", { itPriority, expectedVersion });
 }
 
-export function updateStaffTicketStatus(ticketNumber: string, status: TicketStatus, confirm = false): Promise<StaffTicket> {
-  return patchStaffTicket(ticketNumber, "status", { status, ...(confirm ? { confirm: true } : {}) });
+export function updateStaffTicketStatus(ticketNumber: string, status: TicketStatus, expectedVersion: number, confirm = false, cancellationReason?: string): Promise<StaffTicket> {
+  return patchStaffTicket(ticketNumber, "status", { status, expectedVersion, ...(confirm ? { confirm: true } : {}), ...(cancellationReason !== undefined ? { cancellationReason } : {}) });
 }
 
 export async function createTicket(

@@ -16,6 +16,7 @@ import {
   removeTicketAttachment,
 } from "./api.js";
 import ActionsTaken from "./ActionsTaken.js";
+import TicketWorkflow from "./TicketWorkflow.js";
 
 const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
 const MIME_BY_EXTENSION: Record<string, string> = {
@@ -340,7 +341,7 @@ export default function TicketDetail({ requester, ticketNumber, navigate }: Tick
   async function handleResolutionIndication() {
     if (resolutionSubmitting) return;
     setResolutionSubmitting(true); setResolutionMessage(null);
-    try { await indicateTicketResolution(requester.id, ticketNumber); setResolutionMessage("Problem marked as appearing resolved. Ticket status is unchanged."); }
+    try { await indicateTicketResolution(requester.id, ticketNumber); setResolutionMessage("Problem marked as appearing resolved. Ticket status is unchanged."); setTicketRetry((value) => value + 1); }
     catch (error) { setResolutionMessage(actionErrorMessage(error, "Unable to record the resolution indication.")); }
     finally { setResolutionSubmitting(false); }
   }
@@ -376,6 +377,8 @@ export default function TicketDetail({ requester, ticketNumber, navigate }: Tick
           <ReadOnlyField label="Description" value={ticket.description} multiline />
         </div>
       )}
+
+      {ticketState === "success" && ticket && <TicketWorkflow ticketNumber={ticketNumber} status={ticket.status} workflowVersion={ticket.workflowVersion} resolutionIndication={ticket.resolutionIndication ?? null} />}
 
       <section className="zen-comment-section" aria-labelledby="public-comments-heading">
         <div className="zen-section-heading"><div><p className="zen-eyebrow">Requester communication</p><h2 id="public-comments-heading">Public Comments</h2></div></div>

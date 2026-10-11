@@ -18,6 +18,7 @@ interface ActionsTakenProps {
   ticketNumber: string;
   readOnly?: boolean;
   currentUserId?: number;
+  onTicketChanged?: () => void;
 }
 
 type ActionDraft = {
@@ -99,7 +100,7 @@ function identityLabel(identity: { name: string; email: string }): string {
   return `${identity.name} (${identity.email})`;
 }
 
-export default function ActionsTaken({ ticketNumber, readOnly = false, currentUserId }: ActionsTakenProps) {
+export default function ActionsTaken({ ticketNumber, readOnly = false, currentUserId, onTicketChanged }: ActionsTakenProps) {
   const [actions, setActions] = useState<ActionRecord[]>([]);
   const [ticketVersion, setTicketVersion] = useState(0);
   const [page, setPage] = useState(1);
@@ -258,6 +259,7 @@ export default function ActionsTaken({ ticketNumber, readOnly = false, currentUs
       if (nextPage === page) await loadActions(nextPage);
       else setListState("loading");
       setSuccess("Action saved.");
+      onTicketChanged?.();
     } catch (error) {
       const apiError = error instanceof ApiClientError ? error : null;
       if (apiError?.fieldErrors) setCreateErrors(apiError.fieldErrors as FieldErrors);
@@ -326,6 +328,7 @@ export default function ActionsTaken({ ticketNumber, readOnly = false, currentUs
       setSuccess("Action updated.");
       await loadActions(page);
       setFocusActionId(action.id);
+      onTicketChanged?.();
     } catch (error) {
       const apiError = error instanceof ApiClientError ? error : null;
       if (apiError?.fieldErrors) setEditErrors(apiError.fieldErrors as FieldErrors);
@@ -378,6 +381,7 @@ export default function ActionsTaken({ ticketNumber, readOnly = false, currentUs
       setSuccess(status === "IN_PROGRESS" ? "Action started." : status === "COMPLETED" ? "Action completed." : "Action cancelled.");
       await loadActions(page);
       setFocusActionId(action.id);
+      onTicketChanged?.();
     } catch (error) {
       setMutationError(errorMessage(error, "Unable to update Action."));
     } finally {

@@ -17,6 +17,7 @@ const ticket: api.TicketDetail = {
   description: "A sufficiently long description for the attachment UI test.",
   createdAt: "2026-08-27T08:30:00.000Z",
   updatedAt: "2026-08-27T09:30:00.000Z",
+  workflowVersion: 0,
 };
 const active: api.TicketAttachment = {
   id: 21,

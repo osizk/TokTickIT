@@ -17,6 +17,7 @@ const ticket: api.TicketDetail = {
   description: "The VPN connection fails after entering valid credentials.",
   createdAt: "2026-08-27T08:30:00.000Z",
   updatedAt: "2026-08-27T09:30:00.000Z",
+  workflowVersion: 0,
 };
 const activeAttachment: api.TicketAttachment = {
   id: 11,
