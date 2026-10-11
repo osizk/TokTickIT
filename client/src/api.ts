@@ -308,6 +308,91 @@ export interface StaffAssignee {
   role: "IT_STAFF" | "ADMINISTRATOR";
 }
 
+export type ActionStatus = "OPEN" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+export type ActionIdentity = Pick<AuthUser, "id" | "name" | "email" | "role">;
+
+export interface ActionTaken {
+  id: number;
+  ticketNumber: string;
+  description: string;
+  result: string | null;
+  followUpRequired: boolean;
+  followUpNote: string | null;
+  attachmentNotes: string | null;
+  status: ActionStatus;
+  cancellationReason: string | null;
+  assignee: StaffAssignee;
+  createdBy: ActionIdentity;
+  performedBy: ActionIdentity | null;
+  createdAt: string;
+  updatedAt: string;
+  completedAt: string | null;
+  cancelledAt: string | null;
+  version: number;
+}
+
+export interface ActionSnapshot {
+  description: string;
+  result: string | null;
+  followUpRequired: boolean;
+  followUpNote: string | null;
+  attachmentNotes: string | null;
+  status: ActionStatus;
+  cancellationReason: string | null;
+  assigneeUserId: number;
+  createdByUserId: number;
+  performedByUserId: number | null;
+  createdAt: string;
+  updatedAt: string;
+  completedAt: string | null;
+  cancelledAt: string | null;
+  version: number;
+}
+
+export interface ActionRevision {
+  id: number;
+  actionId: number;
+  revisionNumber: number;
+  actor: ActionIdentity;
+  changedAt: string;
+  snapshot: ActionSnapshot;
+}
+
+export interface ActionListResponse {
+  actions: ActionTaken[];
+  pagination: TicketListPagination;
+  ticketVersion: number;
+}
+
+export interface ActionRevisionResponse {
+  revisions: ActionRevision[];
+  pagination: TicketListPagination;
+}
+
+export interface CreateActionTakenInput {
+  clientRequestId: string;
+  expectedTicketVersion: number;
+  description: string;
+  assigneeUserId?: number;
+  result?: string;
+  followUpRequired: boolean;
+  followUpNote?: string;
+  attachmentNotes?: string;
+}
+
+export interface UpdateActionTakenInput {
+  expectedTicketVersion: number;
+  expectedActionVersion: number;
+  description?: string;
+  assigneeUserId?: number;
+  result?: string;
+  followUpRequired?: boolean;
+  followUpNote?: string;
+  attachmentNotes?: string;
+  status?: ActionStatus;
+  cancellationReason?: string;
+}
+
 export interface StaffTicket {
   id: number;
   ticketNumber: string;
@@ -625,6 +710,59 @@ function isStaffAssignee(value: unknown): value is StaffAssignee {
   );
 }
 
+function isActionIdentity(value: unknown): value is ActionIdentity {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  return typeof candidate.id === "number" && Number.isSafeInteger(candidate.id) && candidate.id > 0 &&
+    typeof candidate.name === "string" && candidate.name.trim().length > 0 &&
+    typeof candidate.email === "string" && candidate.email.trim().length > 0 &&
+    ["REQUESTER", "IT_STAFF", "ADMINISTRATOR"].includes(candidate.role as string);
+}
+
+function isActionTaken(value: unknown): value is ActionTaken {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  return typeof candidate.id === "number" && Number.isSafeInteger(candidate.id) && candidate.id > 0 &&
+    typeof candidate.ticketNumber === "string" && /^TKT-\d{4}-\d{6}$/.test(candidate.ticketNumber) &&
+    typeof candidate.description === "string" && (candidate.result === null || typeof candidate.result === "string") &&
+    typeof candidate.followUpRequired === "boolean" && (candidate.followUpNote === null || typeof candidate.followUpNote === "string") &&
+    (candidate.attachmentNotes === null || typeof candidate.attachmentNotes === "string") &&
+    ["OPEN", "IN_PROGRESS", "COMPLETED", "CANCELLED"].includes(candidate.status as string) &&
+    (candidate.cancellationReason === null || typeof candidate.cancellationReason === "string") &&
+    isStaffAssignee(candidate.assignee) && isActionIdentity(candidate.createdBy) &&
+    (candidate.performedBy === null || isActionIdentity(candidate.performedBy)) &&
+    typeof candidate.createdAt === "string" && typeof candidate.updatedAt === "string" &&
+    (candidate.completedAt === null || typeof candidate.completedAt === "string") &&
+    (candidate.cancelledAt === null || typeof candidate.cancelledAt === "string") &&
+    typeof candidate.version === "number" && Number.isSafeInteger(candidate.version) && candidate.version >= 0;
+}
+
+function isActionSnapshot(value: unknown): value is ActionSnapshot {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  return typeof candidate.description === "string" && (candidate.result === null || typeof candidate.result === "string") &&
+    typeof candidate.followUpRequired === "boolean" && (candidate.followUpNote === null || typeof candidate.followUpNote === "string") &&
+    (candidate.attachmentNotes === null || typeof candidate.attachmentNotes === "string") &&
+    ["OPEN", "IN_PROGRESS", "COMPLETED", "CANCELLED"].includes(candidate.status as string) &&
+    (candidate.cancellationReason === null || typeof candidate.cancellationReason === "string") &&
+    typeof candidate.assigneeUserId === "number" && Number.isSafeInteger(candidate.assigneeUserId) && candidate.assigneeUserId > 0 &&
+    typeof candidate.createdByUserId === "number" && Number.isSafeInteger(candidate.createdByUserId) && candidate.createdByUserId > 0 &&
+    (candidate.performedByUserId === null || (typeof candidate.performedByUserId === "number" && Number.isSafeInteger(candidate.performedByUserId) && candidate.performedByUserId > 0)) &&
+    typeof candidate.createdAt === "string" && typeof candidate.updatedAt === "string" &&
+    (candidate.completedAt === null || typeof candidate.completedAt === "string") &&
+    (candidate.cancelledAt === null || typeof candidate.cancelledAt === "string") &&
+    typeof candidate.version === "number" && Number.isSafeInteger(candidate.version) && candidate.version >= 0;
+}
+
+function isActionRevision(value: unknown): value is ActionRevision {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  return typeof candidate.id === "number" && Number.isSafeInteger(candidate.id) && candidate.id > 0 &&
+    typeof candidate.actionId === "number" && Number.isSafeInteger(candidate.actionId) && candidate.actionId > 0 &&
+    typeof candidate.revisionNumber === "number" && Number.isSafeInteger(candidate.revisionNumber) && candidate.revisionNumber > 0 &&
+    isActionIdentity(candidate.actor) && typeof candidate.changedAt === "string" && isActionSnapshot(candidate.snapshot);
+}
+
 function isResolutionIndication(value: unknown): value is ResolutionIndication {
   if (typeof value !== "object" || value === null) return false;
   const candidate = value as Record<string, unknown>;
@@ -722,6 +860,82 @@ export async function fetchStaffAssignees(): Promise<StaffAssignee[]> {
   }
   if (!Array.isArray(body) || !body.every(isStaffAssignee)) throw new ApiClientError("Unable to load assignees.", response.status);
   return body;
+}
+
+async function actionRequest(path: string, init: RequestInit, fallback: string): Promise<unknown> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}${path}`, { credentials: "include", ...init });
+  } catch {
+    throw new ApiClientError(fallback, 0);
+  }
+  const body = await parseResponseBody(response);
+  if (!response.ok) {
+    const details = readApiError(body);
+    throw new ApiClientError(details.message ?? fallback, response.status, details.code, details.fieldErrors);
+  }
+  return body;
+}
+
+export async function fetchActionsTaken(
+  ticketNumber: string,
+  page = 1,
+  pageSize: TicketListPageSize = 25,
+): Promise<ActionListResponse> {
+  if (!ticketNumber) throw new ApiClientError("Unable to load Actions Taken.", 400);
+  const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
+  const body = await actionRequest(`/api/tickets/${encodeURIComponent(ticketNumber)}/actions-taken?${params}`, { headers: authenticatedHeaders() }, "Unable to load Actions Taken.");
+  const result = body as { actions?: unknown; pagination?: unknown; ticketVersion?: unknown } | null;
+  if (!result || !Array.isArray(result.actions) || !result.actions.every(isActionTaken) ||
+    !isTicketListPagination(result.pagination) || typeof result.ticketVersion !== "number" ||
+    !Number.isSafeInteger(result.ticketVersion) || result.ticketVersion < 0) {
+    throw new ApiClientError("Unable to load Actions Taken.", 200);
+  }
+  return result as ActionListResponse;
+}
+
+export async function createActionTaken(ticketNumber: string, input: CreateActionTakenInput): Promise<{ action: ActionTaken; ticketVersion: number; replayed: boolean }> {
+  if (!ticketNumber) throw new ApiClientError("Unable to save Action.", 400);
+  const body = await actionRequest(`/api/tickets/${encodeURIComponent(ticketNumber)}/actions-taken`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authenticatedHeaders(true) },
+    body: JSON.stringify(input),
+  }, "Unable to save Action.");
+  const result = body as { action?: unknown; ticketVersion?: unknown; replayed?: unknown } | null;
+  if (!result || !isActionTaken(result.action) || typeof result.ticketVersion !== "number" || !Number.isSafeInteger(result.ticketVersion) || typeof result.replayed !== "boolean") {
+    throw new ApiClientError("Unable to save Action.", 200);
+  }
+  return result as { action: ActionTaken; ticketVersion: number; replayed: boolean };
+}
+
+export async function updateActionTaken(ticketNumber: string, actionId: number, input: UpdateActionTakenInput): Promise<{ action: ActionTaken; ticketVersion: number }> {
+  if (!ticketNumber || !Number.isSafeInteger(actionId) || actionId < 1) throw new ApiClientError("Unable to update Action.", 400);
+  const body = await actionRequest(`/api/tickets/${encodeURIComponent(ticketNumber)}/actions-taken/${actionId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...authenticatedHeaders(true) },
+    body: JSON.stringify(input),
+  }, "Unable to update Action.");
+  const result = body as { action?: unknown; ticketVersion?: unknown } | null;
+  if (!result || !isActionTaken(result.action) || typeof result.ticketVersion !== "number" || !Number.isSafeInteger(result.ticketVersion)) {
+    throw new ApiClientError("Unable to update Action.", 200);
+  }
+  return result as { action: ActionTaken; ticketVersion: number };
+}
+
+export async function fetchActionRevisions(
+  ticketNumber: string,
+  actionId: number,
+  page = 1,
+  pageSize: TicketListPageSize = 25,
+): Promise<ActionRevisionResponse> {
+  if (!ticketNumber || !Number.isSafeInteger(actionId) || actionId < 1) throw new ApiClientError("Unable to load Action history.", 400);
+  const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
+  const body = await actionRequest(`/api/tickets/${encodeURIComponent(ticketNumber)}/actions-taken/${actionId}/revisions?${params}`, { headers: authenticatedHeaders() }, "Unable to load Action history.");
+  const result = body as { revisions?: unknown; pagination?: unknown } | null;
+  if (!result || !Array.isArray(result.revisions) || !result.revisions.every(isActionRevision) || !isTicketListPagination(result.pagination)) {
+    throw new ApiClientError("Unable to load Action history.", 200);
+  }
+  return result as ActionRevisionResponse;
 }
 
 function isAdminUser(value: unknown): value is AdminUser {
