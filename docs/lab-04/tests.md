@@ -965,32 +965,32 @@ The full server suite was not rerun because these follow-up changes affect only 
 
 ### Issue #59 — Dashboard APIs and calculations
 
-Implementation branch: `feature/25-Lab4DashboardAPIs`, created from the merged `lab4-staging` commit `74d63fac8d5414471d1725c2eb3d12a472f67387` (PR #67). The tests below ran against the Issue #59 worktree based on that SHA; the worktree was uncommitted, so this is not yet evidence for a feature commit or final `main`.
+Implementation branch: `feature/25-Lab4DashboardAPIs`, created from the merged `lab4-staging` commit `74d63fac8d5414471d1725c2eb3d12a472f67387` (PR #67). The initial red checks ran against the pre-implementation worktree. Final focused, full-server and build verification was rerun against feature commit `83005d7b7c1705d1239e2aba14f853932bd63487`; this is candidate-branch evidence, not final `main` evidence.
 
-The planned dashboard tests were run before implementation and failed as expected: 4 files failed, with 11 tests failing and 1 passing. Failures showed that dashboard routes and the new list predicates were not implemented yet. After implementation and the added Staff drill-down assertions:
+The planned dashboard tests were run before implementation and failed as expected: 4 files failed, with 11 tests failing and 1 passing. Failures showed that dashboard routes and the new list predicates were not implemented yet. After implementation and the added Staff drill-down assertions, against `83005d7b7c1705d1239e2aba14f853932bd63487`:
 
 ```text
 cd server
 npm.cmd test -- --run --reporter=verbose tests/lab-04/dashboard-calculations.unit.test.ts tests/lab-04/requester-dashboard.api.test.ts tests/lab-04/staff-dashboard.api.test.ts tests/lab-04/dashboard-performance.api.test.ts
 Test Files  4 passed (4)
      Tests  13 passed (13)
-Start at 21:32:43
-Duration 3.87s
-Dashboard smoke diagnostics: 500 Tickets/1,000 Actions=23 queries, 25 ms; 1,000 Tickets/2,000 Actions=23 queries, 20 ms.
+Start at 23:40:38
+Duration 3.91s
+Dashboard smoke diagnostics: 500 Tickets/1,000 Actions=23 queries, 24 ms; 1,000 Tickets/2,000 Actions=23 queries, 19 ms.
 ```
 
-Complete server regression, including the real pre-Lab-4 migration and repeated-seed preservation tests:
+Complete server regression, including the real pre-Lab-4 migration and repeated-seed preservation tests, against `83005d7b7c1705d1239e2aba14f853932bd63487`:
 
 ```text
 cd server
 npm.cmd test -- --run
 Test Files  38 passed (38)
      Tests  160 passed (160)
-Start at 21:32:56
-Duration 40.94s
+Start at 23:40:49
+Duration 43.86s
 ```
 
-Server production build:
+Server production build against `83005d7b7c1705d1239e2aba14f853932bd63487`:
 
 ```text
 cd server
@@ -999,7 +999,7 @@ npm.cmd run build
 exit code 0
 ```
 
-No skips were reported by the full server run. The dashboard API and query/filter work is verified here; Staff/Requester dashboard UI, responsive screenshots, browser E2E and visual/accessibility evidence belong to Issues #60–61 and remain pending. Rerun affected checks against the actual feature commit before PR evidence is finalized.
+No skips were reported by the full server run. The dashboard API and query/filter work is verified here; Staff/Requester dashboard UI, responsive screenshots, browser E2E and visual/accessibility evidence belong to Issues #60–61 and remain pending. This evidence-only documentation follow-up does not change the tested server code.
 
 ## 5. Release and visual checklist — actual work only
 
