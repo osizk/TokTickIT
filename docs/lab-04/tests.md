@@ -1,6 +1,6 @@
 # Lab 4 Tests and Evidence
 
-Issue #55 establishes the contract baseline. Issue #56, #57, and current uncommitted Issue #58 worktree evidence are recorded in Section 4; dashboards, full E2E, and release evidence remain pending. Normative requirements: [specification.md](specification.md); [API](api-spec.md); [UI](ui-spec.md). Each ID below maps to an intended concrete test path. **Planned** means no automated test for that row has been run; **Partial** means some but not all assertions for that row have been verified. Issue evidence names the subset actually covered. Never check an unobserved result or claim candidate output came from final `main`.
+Issue #55 establishes the contract baseline. Issue #56, #57, and commit-bound Issue #58 candidate evidence are recorded in Section 4; dashboards, full E2E, and release evidence remain pending. Normative requirements: [specification.md](specification.md); [API](api-spec.md); [UI](ui-spec.md). Each ID below maps to an intended concrete test path. **Planned** means no automated test for that row has been run; **Partial** means some but not all assertions for that row have been verified. Issue evidence names the subset actually covered. Never check an unobserved result or claim candidate output came from final `main`.
 
 ## 1. Planned test matrix
 
@@ -200,7 +200,7 @@ All Issues are sequential. Issue #55 approved merge precedes #56; each later app
 | #55 Engineering contract | feature/21-Lab4Contract; DOC-01 missing/inconsistent contracts | Six contract documents merged to `lab4-staging` via PR #63 at `5cb5b31`; student accepted comment-based sign-off. No formal GitHub Approve is claimed. |
 | #56 Actions foundation/APIs | feature/22-Lab4ActionsFoundation; UNIT-01/02, API-01/02/03/07/08 | Observed implementation evidence is recorded below; UI/dashboard/E2E remain for later Issues. |
 | #57 Actions UI | feature/23-Lab4ActionsUI; UI-01 | Component tests, inherited client regression/build; real selected-record/read-only/validation captures. |
-| #58 Ticket workflow | feature/24-Lab4TicketWorkflow; UNIT-02, API-03/04, UI-02 | Worktree evidence below: 37 workflow unit tests, 4 workflow API cases, 3 workflow UI cases; full regressions/builds passed. E2E/manual screenshots and wider matrix completion remain pending. |
+| #58 Ticket workflow | feature/24-Lab4TicketWorkflow; UNIT-02, API-03/04, UI-02 | Commit-bound evidence below: full server/client regressions and builds passed. E2E/manual screenshots and wider matrix completion remain pending. |
 | #59 Dashboard APIs | feature/25-Lab4DashboardAPIs; UNIT-03, API-05/06, PERF-01 | Exact seeded counts/shared list predicates/bounds/query smoke; server regression/build. |
 | #60 Dashboards UI | feature/26-Lab4DashboardsUI; UI-03/04, STYLE-01 | Routes/role states/links/current-user Actions, client regression/build; real responsive captures. |
 | #61 Final regression | feature/27-Lab4FinalRegression; E2E-01/02/03 and regressions | Full server/client/E2E, builds, migration/repeated seed/recovery, responsive/a11y/visual/API evidence. |
@@ -873,9 +873,9 @@ dist/assets/index-LHu-N5T-.js   285.99 kB │ gzip: 76.18 kB
 
 Both commands exited 0. No browser/E2E checks were rerun for this follow-up.
 
-### Issue #58 — Ticket workflow and resolution gate (uncommitted worktree)
+### Issue #58 — Ticket workflow and resolution gate
 
-Work is on `feature/24-Lab4TicketWorkflow`, based on `lab4-staging` commit `aa4f51ac178433b89a14dcd33f2be425e45bdad0`. The results below include uncommitted Issue #58 changes on that base; `aa4f51a` is not the SHA of the changes. No commit, push, PR, review, merge, or Project status change is claimed. The migration and automated database tests used the guarded disposable `toktickit_test` database; no reset or development-database mutation was performed.
+The tested and pushed implementation commit is `a83f77b194fe5880e90142984b075750a5e3c495` on `feature/24-Lab4TicketWorkflow`, based on current `lab4-staging` commit `aa4f51ac178433b89a14dcd33f2be425e45bdad0`. The migration and automated database tests used the guarded disposable `toktickit_test` database; no reset or development-database mutation was performed. PR [#66](https://github.com/osizk/TokTickIT/pull/66) is open into `lab4-staging`; no review, approval, merge, or Project status change is claimed.
 
 Issue coverage adds the persisted `TicketWorkflowEvent` history, backend transition matrix and action-based resolution gate, transaction-time active actor/owner checks, optimistic `workflowVersion`, safe ordered history retrieval, Ticket cancellation with unfinished-Action revisions, and Requester resolution indication as an advisory value. Client controls use server-permitted targets, display gate reasons/history, collect cancellation reasons, and offer reload after stale writes. An inherited status-update caller now omits an empty cancellation reason on non-cancellation transitions. Regression fixtures were updated for the required version and new response fields. The repeat-seed test now preserves pre-existing create-only seed graphs and uses its own unique Ticket for Action-preservation checks rather than assuming reserved fixture numbers are pristine.
 
@@ -895,15 +895,15 @@ Test Files  5 passed (5)
      Tests  23 passed (23)
 ```
 
-Complete local regression reruns on the same uncommitted worktree:
+Complete regression reruns on commit `a83f77b194fe5880e90142984b075750a5e3c495`:
 
 ```text
 cd client
 npm.cmd test -- --run
 Test Files  16 passed (16)
      Tests  91 passed (91)
-Start at 17:44:48
-Duration 15.46s
+Start at 19:56:53
+Duration 32.96s
 ```
 
 ```text
@@ -911,11 +911,11 @@ cd server
 npm.cmd test -- --run
 Test Files  34 passed (34)
      Tests  147 passed (147)
-Start at 17:55:13
-Duration 40.41s
+Start at 19:56:53
+Duration 45.80s
 ```
 
-Both full suites exited 0 with no skips. Production builds passed:
+Both full suites exited 0 with no skips. Production builds passed on commit `a83f77b194fe5880e90142984b075750a5e3c495`:
 
 ```text
 cd client
@@ -933,7 +933,7 @@ npm.cmd run build
 exit code 0
 ```
 
-Prisma schema validation/generation and guarded `prisma:test:migrate` also passed earlier in this worktree; migration `20261011100000_lab4_ticket_workflow` was applied to the `_test` database. No real-browser screenshots, Playwright workflow E2E, screen-reader audit, or clean commit-bound rerun are claimed here. Those remain release/Issue #61 evidence rather than checked Issue #58 results.
+Prisma schema validation/generation and guarded `prisma:test:migrate` also passed earlier in this worktree; migration `20261011100000_lab4_ticket_workflow` was applied to the `_test` database. No real-browser screenshots, Playwright workflow E2E, or screen-reader audit are claimed here. Those remain release/Issue #61 evidence rather than checked Issue #58 results.
 
 ## 5. Release and visual checklist — actual work only
 
