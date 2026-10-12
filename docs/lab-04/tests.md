@@ -1051,7 +1051,7 @@ The real-browser check was not available during this work: requests to `http://l
 
 ### PR #70 review follow-up — verification status
 
-The deep-link preservation and cross-page Action-focus changes are included in the pushed PR head `084eec56c0057f5be298e53957e33e4ddba481d1`. The local server test-fixture correction described below is not yet part of GitHub PR #70; its results are local worktree evidence based on that pushed head, not a passing check on the current remote PR head. Rerun after the correction is committed and pushed before recording a new tested SHA. `GET /api/tickets/:ticketNumber/actions-taken` accepts optional `focusActionId`, returning the normal paginated page containing that Ticket-scoped Action in createdAt/id order. The UI requests that page from the Dashboard hash and focuses the Action. The 26-Action API fixture proves that a target on page two is returned.
+The deep-link preservation and cross-page Action-focus changes were first included in pushed PR head `084eec56c0057f5be298e53957e33e4ddba481d1`. The server test-fixture correction was committed and pushed in `a3fd3f38ece92a19b3a778e4ade22d23620b675a`. The full server/client regressions and both builds below were rerun against that committed code/test SHA. This evidence text is being added afterward; no product or test code changed after `a3fd3f38ece92a19b3a778e4ade22d23620b675a`. `GET /api/tickets/:ticketNumber/actions-taken` accepts optional `focusActionId`, returning the normal paginated page containing that Ticket-scoped Action in createdAt/id order. The UI requests that page from the Dashboard hash and focuses the Action. The 26-Action API fixture proves that a target on page two is returned.
 
 Red-phase note: the cross-page UI test first failed because it displayed Page 1 even when its linked Action belonged on Page 2. The password-gate/deep-link regression was already green before the explicit retention change: the App happened to recapture the URL during its rerender. The conditional clear now preserves the contract directly rather than depending on that incidental render timing.
 
@@ -1080,13 +1080,20 @@ cd client
 npm.cmd test -- --run
 Test Files  18 passed (18)
      Tests  111 passed (111)
+Start at 20:57:11
+Duration 14.04s
 
 npm.cmd run build
-tsc && vite build — passed; 38 modules transformed.
+> tsc && vite build
+vite v6.4.3
+✓ 38 modules transformed.
+✓ built in 734ms
+Exit code 0
 
 cd server
 npm.cmd run build
-tsc — passed.
+> tsc
+Exit code 0
 ```
 
 Historical full-server red run on pushed head `084eec56c0057f5be298e53957e33e4ddba481d1`, before the test-fixture correction:
@@ -1101,33 +1108,24 @@ Exit code 1
 
 The inherited Lab 2 compatibility tests tried the login API with the configured initial password for seeded Requesters. Because the idempotent seed correctly preserves user-changed passwords, a manually changed test account no longer matched that password and subsequent attempts hit the login rate limiter. The compatibility helper now creates scoped test sessions without relying on seeded credentials, deletes only sessions it created, and restores the prior `mustChangePassword` state. The initial-password login assertion now uses a newly backfilled non-fixture Requester. The first-login-state regression was observed failing before the state-restoration correction (`expected true to be false`) and passing afterward.
 
-Post-fix local worktree validation, based on pushed PR head `084eec56c0057f5be298e53957e33e4ddba481d1` (test-fixture corrections are not yet pushed):
+Post-fix full server regression on pushed code/test commit `a3fd3f38ece92a19b3a778e4ade22d23620b675a`:
 
 ```text
 cd server
 npm.cmd test
 Test Files  38 passed (38)
      Tests  162 passed (162)
-Start at 20:32:57
-Duration 41.09s
+Start at 20:56:02
+Duration 41.27s
 
 npm.cmd run build
 > tsc
 Exit code 0
 ```
 
-Focused compatibility-session regression:
+The new six-test compatibility-session regression is included in this full run. It passed with the rest of the suite; no tests were skipped.
 
-```text
-cd server
-npm.cmd test -- --run tests/lab-02/reference-data.test.ts
-Test Files  1 passed (1)
-     Tests  6 passed (6)
-Start at 20:27:59
-Duration 765ms
-```
-
-GitHub snapshot for PR #70 checked on 12 October 2026: open at head `084eec56c0057f5be298e53957e33e4ddba481d1`; GitHub reports mergeable, but the head has no commit statuses and no PR workflow runs. The partner submitted two `CHANGES_REQUESTED` reviews; both inline threads remain unresolved (the App.tsx thread is outdated). No re-review or **Approve** is claimed. The PR description still cites implementation commit `e7f4af720bd4750f93f7dd9cf89b456e9ddbab32` and 109 client tests, while the current client regression recorded above has 111 tests. The server-fixture corrections and 162-test server result below are still local worktree evidence based on `084eec5`; they are not evidence from a new committed PR head. No final SHA for those changes exists yet, and no merge is claimed. Browser, Playwright, responsive screenshot, and manual keyboard evidence remain unperformed for this follow-up.
+GitHub snapshot taken after pushing code/test commit `a3fd3f38ece92a19b3a778e4ade22d23620b675a` on 12 October 2026 and before the documentation-only evidence update: PR #70 was open at that head and GitHub reported it mergeable, but the head had no commit statuses and no PR workflow runs. The partner had submitted two `CHANGES_REQUESTED` reviews; both inline threads from the first review remained unresolved (the App.tsx thread was outdated). No re-review or **Approve** is claimed. The PR description still cites implementation commit `e7f4af720bd4750f93f7dd9cf89b456e9ddbab32` and 109 client tests, while the regression above records 111. No merge is claimed. Browser, Playwright, responsive screenshot, and manual keyboard evidence remain unperformed for this follow-up.
 
 ## 5. Release and visual checklist — actual work only
 
