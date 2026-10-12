@@ -1003,7 +1003,7 @@ No skips were reported by the full server run. The dashboard API and query/filte
 
 ### Issue #60 — Requester and Staff dashboards
 
-Implementation branch: `feature/26-Lab4DashboardsUI`, created from the PR #68 merge commit `19117b1bed09407601e6e1064469dccff6b9a024`. These results are from the uncommitted candidate worktree based on that staging commit, not a pushed Issue #60 SHA or final `main`.
+Implementation commit: `e7f4af720bd4750f93f7dd9cf89b456e9ddbab32` on `feature/26-Lab4DashboardsUI`, created from the PR #68 merge commit `19117b1bed09407601e6e1064469dccff6b9a024`. The complete client regression and production build below were rerun against this committed SHA; this is not a final `main` run.
 
 The planned dashboard UI tests were added first and failed to resolve the not-yet-created `Dashboards.tsx` component module. After implementation, dashboard views, login defaults, role navigation, linked list filters, and inherited route tests passed:
 
@@ -1015,14 +1015,15 @@ Test Files  4 passed (4)
 Duration 8.87s
 ```
 
-Complete client regression (the PowerShell command filters the Vitest output to the final suite summary):
+Complete client regression on the committed implementation SHA:
 
 ```text
 cd client
-npm.cmd test -- --run --reporter=dot 2>&1 | Select-String -Pattern 'Test Files|Tests\s|Duration|failed|passed|ERROR|Error'; exit $LASTEXITCODE
+npm.cmd test
 Test Files  18 passed (18)
      Tests  109 passed (109)
-Duration 14.62s
+Start at 14:13:30
+Duration 14.72s
 ```
 
 Dashboard Action-link focus regression:
@@ -1042,7 +1043,8 @@ cd client
 npm.cmd run build
 > tsc && vite build
 ✓ 38 modules transformed.
-✓ built in 710ms
+✓ built in 711ms
+exit code 0
 ```
 
 The real-browser check was not available during this work: requests to `http://localhost:3000/api/health` and `http://localhost:5173` each timed out after three seconds. No dashboard screenshot, live database/API agreement, responsive-boundary inspection, keyboard audit, or Playwright result is claimed. Complete those manual/browser checks in the release evidence workflow; the component tests do not replace them.
