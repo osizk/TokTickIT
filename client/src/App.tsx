@@ -300,7 +300,7 @@ export default function App() {
     window.addEventListener("popstate", onPopState);
     void currentUser({ notifySessionExpiry: false }).then((result) => {
       if (authGeneration.current !== restoreGeneration) return;
-      returnTo.current = null;
+      if (!result.user.mustChangePassword) returnTo.current = null;
       setSessionExpiredHandler(handleSessionExpired); setLogoutError(null); setUser(result.user); setAuthState("authenticated");
     }).catch(() => {
       if (authGeneration.current !== restoreGeneration) return;

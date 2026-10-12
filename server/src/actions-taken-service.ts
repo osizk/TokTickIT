@@ -23,6 +23,7 @@ type ActionTx = Prisma.TransactionClient;
 export interface ActionListQuery {
   page?: unknown;
   pageSize?: unknown;
+  focusActionId?: unknown;
 }
 
 export interface ActionPagination {
@@ -153,11 +154,26 @@ function parseQueryKeys(query: Record<string, unknown>, allowed: Set<string>) {
 }
 
 export async function listActionsTaken(context: AuthContext, rawTicketNumber: string, query: ActionListQuery) {
-  const { page, pageSize } = parsePagination(query);
+  const parsed = parsePagination(query);
+  let page = parsed.page;
+  const { pageSize } = parsed;
   const prisma = getPrisma();
   try {
     const ticket = await findReaderTicket(prisma, context, rawTicketNumber);
     const where = { ticketId: ticket.id };
+    if (query.focusActionId !== undefined) {
+      if (typeof query.focusActionId !== "string") throw apiError(404, "ACTION_NOT_FOUND", "Action was not found.");
+      const focusActionId = parseActionId(query.focusActionId);
+      const target = await prisma.actionTaken.findFirst({ where: { id: focusActionId, ticketId: ticket.id }, select: { id: true, createdAt: true } });
+      if (!target) throw apiError(404, "ACTION_NOT_FOUND", "Action was not found.");
+      const precedingCount = await prisma.actionTaken.count({
+        where: {
+          ticketId: ticket.id,
+          OR: [{ createdAt: { lt: target.createdAt } }, { createdAt: target.createdAt, id: { lt: target.id } }],
+        },
+      });
+      page = Math.floor(precedingCount / pageSize) + 1;
+    }
     const [rows, totalItems] = await Promise.all([
       prisma.actionTaken.findMany({
         where,
@@ -515,6 +531,6 @@ export async function listActionRevisions(context: AuthContext, rawTicketNumber:
   }
 }
 
-export function validateActionQueryKeys(query: Record<string, unknown>) {
-  parseQueryKeys(query, new Set(["page", "pageSize"]));
+export function validateActionQueryKeys(query: Record<string, unknown>, allowFocusActionId = false) {
+  parseQueryKeys(query, new Set(["page", "pageSize", ...(allowFocusActionId ? ["focusActionId"] : [])]));
 }

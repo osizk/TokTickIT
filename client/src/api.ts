@@ -1081,9 +1081,11 @@ export async function fetchActionsTaken(
   ticketNumber: string,
   page = 1,
   pageSize: TicketListPageSize = 25,
+  focusActionId?: number,
 ): Promise<ActionListResponse> {
   if (!ticketNumber) throw new ApiClientError("Unable to load Actions Taken.", 400);
   const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
+  if (focusActionId !== undefined) params.set("focusActionId", String(focusActionId));
   const body = await actionRequest(`/api/tickets/${encodeURIComponent(ticketNumber)}/actions-taken?${params}`, { headers: authenticatedHeaders() }, "Unable to load Actions Taken.");
   const result = body as { actions?: unknown; pagination?: unknown; ticketVersion?: unknown } | null;
   if (!result || !Array.isArray(result.actions) || !result.actions.every(isActionTaken) ||

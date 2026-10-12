@@ -159,6 +159,31 @@ describe("Lab 3 authenticated Requester UI", () => {
     expect(window.location.search).toBe("?source=bookmark");
   });
 
+  it("returns a restored session through mandatory password change to its permitted deep link", async () => {
+    const deepLink = "/tickets/new?source=bookmark#attachments";
+    setPath(deepLink);
+    const initialUser = { id: 101, name: "Amina Rahman", email: "amina@example.test", role: "REQUESTER", isActive: true, mustChangePassword: true };
+    const updatedUser = { ...initialUser, mustChangePassword: false };
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/api/auth/me")) return Promise.resolve(new Response(JSON.stringify({ user: initialUser, csrfToken: "csrf-test-token" }), { status: 200, headers: { "Content-Type": "application/json" } }));
+      if (url.endsWith("/api/auth/change-password") && init?.method === "POST") return Promise.resolve(new Response(JSON.stringify({ user: updatedUser, csrfToken: "csrf-test-token" }), { status: 200, headers: { "Content-Type": "application/json" } }));
+      if (url.endsWith("/api/categories") || url.endsWith("/api/related-systems")) return Promise.resolve(new Response("[]", { status: 200, headers: { "Content-Type": "application/json" } }));
+      return Promise.resolve(new Response(JSON.stringify({ error: { code: "NOT_EXPECTED", message: "Unexpected request" } }), { status: 500, headers: { "Content-Type": "application/json" } }));
+    }));
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Change Password" });
+    await user.type(screen.getByLabelText("Current password"), "Initial-Lab3!Password");
+    await user.type(screen.getByLabelText("New password"), "Renewed-Lab4!Pass2026");
+    await user.type(screen.getByLabelText("Confirm new password"), "Renewed-Lab4!Pass2026");
+    await user.click(screen.getByRole("button", { name: "Save password" }));
+
+    expect(await screen.findByRole("heading", { name: "Create Ticket" })).toBeInTheDocument();
+    expect(`${window.location.pathname}${window.location.search}${window.location.hash}`).toBe(deepLink);
+  });
+
   it("ignores a stale initial session restore after a successful Login", async () => {
     setPath("/login");
     const user = userEvent.setup();

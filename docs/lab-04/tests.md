@@ -1049,6 +1049,48 @@ exit code 0
 
 The real-browser check was not available during this work: requests to `http://localhost:3000/api/health` and `http://localhost:5173` each timed out after three seconds. No dashboard screenshot, live database/API agreement, responsive-boundary inspection, keyboard audit, or Playwright result is claimed. Complete those manual/browser checks in the release evidence workflow; the component tests do not replace them.
 
+### PR #70 review follow-up — current working tree
+
+These follow-up changes are in an uncommitted working tree based on `10198ffa073805bd899bc30d8004a1a30acd14a8`; results below are not yet tied to a new commit SHA. Session restoration now explicitly retains a permitted deep link while `mustChangePassword` is true, and a combined restore/change-password/deep-link regression test passes. `GET /api/tickets/:ticketNumber/actions-taken` now accepts optional `focusActionId`, returning the normal paginated page containing that Ticket-scoped Action in createdAt/id order. The UI requests that page from the Dashboard hash and focuses the Action. The 26-Action API fixture proves the target on page two is returned.
+
+Red-phase note: the cross-page UI test first failed because it displayed Page 1 even when its linked Action belonged on Page 2. The password-gate/deep-link regression was already green before the explicit retention change: the App happened to recapture the URL during its rerender. The conditional clear now preserves the contract directly rather than depending on that incidental render timing.
+
+Focused client regression:
+
+```text
+cd client
+npm.cmd test -- --run tests/lab-03/RequesterRegression.test.tsx tests/lab-04/ActionsTaken.test.tsx
+Test Files  2 passed (2)
+     Tests  37 passed (37)
+```
+
+Focused server API regression:
+
+```text
+cd server
+npm.cmd test -- --run tests/lab-04/actions-taken.api.test.ts
+Test Files  1 passed (1)
+     Tests  4 passed (4)
+```
+
+Complete client regression and builds:
+
+```text
+cd client
+npm.cmd test
+Test Files  18 passed (18)
+     Tests  111 passed (111)
+
+npm.cmd run build
+tsc && vite build — passed; 38 modules transformed.
+
+cd server
+npm.cmd run build
+tsc — passed.
+```
+
+The full server suite was attempted but did not pass: 9 files failed, 7 tests failed, 130 passed, and 24 were skipped. The observed failures were inherited Lab 1/2 seeded-Requester login fixtures returning 401/429; the focused Lab 4 Actions API suite and server build passed. Do not treat the full server regression gate as complete until those fixture credentials/rate-limit failures are resolved and the suite is rerun. No browser, Playwright, responsive screenshot, or manual keyboard evidence was produced by this follow-up.
+
 ## 5. Release and visual checklist — actual work only
 
 - [ ] Student and teammate approve engineering decisions; four public contracts merged before implementation.
