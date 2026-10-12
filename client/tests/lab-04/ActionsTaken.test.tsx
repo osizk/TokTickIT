@@ -39,7 +39,33 @@ describe("Lab 4 Actions Taken UI", () => {
     vi.spyOn(api, "updateActionTaken").mockResolvedValue({ action: { ...action, version: 3 }, ticketVersion: 4 } as never);
   });
 
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => {
+    vi.restoreAllMocks();
+    window.history.replaceState({}, "", "/");
+  });
+
+  it("focuses the linked Action heading after its list loads", async () => {
+    window.history.replaceState({}, "", `/staff/tickets/${ticketNumber}#action-heading-${action.id}`);
+    render(<ActionsTaken ticketNumber={ticketNumber} readOnly />);
+
+    expect(await screen.findByRole("heading", { name: action.description })).toHaveFocus();
+  });
+
+  it("loads and focuses a dashboard-linked Action beyond the first page", async () => {
+    const target = { ...action, id: 66, description: "The linked Action on page two." };
+    window.history.replaceState({}, "", `/staff/tickets/${ticketNumber}#action-heading-${target.id}`);
+    vi.mocked(api.fetchActionsTaken).mockResolvedValueOnce({
+      actions: [target],
+      pagination: { ...pagination, page: 2, totalItems: 26, totalPages: 2, hasPreviousPage: true },
+      ticketVersion: 3,
+    } as never);
+
+    render(<ActionsTaken ticketNumber={ticketNumber} readOnly />);
+
+    expect(await screen.findByRole("heading", { name: target.description })).toHaveFocus();
+    expect(screen.getByText("Page 2 of 2")).toBeInTheDocument();
+    expect(api.fetchActionsTaken).toHaveBeenCalledWith(ticketNumber, 1, 25, target.id);
+  });
 
   it("shows public Action history to Requesters without edit controls or Internal Notes", async () => {
     render(<ActionsTaken ticketNumber={ticketNumber} readOnly />);

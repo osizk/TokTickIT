@@ -43,11 +43,11 @@ const createdTicket: api.CreatedTicket = {
 };
 
 async function openCreateTicket(user: ReturnType<typeof userEvent.setup>) {
+  window.history.replaceState({}, "", "/tickets/new");
   render(<App />);
   await user.type(await screen.findByLabelText("Email"), authUser.email);
   await user.type(screen.getByLabelText("Password"), "Initial-Lab3!Password");
   await user.click(screen.getByRole("button", { name: "Sign in" }));
-  await user.click(await screen.findByRole("link", { name: "Create Ticket from My Tickets" }));
   expect(await screen.findByRole("heading", { name: "Create Ticket" })).toBeInTheDocument();
 }
 
@@ -100,10 +100,7 @@ describe("Create Ticket", () => {
 
   it("shows a safe reference-data failure and retries successfully", async () => {
     const categorySpy = vi.mocked(api.fetchCategories);
-    // The requester shell visits My Tickets before this helper opens Create
-    // Ticket, so reserve the failure for Create Ticket's own reference load.
     categorySpy
-      .mockResolvedValueOnce(categories)
       .mockRejectedValueOnce(new Error("database unavailable"))
       .mockResolvedValue(categories);
     const user = userEvent.setup();
@@ -113,7 +110,7 @@ describe("Create Ticket", () => {
       "Unable to load Ticket reference data.",
     );
     await user.click(screen.getByRole("button", { name: "Retry" }));
-    await waitFor(() => expect(categorySpy).toHaveBeenCalledTimes(3));
+    await waitFor(() => expect(categorySpy).toHaveBeenCalledTimes(2));
     expect(screen.getByRole("button", { name: "Submit Ticket" })).not.toBeDisabled();
   });
 

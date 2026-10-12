@@ -1,7 +1,9 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import request from "supertest";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import path from "node:path";
+import { app } from "../../src/app.js";
 import { hashPassword } from "../../src/auth-service.js";
 import { getPrisma } from "../../src/prisma.js";
 
@@ -118,6 +120,8 @@ describe("Lab 3 migration and seed preservation", () => {
     await prisma.user.deleteMany({ where: { id: preservedUserId } });
     await prisma.attachment.deleteMany({ where: { id: legacyAttachmentId } });
     await prisma.ticket.deleteMany({ where: { id: legacyTicketId } });
+    const legacyUser = await prisma.user.findUnique({ where: { legacyRequesterId: legacyRequesterId }, select: { id: true } });
+    if (legacyUser) await prisma.session.deleteMany({ where: { userId: legacyUser.id } });
     await prisma.user.deleteMany({ where: { legacyRequesterId: legacyRequesterId } });
     await prisma.requester.deleteMany({ where: { id: legacyRequesterId } });
   });
@@ -152,6 +156,24 @@ describe("Lab 3 migration and seed preservation", () => {
     expect(user.mustChangePassword).toBe(true);
     expect(ticket.requesterId).toBe(legacyRequesterId);
     expect(attachment.ticketId).toBe(legacyTicketId);
+  });
+
+  it("lets a newly backfilled Requester sign in with the configured password and enforces first change", async () => {
+    const password = process.env.LAB3_REQUESTER_INITIAL_PASSWORD;
+    expect(password).toBeTruthy();
+    const agent = request.agent(app);
+    const response = await agent.post("/api/auth/login").send({ email: legacyEmail, password });
+
+    expect(response.status).toBe(200);
+    expect(response.body.user).toMatchObject({
+      email: legacyEmail,
+      role: "REQUESTER",
+      isActive: true,
+      mustChangePassword: true,
+    });
+    const protectedRequest = await agent.get("/api/tickets");
+    expect(protectedRequest.status).toBe(403);
+    expect(protectedRequest.body.error.code).toBe("PASSWORD_CHANGE_REQUIRED");
   });
 
   it("has stable required reference counts after repeated idempotent seed runs", async () => {

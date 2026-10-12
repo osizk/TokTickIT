@@ -2,7 +2,7 @@ import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import request from "supertest";
 import { app } from "../../src/app.js";
 import * as prismaModule from "../../src/prisma.js";
-import { loginSeedRequester, restoreRequesterFirstLogin } from "../lab-03/requester-test-auth.js";
+import { loginRequesterByLegacyId, loginSeedRequester, restoreRequesterFirstLogin } from "../lab-03/requester-test-auth.js";
 
 describe("Lab 2 reference-data APIs", () => {
   afterAll(async () => {
@@ -13,6 +13,27 @@ describe("Lab 2 reference-data APIs", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it("preserves an already-completed first-login gate after using a compatibility session", async () => {
+    const prisma = prismaModule.getPrisma();
+    const requester = await prisma.requester.findFirstOrThrow({ where: { isActive: true }, orderBy: { id: "asc" } });
+    const user = await prisma.user.findUniqueOrThrow({ where: { legacyRequesterId: requester.id } });
+    const originalGate = user.mustChangePassword;
+    await prisma.user.update({ where: { id: user.id }, data: { mustChangePassword: false } });
+    let restoredGate: boolean | undefined;
+
+    try {
+      const { agent } = await loginRequesterByLegacyId(requester.id);
+      expect((await agent.get("/api/categories")).status).toBe(200);
+      await restoreRequesterFirstLogin(requester.id);
+      restoredGate = (await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).mustChangePassword;
+    } finally {
+      await restoreRequesterFirstLogin(requester.id);
+      await prisma.user.update({ where: { id: user.id }, data: { mustChangePassword: originalGate } });
+    }
+
+    expect(restoredGate).toBe(false);
   });
 
   it("returns only active categories in stable id order", async () => {

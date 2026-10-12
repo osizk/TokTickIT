@@ -51,7 +51,8 @@ const listResponse: api.TicketListResponse = {
   },
 };
 
-async function openMyTickets(user: ReturnType<typeof userEvent.setup>) {
+async function openMyTickets(user: ReturnType<typeof userEvent.setup>, path = "/tickets") {
+  window.history.replaceState({}, "", path);
   render(<App />);
   await user.type(await screen.findByLabelText("Email"), authUser.email);
   await user.type(screen.getByLabelText("Password"), "Initial-Lab3!Password");
@@ -109,6 +110,19 @@ describe("My Tickets", () => {
       1,
       expect.objectContaining({ search: "VPN", categoryId: 10, pageSize: 25, page: 1 }),
     );
+  });
+
+  it("applies Requester dashboard date and active filters from a deep link", async () => {
+    const user = userEvent.setup();
+    const fetchSpy = vi.mocked(api.fetchTickets);
+    await openMyTickets(user, "/tickets?statusGroup=active&updatedSince=2026-10-05T12%3A00%3A00.000Z&updatedBefore=2026-10-12T12%3A00%3A00.000Z");
+
+    expect(await screen.findByText(/Tickets in the selected dashboard time window/)).toBeInTheDocument();
+    await waitFor(() => expect(fetchSpy).toHaveBeenLastCalledWith(1, expect.objectContaining({
+      statusGroup: "active",
+      updatedSince: "2026-10-05T12:00:00.000Z",
+      updatedBefore: "2026-10-12T12:00:00.000Z",
+    })));
   });
 
   it("distinguishes no owned Tickets from filtered no-results and can clear filters", async () => {

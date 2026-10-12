@@ -444,7 +444,7 @@ app.get("/api/tickets/:ticketNumber/workflow-events", async (req: Request, res: 
 app.get("/api/tickets/:ticketNumber/actions-taken", async (req: Request, res: Response) => {
   try {
     const reader = await requireTicketReader(req);
-    validateActionQueryKeys(req.query as Record<string, unknown>);
+    validateActionQueryKeys(req.query as Record<string, unknown>, true);
     const result = await listActionsTaken(reader.context, req.params.ticketNumber, req.query);
     markUncached(res);
     res.status(200).json(result);

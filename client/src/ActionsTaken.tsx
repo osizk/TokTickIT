@@ -105,6 +105,9 @@ export default function ActionsTaken({ ticketNumber, readOnly = false, currentUs
   const [ticketVersion, setTicketVersion] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<TicketListPageSize>(25);
+  const linkedActionMatch = window.location.hash.match(/^#action-heading-(\d+)$/);
+  const linkedActionId = useRef<number | null>(linkedActionMatch ? Number(linkedActionMatch[1]) : null);
+  const skipPageReload = useRef<number | null>(null);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [listState, setListState] = useState<"loading" | "success" | "error">("loading");
@@ -141,23 +144,42 @@ export default function ActionsTaken({ ticketNumber, readOnly = false, currentUs
   const editButtonRefs = useRef<Record<number, HTMLButtonElement | null>>({});
   const cancelDialogRef = useRef<HTMLTextAreaElement | null>(null);
 
-  const loadActions = useCallback(async (requestedPage = page) => {
+  const loadActions = useCallback(async (requestedPage: number) => {
     setListState("loading");
     setListError(null);
     try {
-      const result = await fetchActionsTaken(ticketNumber, requestedPage, pageSize);
+      const focusActionId = requestedPage === 1 ? linkedActionId.current ?? undefined : undefined;
+      const result = await fetchActionsTaken(ticketNumber, requestedPage, pageSize, focusActionId);
+      if (focusActionId !== undefined && result.actions.some((action) => action.id === focusActionId)) linkedActionId.current = null;
       setActions(result.actions.slice().sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id - b.id));
       setTicketVersion(result.ticketVersion);
       setTotalItems(result.pagination.totalItems);
       setTotalPages(result.pagination.totalPages);
+      if (result.pagination.page !== requestedPage) {
+        skipPageReload.current = result.pagination.page;
+        setPage(result.pagination.page);
+      }
       setListState("success");
     } catch (error) {
       setListError(errorMessage(error, "Unable to load Actions Taken."));
       setListState("error");
     }
-  }, [page, pageSize, ticketNumber]);
+  }, [pageSize, ticketNumber]);
 
-  useEffect(() => { void loadActions(page); }, [loadActions, listRetry, page]);
+  useEffect(() => {
+    if (skipPageReload.current === page) {
+      skipPageReload.current = null;
+      return;
+    }
+    void loadActions(page);
+  }, [loadActions, listRetry, page]);
+
+  useEffect(() => {
+    if (listState !== "success") return;
+    const match = window.location.hash.match(/^#action-heading-(\d+)$/);
+    if (!match || !actions.some((action) => action.id === Number(match[1]))) return;
+    actionHeadingRefs.current[Number(match[1])]?.focus();
+  }, [actions, listState]);
 
   useEffect(() => {
     if (!readOnly) return;

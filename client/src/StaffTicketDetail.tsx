@@ -4,7 +4,7 @@ import {
   InternalNote,
   PublicComment,
   StaffAssignee,
-  StaffTicketDetail,
+  StaffTicketDetail as StaffTicketDetailData,
   TicketAttachment,
   TicketPriority,
   TicketStatus,
@@ -105,7 +105,7 @@ function AttachmentList({ attachments, onDownload }: { attachments: TicketAttach
 }
 
 export default function StaffTicketDetail({ ticketNumber, navigate, currentUserId }: StaffTicketDetailProps) {
-  const [ticket, setTicket] = useState<StaffTicketDetail | null>(null);
+  const [ticket, setTicket] = useState<StaffTicketDetailData | null>(null);
   const [ticketState, setTicketState] = useState<LoadState>("loading");
   const [ticketError, setTicketError] = useState<unknown>(null);
   const [retry, setRetry] = useState(0);

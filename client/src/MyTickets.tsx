@@ -8,6 +8,7 @@ import {
   TicketListQuery,
   TicketListResponse,
   TicketListSort,
+  TicketStatus,
   fetchCategories,
   fetchRelatedSystems,
   fetchTickets,
@@ -30,6 +31,7 @@ const SORT_OPTIONS: Array<{ value: TicketListSort; label: string }> = [
 
 const PAGE_SIZE_OPTIONS: TicketListPageSize[] = [10, 25, 50];
 const PRIORITY_OPTIONS = ["LOW", "MEDIUM", "HIGH", "URGENT"] as const;
+const STATUS_OPTIONS: TicketStatus[] = ["NEW", "OPEN", "IN_PROGRESS", "WAITING_FOR_REQUESTER", "RESOLVED", "CLOSED", "REOPENED", "CANCELLED"];
 
 interface MyTicketsProps {
   requester: Requester;
@@ -62,7 +64,8 @@ function parseUrlQuery(search: string): TicketListQuery {
   const priority = PRIORITY_OPTIONS.includes(params.get("priority") as (typeof PRIORITY_OPTIONS)[number])
     ? (params.get("priority") as (typeof PRIORITY_OPTIONS)[number])
     : undefined;
-  const status = params.get("status") === "NEW" ? "NEW" : undefined;
+  const rawStatus = params.get("status");
+  const status = STATUS_OPTIONS.includes(rawStatus as TicketStatus) ? rawStatus as TicketStatus : undefined;
   const searchText = params.get("search")?.trim();
 
   return {
@@ -75,6 +78,9 @@ function parseUrlQuery(search: string): TicketListQuery {
       : { relatedSystemId: positiveInteger(params.get("relatedSystemId")) }),
     ...(priority ? { priority } : {}),
     ...(status ? { status } : {}),
+    ...(params.get("statusGroup") === "active" ? { statusGroup: "active" as const } : {}),
+    ...(params.get("updatedSince") ? { updatedSince: params.get("updatedSince")! } : {}),
+    ...(params.get("updatedBefore") ? { updatedBefore: params.get("updatedBefore")! } : {}),
     sort,
     order,
     page,
@@ -89,6 +95,9 @@ function toSearchParams(query: TicketListQuery): string {
   if (query.relatedSystemId !== undefined) params.set("relatedSystemId", String(query.relatedSystemId));
   if (query.priority) params.set("priority", query.priority);
   if (query.status) params.set("status", query.status);
+  if (query.statusGroup) params.set("statusGroup", query.statusGroup);
+  if (query.updatedSince) params.set("updatedSince", query.updatedSince);
+  if (query.updatedBefore) params.set("updatedBefore", query.updatedBefore);
   params.set("sort", query.sort);
   params.set("order", query.order);
   params.set("page", String(query.page));
@@ -113,7 +122,7 @@ function isFiltered(query: TicketListQuery): boolean {
       query.categoryId !== undefined ||
       query.relatedSystemId !== undefined ||
       query.priority ||
-      query.status,
+      query.status || query.statusGroup || query.updatedSince || query.updatedBefore,
   );
 }
 
@@ -296,6 +305,10 @@ export default function MyTickets({ requester, navigate }: MyTicketsProps) {
 
   const errorMessage = "Unable to load My Tickets.";
   const filtered = isFiltered(query);
+  const dashboardFilter = [
+    query.statusGroup === "active" ? "active Tickets" : "",
+    query.updatedSince && query.updatedBefore ? "Tickets in the selected dashboard time window" : "",
+  ].filter(Boolean).join(" · ");
 
   return (
     <section className="zen-card zen-list-card" aria-labelledby="my-tickets-heading">
@@ -304,6 +317,7 @@ export default function MyTickets({ requester, navigate }: MyTicketsProps) {
           <p className="zen-eyebrow">Requester workspace</p>
           <h1 id="my-tickets-heading">My Tickets</h1>
           <p className="zen-lead">Tickets created in your authenticated Requester context.</p>
+          {dashboardFilter && <p className="zen-dashboard-filter-note">Dashboard drill-down: {dashboardFilter}.</p>}
         </div>
         <a
           className="zen-button zen-button-primary"
@@ -379,10 +393,10 @@ export default function MyTickets({ requester, navigate }: MyTicketsProps) {
             <select
               id="ticket-status-filter"
               value={query.status ?? ""}
-              onChange={(event) => updateQuery({ status: event.target.value ? "NEW" : undefined, page: 1 })}
+              onChange={(event) => updateQuery({ status: event.target.value ? event.target.value as TicketStatus : undefined, statusGroup: undefined, page: 1 })}
             >
               <option value="">All Statuses</option>
-              <option value="NEW">NEW</option>
+              {STATUS_OPTIONS.map((status) => <option key={status} value={status}>{status}</option>)}
             </select>
           </div>
 

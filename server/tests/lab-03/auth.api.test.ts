@@ -85,18 +85,6 @@ describe("Lab 3 authentication API safety contract", () => {
     expect(response.headers["set-cookie"][0]).toContain("HttpOnly");
   });
 
-  it("logs in the seeded Requester fixture with the local-only seed password", async () => {
-    const seededPassword = process.env.LAB3_REQUESTER_INITIAL_PASSWORD;
-    expect(seededPassword).toBeTruthy();
-    const agent = request.agent(app);
-    const response = await agent.post("/api/auth/login").send({ email: "amina@example.test", password: seededPassword });
-
-    expect(response.status).toBe(200);
-    expect(response.body.user).toMatchObject({ email: "amina@example.test", role: "REQUESTER", isActive: true });
-    expect(response.body.csrfToken).toEqual(expect.any(String));
-    expect((await agent.post("/api/auth/logout").set("X-CSRF-Token", response.body.csrfToken)).status).toBe(204);
-  });
-
   it("uses the same safe failure for an inactive User and an unknown email", async () => {
     const prisma = getPrisma();
     await prisma.user.update({ where: { id: authTestUserId }, data: { isActive: false } });

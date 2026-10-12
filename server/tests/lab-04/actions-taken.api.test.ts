@@ -295,4 +295,40 @@ describe("Lab 4 Actions Taken API", () => {
       await prisma.user.update({ where: { id: staffId }, data: { isActive: true, role: "IT_STAFF" } });
     }
   });
+
+  it("returns the page containing a requested Action focus target", async () => {
+    const { agent } = await login();
+    const prisma = getPrisma();
+    const ticket = await prisma.ticket.findUniqueOrThrow({ where: { ticketNumber }, select: { id: true } });
+    const insertedIds: number[] = [];
+
+    try {
+      for (let index = 0; index < 26; index += 1) {
+        const createdAt = new Date(Date.UTC(2020, 0, 1) + index);
+        const row = await prisma.actionTaken.create({
+          data: {
+            ticketId: ticket.id,
+            assigneeUserId: staffId,
+            createdByUserId: staffId,
+            description: `Focus pagination fixture ${index + 1}`,
+            clientRequestId: randomUUID(),
+            requestFingerprint: "a".repeat(64),
+            createdAt,
+            updatedAt: createdAt,
+          },
+          select: { id: true },
+        });
+        insertedIds.push(row.id);
+      }
+
+      const targetId = insertedIds.at(-1)!;
+      const response = await agent.get(`/api/tickets/${ticketNumber}/actions-taken`).query({ focusActionId: String(targetId), pageSize: "25" });
+
+      expect(response.status).toBe(200);
+      expect(response.body.pagination).toMatchObject({ page: 2, pageSize: 25, totalPages: 2, hasPreviousPage: true });
+      expect(response.body.actions.map((action: { id: number }) => action.id)).toContain(targetId);
+    } finally {
+      if (insertedIds.length) await prisma.actionTaken.deleteMany({ where: { id: { in: insertedIds } } });
+    }
+  });
 });
