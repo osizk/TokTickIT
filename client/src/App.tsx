@@ -16,6 +16,7 @@ import TicketDetail from "./TicketDetail.js";
 import StaffTicketQueue from "./StaffTicketQueue.js";
 import StaffTicketDetail from "./StaffTicketDetail.js";
 import AdminUserManagement from "./AdminUserManagement.js";
+import { RequesterDashboard, StaffDashboard } from "./Dashboards.js";
 import "./styles.css";
 
 export const REQUESTER_STORAGE_KEY = "toktickit.requesterId";
@@ -25,13 +26,22 @@ function currentPath(): string {
 }
 
 function isProtectedPath(path: string): boolean {
-  return path === "/select-requester" || path === "/change-password" || path === "/tickets" || path === "/tickets/new" || /^\/tickets\/[^/]+$/.test(path) || path === "/admin/users" || /^\/staff\/tickets(?:\/[^/]+)?$/.test(path);
+  return path === "/select-requester" || path === "/change-password" || path === "/dashboard" || path === "/staff/dashboard" || path === "/tickets" || path === "/tickets/new" || /^\/tickets\/[^/]+$/.test(path) || path === "/admin/users" || /^\/staff\/tickets(?:\/[^/]+)?$/.test(path);
 }
 
 function landingPath(user: AuthUser): string {
-  if (user.role === "REQUESTER") return "/tickets";
-  if (user.role === "ADMINISTRATOR") return "/admin/users";
-  return "/staff/tickets";
+  return user.role === "REQUESTER" ? "/dashboard" : "/staff/dashboard";
+}
+
+function canAccessPath(user: AuthUser, path: string): boolean {
+  if (user.role === "REQUESTER") return path === "/dashboard" || path === "/tickets" || path === "/tickets/new" || /^\/tickets\/[^/]+$/.test(path);
+  return path === "/staff/dashboard" || path === "/staff/tickets" || /^\/staff\/tickets\/[^/]+$/.test(path) || (user.role === "ADMINISTRATOR" && path === "/admin/users");
+}
+
+function postLoginPath(user: AuthUser, requestedPath: string | null): string {
+  if (!requestedPath) return landingPath(user);
+  const requested = new URL(requestedPath, window.location.origin);
+  return canAccessPath(user, requested.pathname) ? `${requested.pathname}${requested.search}${requested.hash}` : landingPath(user);
 }
 
 function toRequester(user: AuthUser): Requester {
@@ -210,14 +220,16 @@ function AppShell({ path, user, navigate, onLogout, logoutError, logoutPending }
   return (
     <div className="zen-page"><header className="zen-app-header"><div className="zen-header-inner">
       <a className="zen-brand" href={landingPath(user)} onClick={(event) => goTo(event, landingPath(user))}><span className="zen-brand-mark" aria-hidden="true">T</span><span><strong>TokTickIT</strong><small>IT Service Desk</small></span></a>
-      {user.role === "REQUESTER" && <nav className="zen-nav" aria-label="Primary navigation"><a href="/tickets" className={path === "/tickets" ? "is-active" : undefined} aria-current={path === "/tickets" ? "page" : undefined} onClick={(event) => goTo(event, "/tickets")}>My Tickets</a><a href="/tickets/new" className={path === "/tickets/new" ? "is-active" : undefined} aria-current={path === "/tickets/new" ? "page" : undefined} onClick={(event) => goTo(event, "/tickets/new")}>Create Ticket</a></nav>}
-      {(user.role === "IT_STAFF" || user.role === "ADMINISTRATOR") && <nav className="zen-nav" aria-label="Primary navigation"><a href="/staff/tickets" className={path === "/staff/tickets" ? "is-active" : undefined} aria-current={path === "/staff/tickets" ? "page" : undefined} onClick={(event) => goTo(event, "/staff/tickets")}>Ticket Queue</a>{user.role === "ADMINISTRATOR" && <a href="/admin/users" className={path === "/admin/users" ? "is-active" : undefined} aria-current={path === "/admin/users" ? "page" : undefined} onClick={(event) => goTo(event, "/admin/users")}>User Management</a>}</nav>}
+      {user.role === "REQUESTER" && <nav className="zen-nav" aria-label="Primary navigation"><a href="/dashboard" className={path === "/dashboard" ? "is-active" : undefined} aria-current={path === "/dashboard" ? "page" : undefined} onClick={(event) => goTo(event, "/dashboard")}>Dashboard</a><a href="/tickets" className={path === "/tickets" ? "is-active" : undefined} aria-current={path === "/tickets" ? "page" : undefined} onClick={(event) => goTo(event, "/tickets")}>My Tickets</a><a href="/tickets/new" className={path === "/tickets/new" ? "is-active" : undefined} aria-current={path === "/tickets/new" ? "page" : undefined} onClick={(event) => goTo(event, "/tickets/new")}>Create Ticket</a></nav>}
+      {(user.role === "IT_STAFF" || user.role === "ADMINISTRATOR") && <nav className="zen-nav" aria-label="Primary navigation"><a href="/staff/dashboard" className={path === "/staff/dashboard" ? "is-active" : undefined} aria-current={path === "/staff/dashboard" ? "page" : undefined} onClick={(event) => goTo(event, "/staff/dashboard")}>Dashboard</a><a href="/staff/tickets" className={path === "/staff/tickets" || path.startsWith("/staff/tickets/") ? "is-active" : undefined} aria-current={path === "/staff/tickets" || path.startsWith("/staff/tickets/") ? "page" : undefined} onClick={(event) => goTo(event, "/staff/tickets")}>Ticket Queue</a>{user.role === "ADMINISTRATOR" && <a href="/admin/users" className={path === "/admin/users" ? "is-active" : undefined} aria-current={path === "/admin/users" ? "page" : undefined} onClick={(event) => goTo(event, "/admin/users")}>User Management</a>}</nav>}
       <div className="zen-identity" aria-label="Current user"><span className="zen-identity-label">{user.role.replace("_", " ")}</span><strong>{user.name}</strong><button className="zen-button zen-button-link" type="button" onClick={onLogout} disabled={logoutPending}>{logoutPending ? "Signing out..." : "Logout"}</button></div>
     </div></header><main className="zen-main" id="main-content"><LogoutFeedback message={logoutError} onRetry={onLogout} pending={logoutPending} /><RouteContent path={path} user={user} requester={requester} navigate={navigate} /></main></div>
   );
 }
 
 function RouteContent({ path, user, requester, navigate }: { path: string; user: AuthUser; requester: Requester; navigate: (path: string) => void }) {
+  if (user.role === "REQUESTER" && path === "/dashboard") return <RequesterDashboard navigate={navigate} />;
+  if ((user.role === "IT_STAFF" || user.role === "ADMINISTRATOR") && path === "/staff/dashboard") return <StaffDashboard navigate={navigate} />;
   if (user.role === "REQUESTER" && path === "/tickets/new") return <CreateTicketPage requester={requester} navigate={navigate} />;
   if (user.role === "REQUESTER" && path === "/tickets") return <MyTickets requester={requester} navigate={navigate} />;
   if (user.role === "REQUESTER" && path.startsWith("/tickets/") && path !== "/tickets/new") {
@@ -234,7 +246,7 @@ function RouteContent({ path, user, requester, navigate }: { path: string; user:
     return <StaffTicketDetail ticketNumber={ticketNumber} navigate={navigate} currentUserId={user.id} />;
   }
   if (user.role === "ADMINISTRATOR" && path === "/admin/users") return <AdminUserManagement />;
-  return <section className="zen-card" aria-labelledby="forbidden-heading"><p className="zen-eyebrow">Authenticated workspace</p><h1 id="forbidden-heading">Access not available</h1><p className="zen-lead">This route is not available for the current role.</p></section>;
+  return <section className="zen-card" aria-labelledby="forbidden-heading"><p className="zen-eyebrow">Authenticated workspace</p><h1 id="forbidden-heading">Access not available</h1><p className="zen-lead">This route is not available for the current role.</p><a className="zen-button zen-button-secondary" href={landingPath(user)} onClick={(event) => { event.preventDefault(); navigate(landingPath(user)); }}>Go to your Dashboard</a></section>;
 }
 
 export default function App() {
@@ -244,9 +256,15 @@ export default function App() {
   const [logoutError, setLogoutError] = useState<string | null>(null);
   const [logoutPending, setLogoutPending] = useState(false);
   const authGeneration = useRef(0);
+  const returnTo = useRef<string | null>(null);
+  if (returnTo.current === null && isProtectedPath(path) && path !== "/change-password" && path !== "/select-requester") {
+    returnTo.current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  }
   const navigate = useCallback((nextPath: string) => { navigateTo(nextPath); setPath(new URL(nextPath, window.location.origin).pathname); }, []);
 
   const handleSessionExpired = useCallback(() => {
+    const expiredPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    returnTo.current = isProtectedPath(window.location.pathname) ? expiredPath : null;
     authGeneration.current += 1;
     setSessionExpiredHandler(null);
     setLogoutError(null);
@@ -263,6 +281,7 @@ export default function App() {
     try {
       await logout();
       setSessionExpiredHandler(null);
+      returnTo.current = null;
       setUser(null);
       setAuthState("unauthenticated");
       navigate("/login");
@@ -281,6 +300,7 @@ export default function App() {
     window.addEventListener("popstate", onPopState);
     void currentUser({ notifySessionExpiry: false }).then((result) => {
       if (authGeneration.current !== restoreGeneration) return;
+      returnTo.current = null;
       setSessionExpiredHandler(handleSessionExpired); setLogoutError(null); setUser(result.user); setAuthState("authenticated");
     }).catch(() => {
       if (authGeneration.current !== restoreGeneration) return;
@@ -290,14 +310,18 @@ export default function App() {
   }, [handleSessionExpired]);
 
   useEffect(() => {
-    if (!user) { if (isProtectedPath(path) && authState === "unauthenticated") navigate("/login"); return; }
+    if (!user) { if (isProtectedPath(path) && authState === "unauthenticated") { if (!returnTo.current && path !== "/change-password" && path !== "/select-requester") returnTo.current = `${window.location.pathname}${window.location.search}${window.location.hash}`; navigate("/login"); } return; }
     if (user.mustChangePassword && path !== "/change-password") navigate("/change-password");
-    else if (!user.mustChangePassword && (path === "/login" || path === "/change-password" || path === "/select-requester")) navigate(landingPath(user));
+    else if (!user.mustChangePassword && (path === "/login" || path === "/change-password" || path === "/select-requester" || path === "/")) {
+      const destination = postLoginPath(user, returnTo.current);
+      returnTo.current = null;
+      navigate(destination);
+    }
   }, [authState, navigate, path, user]);
 
   if (path === "/" && !user) return <LegacyHealthPage />;
-  if (path === "/login" && !user) return <LoginPage onSuccess={(result) => { authGeneration.current += 1; setSessionExpiredHandler(handleSessionExpired); setLogoutError(null); setUser(result.user); setAuthState("authenticated"); navigate(result.user.mustChangePassword ? "/change-password" : landingPath(result.user)); }} />;
-  if (user?.mustChangePassword && path === "/change-password") return <ChangePasswordPage user={user} onSuccess={(next) => { setUser(next); navigate(landingPath(next)); }} onLogout={handleLogout} logoutError={logoutError} logoutPending={logoutPending} />;
+  if (path === "/login" && !user) return <LoginPage onSuccess={(result) => { authGeneration.current += 1; setSessionExpiredHandler(handleSessionExpired); setLogoutError(null); setUser(result.user); setAuthState("authenticated"); if (result.user.mustChangePassword) navigate("/change-password"); else { const destination = postLoginPath(result.user, returnTo.current); returnTo.current = null; navigate(destination); } }} />;
+  if (user?.mustChangePassword && path === "/change-password") return <ChangePasswordPage user={user} onSuccess={(next) => { setUser(next); const destination = postLoginPath(next, returnTo.current); returnTo.current = null; navigate(destination); }} onLogout={handleLogout} logoutError={logoutError} logoutPending={logoutPending} />;
   if (!user) return <div className="zen-page"><main className="zen-main"><p className="zen-state zen-state-info" role="status">Checking your session...</p></main></div>;
   return <AppShell path={path} user={user} navigate={navigate} onLogout={handleLogout} logoutError={logoutError} logoutPending={logoutPending} />;
 }

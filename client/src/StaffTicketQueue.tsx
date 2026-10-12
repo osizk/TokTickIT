@@ -86,6 +86,10 @@ function parseUrlQuery(search: string): StaffTicketQuery {
   const owner: StaffTicketOwner | undefined = rawOwner === "me" || rawOwner === "unassigned"
     ? rawOwner
     : positiveInteger(rawOwner);
+  const statusGroup = params.get("statusGroup") === "active" ? "active" as const : undefined;
+  const updatedSince = params.get("updatedSince") ?? undefined;
+  const updatedBefore = params.get("updatedBefore") ?? undefined;
+  const actionAssignee = params.get("actionAssignee") === "me" ? "me" as const : undefined;
   const searchText = params.get("search")?.trim();
   const categoryId = positiveInteger(params.get("categoryId"));
   const relatedSystemId = positiveInteger(params.get("relatedSystemId"));
@@ -96,6 +100,10 @@ function parseUrlQuery(search: string): StaffTicketQuery {
     ...(requestedPriority ? { requestedPriority } : {}),
     ...(itPriority ? { itPriority } : {}),
     ...(status ? { status } : {}),
+    ...(statusGroup ? { statusGroup } : {}),
+    ...(updatedSince ? { updatedSince } : {}),
+    ...(updatedBefore ? { updatedBefore } : {}),
+    ...(actionAssignee ? { actionAssignee } : {}),
     ...(owner === undefined ? {} : { owner }),
     sort,
     order,
@@ -112,6 +120,10 @@ function toSearchParams(query: StaffTicketQuery): string {
   if (query.requestedPriority) params.set("requestedPriority", query.requestedPriority);
   if (query.itPriority) params.set("itPriority", query.itPriority);
   if (query.status) params.set("status", query.status);
+  if (query.statusGroup) params.set("statusGroup", query.statusGroup);
+  if (query.updatedSince) params.set("updatedSince", query.updatedSince);
+  if (query.updatedBefore) params.set("updatedBefore", query.updatedBefore);
+  if (query.actionAssignee) params.set("actionAssignee", query.actionAssignee);
   if (query.owner !== undefined) params.set("owner", String(query.owner));
   params.set("sort", query.sort);
   params.set("order", query.order);
@@ -129,7 +141,8 @@ function formatDate(value: string): string {
 function isFiltered(query: StaffTicketQuery): boolean {
   return Boolean(
     query.search || query.categoryId !== undefined || query.relatedSystemId !== undefined ||
-    query.requestedPriority || query.itPriority || query.status || query.owner !== undefined,
+    query.requestedPriority || query.itPriority || query.status || query.owner !== undefined ||
+    query.statusGroup || query.updatedSince || query.updatedBefore || query.actionAssignee,
   );
 }
 
@@ -273,9 +286,14 @@ export default function StaffTicketQueue({ navigate }: StaffTicketQueueProps) {
 
   if (!result) return null;
   const filtered = isFiltered(query);
+  const dashboardFilter = [
+    query.statusGroup === "active" ? "active Tickets" : "",
+    query.actionAssignee === "me" ? "Tickets with your active Actions" : "",
+    query.updatedSince && query.updatedBefore ? "Tickets in the selected dashboard time window" : "",
+  ].filter(Boolean).join(" · ");
   return (
     <section className="zen-card zen-list-card zen-staff-queue-card" aria-labelledby="staff-queue-heading">
-      <div className="zen-list-heading"><div><p className="zen-eyebrow">Operations workspace</p><h1 id="staff-queue-heading">Ticket Queue</h1><p className="zen-lead">Tickets available to IT Staff and Administrators.</p></div></div>
+      <div className="zen-list-heading"><div><p className="zen-eyebrow">Operations workspace</p><h1 id="staff-queue-heading">Ticket Queue</h1><p className="zen-lead">Tickets available to IT Staff and Administrators.</p>{dashboardFilter && <p className="zen-dashboard-filter-note">Dashboard drill-down: {dashboardFilter}.</p>}</div></div>
       <form className="zen-list-toolbar" onSubmit={handleSearchSubmit} aria-label="Ticket Queue filters">
         <div className="zen-search-row"><div className="zen-search-field zen-field"><label htmlFor="staff-queue-search">Search Tickets</label><input id="staff-queue-search" className="zen-input" type="search" value={draftSearch} onChange={(event) => setDraftSearch(event.target.value)} placeholder="Ticket Number, summary, requester" maxLength={100} /></div><button className="zen-button zen-button-primary" type="submit">Apply Filters</button><button className="zen-button zen-button-secondary" type="button" onClick={clearFilters}>Clear Filters</button></div>
         <div className="zen-filter-grid zen-staff-filter-grid">
@@ -283,7 +301,7 @@ export default function StaffTicketQueue({ navigate }: StaffTicketQueueProps) {
           <div className="zen-field"><label htmlFor="staff-related-system">Related System</label><select id="staff-related-system" value={query.relatedSystemId ?? ""} onChange={(event) => handleNumericSelect(event, "relatedSystemId")}><option value="">All Related Systems</option>{relatedSystems.map((system) => <option key={system.id} value={system.id}>{system.name}</option>)}</select></div>
           <div className="zen-field"><label htmlFor="staff-requested-priority">Requested Priority</label><select id="staff-requested-priority" value={query.requestedPriority ?? ""} onChange={(event) => updateQuery({ requestedPriority: event.target.value ? event.target.value as TicketPriority : undefined, page: 1 })}><option value="">All Requested Priorities</option>{PRIORITY_OPTIONS.map((priority) => <option key={priority} value={priority}>{priority}</option>)}</select></div>
           <div className="zen-field"><label htmlFor="staff-it-priority">IT Priority</label><select id="staff-it-priority" value={query.itPriority ?? ""} onChange={(event) => updateQuery({ itPriority: event.target.value ? event.target.value as TicketPriority : undefined, page: 1 })}><option value="">All IT Priorities</option>{PRIORITY_OPTIONS.map((priority) => <option key={priority} value={priority}>{priority}</option>)}</select></div>
-          <div className="zen-field"><label htmlFor="staff-status">Status</label><select id="staff-status" value={query.status ?? ""} onChange={(event) => updateQuery({ status: event.target.value ? event.target.value as TicketStatus : undefined, page: 1 })}><option value="">All Statuses</option>{STATUS_OPTIONS.map((status) => <option key={status} value={status}>{status}</option>)}</select></div>
+          <div className="zen-field"><label htmlFor="staff-status">Status</label><select id="staff-status" value={query.status ?? ""} onChange={(event) => updateQuery({ status: event.target.value ? event.target.value as TicketStatus : undefined, statusGroup: undefined, page: 1 })}><option value="">All Statuses</option>{STATUS_OPTIONS.map((status) => <option key={status} value={status}>{status}</option>)}</select></div>
           <div className="zen-field"><label htmlFor="staff-assignee">Assignee</label><select id="staff-assignee" value={query.owner === undefined ? "" : String(query.owner)} onChange={(event) => updateQuery({ owner: event.target.value ? event.target.value === "me" || event.target.value === "unassigned" ? event.target.value : Number(event.target.value) : undefined, page: 1 })}><option value="">All Assignees</option><option value="unassigned">Unassigned</option><option value="me">Me</option>{assignees.map((assignee) => <option key={assignee.id} value={assignee.id}>{assignee.name}</option>)}</select>{assignees.length === 0 && <span className="zen-help">No active assignees are available.</span>}</div>
           <div className="zen-field"><label htmlFor="staff-sort">Sort by</label><select id="staff-sort" value={query.sort} onChange={(event) => updateQuery({ sort: event.target.value as StaffTicketSort, page: 1 })}>{SORT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></div>
           <div className="zen-field"><label htmlFor="staff-order">Order</label><select id="staff-order" value={query.order} onChange={(event) => updateQuery({ order: event.target.value as TicketListOrder, page: 1 })}><option value="desc">Descending</option><option value="asc">Ascending</option></select></div>

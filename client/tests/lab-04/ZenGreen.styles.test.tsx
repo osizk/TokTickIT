@@ -22,4 +22,16 @@ describe("Lab 4 Actions Taken responsive styles", () => {
     expect(styles).toMatch(/\.action-required-label::after,[\s\S]*?\.action-required-symbol\s*\{[^}]*color:\s*var\(--zen-error\)/);
     expect(styles).toContain('content: " *";');
   });
+
+  it("styles dashboards with Zen Green tokens, visible focus, and approved responsive columns", () => {
+    for (const className of ["dashboard-card", "dashboard-metric-grid", "dashboard-panel-grid", "dashboard-ticket-list", "dashboard-summary-list"]) {
+      expect(styles).toMatch(new RegExp(`\\.${className}\\b`));
+    }
+    expect(styles).toMatch(/\.dashboard-metric\s*\{[^}]*background:\s*var\(--zen-pale\)/);
+    expect(styles).toMatch(/\.dashboard-metric:focus-visible,[\s\S]*?outline:\s*3px solid var\(--zen-focus\)/);
+    expect(styles).toMatch(/\.dashboard-metric-grid\s*\{[^}]*grid-template-columns:\s*repeat\(4, minmax\(0, 1fr\)\)/);
+    expect(styles).toMatch(/@media \(max-width: 991px\)[\s\S]*?\.dashboard-metric-grid\s*\{[^}]*repeat\(2, minmax\(0, 1fr\)\)/);
+    expect(styles).toMatch(/@media \(max-width: 767px\)[\s\S]*?\.dashboard-panel-grid,[\s\S]*?grid-template-columns:\s*minmax\(0, 1fr\)/);
+    expect(styles).toContain("overflow-wrap: anywhere");
+  });
 });

@@ -160,6 +160,13 @@ export default function ActionsTaken({ ticketNumber, readOnly = false, currentUs
   useEffect(() => { void loadActions(page); }, [loadActions, listRetry, page]);
 
   useEffect(() => {
+    if (listState !== "success") return;
+    const match = window.location.hash.match(/^#action-heading-(\d+)$/);
+    if (!match || !actions.some((action) => action.id === Number(match[1]))) return;
+    actionHeadingRefs.current[Number(match[1])]?.focus();
+  }, [actions, listState]);
+
+  useEffect(() => {
     if (!readOnly) return;
     setCreateOpen(false);
     setEditingId(null);

@@ -270,10 +270,63 @@ export interface TicketListQuery {
   relatedSystemId?: number;
   priority?: TicketPriority;
   status?: TicketStatus;
+  statusGroup?: "active";
+  updatedSince?: string;
+  updatedBefore?: string;
   sort: TicketListSort;
   order: TicketListOrder;
   page: number;
   pageSize: TicketListPageSize;
+}
+
+export interface DashboardRecentWindow {
+  from: string;
+  through: string;
+}
+
+export interface DashboardTicketLink {
+  id: number;
+  ticketNumber: string;
+  summary: string;
+  status: TicketStatus;
+  requestedPriority: TicketPriority;
+  itPriority: TicketPriority;
+  updatedAt: string;
+}
+
+export interface StaffDashboardTicketLink extends DashboardTicketLink {
+  requester: Requester;
+  ticketOwner: StaffAssignee | null;
+}
+
+export interface AssignedActionLink {
+  id: number;
+  ticketNumber: string;
+  ticketSummary: string;
+  description: string;
+  status: Extract<ActionStatus, "OPEN" | "IN_PROGRESS">;
+  updatedAt: string;
+}
+
+export interface RequesterDashboard {
+  generatedAt: string;
+  timezone: "Asia/Bangkok";
+  recentWindow: DashboardRecentWindow;
+  metrics: { activeTicketCount: number; waitingForRequesterCount: number; resolvedCount: number; closedCount: number };
+  recentTickets: DashboardTicketLink[];
+  attentionTickets: DashboardTicketLink[];
+}
+
+export interface StaffDashboard {
+  generatedAt: string;
+  timezone: "Asia/Bangkok";
+  recentWindow: DashboardRecentWindow;
+  metrics: { unassignedActiveTicketCount: number; myOwnedActiveTicketCount: number; urgentActiveTicketCount: number; ticketsWithMyActiveActionsCount: number };
+  statusCounts: Record<TicketStatus, number>;
+  itPriorityCounts: Record<TicketPriority, number>;
+  myActions: AssignedActionLink[];
+  recentTickets: StaffDashboardTicketLink[];
+  urgentTickets: StaffDashboardTicketLink[];
 }
 
 export interface TicketListPagination {
@@ -445,6 +498,10 @@ export interface StaffTicketQuery {
   requestedPriority?: TicketPriority;
   itPriority?: TicketPriority;
   status?: TicketStatus;
+  statusGroup?: "active";
+  updatedSince?: string;
+  updatedBefore?: string;
+  actionAssignee?: "me";
   owner?: StaffTicketOwner;
   sort: StaffTicketSort;
   order: TicketListOrder;
@@ -834,6 +891,80 @@ function isStaffTicketResponse(value: unknown): value is StaffTicketResponse {
   return Array.isArray(candidate.items) && candidate.items.every(isStaffTicket) && isTicketListPagination(candidate.pagination);
 }
 
+function isDashboardTicketLink(value: unknown): value is DashboardTicketLink {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  return typeof candidate.id === "number" && Number.isSafeInteger(candidate.id) && candidate.id > 0 &&
+    typeof candidate.ticketNumber === "string" && /^TKT-\d{4}-\d{6}$/.test(candidate.ticketNumber) &&
+    typeof candidate.summary === "string" && isTicketStatus(candidate.status) &&
+    ["LOW", "MEDIUM", "HIGH", "URGENT"].includes(candidate.requestedPriority as string) &&
+    ["LOW", "MEDIUM", "HIGH", "URGENT"].includes(candidate.itPriority as string) && typeof candidate.updatedAt === "string";
+}
+
+function isStaffDashboardTicketLink(value: unknown): value is StaffDashboardTicketLink {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  return isDashboardTicketLink(value) && isRequester(candidate.requester) &&
+    (candidate.ticketOwner === null || isStaffAssignee(candidate.ticketOwner));
+}
+
+function isDashboardWindow(value: unknown): value is DashboardRecentWindow {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  return typeof candidate.from === "string" && Number.isFinite(Date.parse(candidate.from)) &&
+    typeof candidate.through === "string" && Number.isFinite(Date.parse(candidate.through));
+}
+
+function isCount(value: unknown): value is number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
+}
+
+function isDashboardEnvelope(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  return typeof candidate.generatedAt === "string" && Number.isFinite(Date.parse(candidate.generatedAt)) &&
+    candidate.timezone === "Asia/Bangkok" && isDashboardWindow(candidate.recentWindow);
+}
+
+function isRequesterDashboard(value: unknown): value is RequesterDashboard {
+  if (!isDashboardEnvelope(value)) return false;
+  const raw = value as Record<string, unknown>;
+  if (typeof raw.metrics !== "object" || raw.metrics === null) return false;
+  const candidate = value as unknown as RequesterDashboard;
+  return [candidate.metrics.activeTicketCount, candidate.metrics.waitingForRequesterCount, candidate.metrics.resolvedCount, candidate.metrics.closedCount].every(isCount) &&
+    Array.isArray(candidate.recentTickets) && candidate.recentTickets.length <= 5 && candidate.recentTickets.every(isDashboardTicketLink) &&
+    Array.isArray(candidate.attentionTickets) && candidate.attentionTickets.length <= 5 && candidate.attentionTickets.every(isDashboardTicketLink);
+}
+
+function isStaffDashboard(value: unknown): value is StaffDashboard {
+  if (!isDashboardEnvelope(value)) return false;
+  const raw = value as Record<string, unknown>;
+  if (typeof raw.metrics !== "object" || raw.metrics === null || typeof raw.statusCounts !== "object" || raw.statusCounts === null || typeof raw.itPriorityCounts !== "object" || raw.itPriorityCounts === null) return false;
+  const candidate = value as unknown as StaffDashboard;
+  const metricCounts = [candidate.metrics.unassignedActiveTicketCount, candidate.metrics.myOwnedActiveTicketCount, candidate.metrics.urgentActiveTicketCount, candidate.metrics.ticketsWithMyActiveActionsCount];
+  const statuses: TicketStatus[] = ["NEW", "OPEN", "IN_PROGRESS", "WAITING_FOR_REQUESTER", "RESOLVED", "CLOSED", "REOPENED", "CANCELLED"];
+  const priorities: TicketPriority[] = ["LOW", "MEDIUM", "HIGH", "URGENT"];
+  return metricCounts.every(isCount) && statuses.every((status) => isCount(candidate.statusCounts?.[status])) &&
+    priorities.every((priority) => isCount(candidate.itPriorityCounts?.[priority])) &&
+    Array.isArray(candidate.myActions) && candidate.myActions.length <= 5 && candidate.myActions.every((action) =>
+      typeof action.id === "number" && Number.isSafeInteger(action.id) && action.id > 0 && /^TKT-\d{4}-\d{6}$/.test(action.ticketNumber) &&
+      typeof action.ticketSummary === "string" && typeof action.description === "string" && (action.status === "OPEN" || action.status === "IN_PROGRESS") && Number.isFinite(Date.parse(action.updatedAt))) &&
+    Array.isArray(candidate.recentTickets) && candidate.recentTickets.length <= 5 && candidate.recentTickets.every(isStaffDashboardTicketLink) &&
+    Array.isArray(candidate.urgentTickets) && candidate.urgentTickets.length <= 5 && candidate.urgentTickets.every(isStaffDashboardTicketLink);
+}
+
+export async function fetchRequesterDashboard(): Promise<RequesterDashboard> {
+  const body = await actionRequest("/api/dashboard/requester", { headers: authenticatedHeaders() }, "Unable to load your dashboard.");
+  if (!isRequesterDashboard(body)) throw new ApiClientError("Unable to load your dashboard.", 200);
+  return body;
+}
+
+export async function fetchStaffDashboard(): Promise<StaffDashboard> {
+  const body = await actionRequest("/api/dashboard/staff", { headers: authenticatedHeaders() }, "Unable to load the Staff dashboard.");
+  if (!isStaffDashboard(body)) throw new ApiClientError("Unable to load the Staff dashboard.", 200);
+  return body;
+}
+
 export async function fetchStaffTickets(query: StaffTicketQuery): Promise<StaffTicketResponse> {
   const params = new URLSearchParams();
   if (query.search?.trim()) params.set("search", query.search.trim());
@@ -842,6 +973,10 @@ export async function fetchStaffTickets(query: StaffTicketQuery): Promise<StaffT
   if (query.requestedPriority) params.set("requestedPriority", query.requestedPriority);
   if (query.itPriority) params.set("itPriority", query.itPriority);
   if (query.status) params.set("status", query.status);
+  if (query.statusGroup) params.set("statusGroup", query.statusGroup);
+  if (query.updatedSince) params.set("updatedSince", query.updatedSince);
+  if (query.updatedBefore) params.set("updatedBefore", query.updatedBefore);
+  if (query.actionAssignee) params.set("actionAssignee", query.actionAssignee);
   if (query.owner !== undefined) params.set("owner", String(query.owner));
   params.set("sort", query.sort);
   params.set("order", query.order);
@@ -1200,6 +1335,9 @@ export async function fetchTickets(
   if (query.relatedSystemId !== undefined) params.set("relatedSystemId", String(query.relatedSystemId));
   if (query.priority) params.set("priority", query.priority);
   if (query.status) params.set("status", query.status);
+  if (query.statusGroup) params.set("statusGroup", query.statusGroup);
+  if (query.updatedSince) params.set("updatedSince", query.updatedSince);
+  if (query.updatedBefore) params.set("updatedBefore", query.updatedBefore);
   params.set("sort", query.sort);
   params.set("order", query.order);
   params.set("page", String(query.page));

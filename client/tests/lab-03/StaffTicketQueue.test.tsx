@@ -69,7 +69,8 @@ const detailTicket: api.StaffTicketDetail = {
   resolutionGate: { canResolve: true, canClose: false, unmetConditions: [] },
 };
 
-async function openQueue(user: ReturnType<typeof userEvent.setup>) {
+async function openQueue(user: ReturnType<typeof userEvent.setup>, path = "/staff/tickets") {
+  window.history.replaceState({}, "", path);
   render(<App />);
   await user.type(await screen.findByLabelText("Email"), staff.email);
   await user.type(screen.getByLabelText("Password"), "Initial-Lab3!Password");
@@ -146,6 +147,21 @@ describe("Lab 3 Staff Ticket Queue", () => {
     expect(fetchSpy).toHaveBeenLastCalledWith(expect.objectContaining({
       search: "Amina", categoryId: 10, requestedPriority: "HIGH", itPriority: "URGENT", status: "IN_PROGRESS", owner: "unassigned", sort: "itPriority", order: "asc", page: 1, pageSize: 25,
     }));
+  });
+
+  it("applies Staff dashboard ownership, Action and date filters from a deep link", async () => {
+    const user = userEvent.setup();
+    const fetchSpy = vi.mocked(api.fetchStaffTickets);
+    await openQueue(user, "/staff/tickets?statusGroup=active&owner=me&actionAssignee=me&updatedSince=2026-10-05T12%3A00%3A00.000Z&updatedBefore=2026-10-12T12%3A00%3A00.000Z");
+
+    expect(await screen.findByText(/Tickets with your active Actions.*Tickets in the selected dashboard time window/)).toBeInTheDocument();
+    await waitFor(() => expect(fetchSpy).toHaveBeenLastCalledWith(expect.objectContaining({
+      statusGroup: "active",
+      owner: "me",
+      actionAssignee: "me",
+      updatedSince: "2026-10-05T12:00:00.000Z",
+      updatedBefore: "2026-10-12T12:00:00.000Z",
+    })));
   });
 
   it("opens a queue Ticket in the staff detail route", async () => {

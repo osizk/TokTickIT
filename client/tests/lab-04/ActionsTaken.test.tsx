@@ -39,7 +39,17 @@ describe("Lab 4 Actions Taken UI", () => {
     vi.spyOn(api, "updateActionTaken").mockResolvedValue({ action: { ...action, version: 3 }, ticketVersion: 4 } as never);
   });
 
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => {
+    vi.restoreAllMocks();
+    window.history.replaceState({}, "", "/");
+  });
+
+  it("focuses the linked Action heading after its list loads", async () => {
+    window.history.replaceState({}, "", `/staff/tickets/${ticketNumber}#action-heading-${action.id}`);
+    render(<ActionsTaken ticketNumber={ticketNumber} readOnly />);
+
+    expect(await screen.findByRole("heading", { name: action.description })).toHaveFocus();
+  });
 
   it("shows public Action history to Requesters without edit controls or Internal Notes", async () => {
     render(<ActionsTaken ticketNumber={ticketNumber} readOnly />);
