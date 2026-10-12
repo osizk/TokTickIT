@@ -20,9 +20,9 @@ For compactness, the exact path prefixes in this table are `S = server/tests/lab
 | API-07 | Migration/API; S`migration-regression.api.test.ts` | FR-07,12; BR-15,21; AC-10,16,17 | Apply the real Lab 4 migration to an actual pre-Lab-4 schema, preserve Ticket/Attachment/changed-password state; seed twice and after edits; collision skip; counter monotonic; backup/restore disposable rehearsal. | Partial: real migration and preservation plus repeat-seed checks passed; collision/counter and full recovery rehearsal remain open. |
 | API-08 | API; S`user-assignment-safety.api.test.ts` | FR-02,13; BR-02,05,20; AC-02,15 | Inactive/non-staff assignee, User active-Action conflict and session unchanged, self/last-Admin and owned-Ticket precedence, eligible role change and historical actors, concurrent eligibility change. | Partial: active-Action deactivation/demotion protection and assignment race passed; remaining safety cases stay open. |
 | PERF-01 | Performance-smoke; S`dashboard-performance.api.test.ts` | FR-09,10; BR-16–19; AC-13 | Representative 500-Ticket/1000-Action fixture; aggregate query count stays bounded as fixture doubles (no N+1), arrays capped5, response does not contain complete collections. Record elapsed diagnostics, no invented production SLA. | Passed in Issue #59 worktree; 1 test. Query count remained 23 at both sizes; see §4. |
-| UI-01 | Component; C`ActionsTaken.test.tsx` | FR-01–06; BR-01–10,22; AC-01–06,19 | Inline create/edit, required/optional markers, conditional requirements, plain-language field errors/focus, Requester and terminal-Ticket read-only views, lifecycle confirmation/reason, stale-draft retention, safe retry with stable idempotency key, active assignee and User-management safety feedback. | Partial: 21 Action component tests pass, including Create Action loading/error/retry gating and revision-history pagination; 10 Staff detail tests include all terminal statuses and loading/error guards. Focused Staff browser checks passed before the review fixes. Authenticated lifecycle E2E remains open. |
+| UI-01 | Component; C`ActionsTaken.test.tsx` | FR-01–06; BR-01–10,22; AC-01–06,19 | Inline create/edit, required/optional markers, conditional requirements, plain-language field errors/focus, Requester and terminal-Ticket read-only views, lifecycle confirmation/reason, stale-draft retention, safe retry with stable idempotency key, active assignee and User-management safety feedback. | Partial: 23 Action component tests pass, including linked-Action page navigation, loading/error/retry gating and revision-history pagination; 10 Staff detail tests include all terminal statuses and loading/error guards. Focused Staff browser checks passed before the review fixes. Authenticated lifecycle E2E remains open. |
 | UI-02 | Component; C`TicketWorkflow.test.tsx` | FR-07,08; BR-11–15,22; AC-06–10,19 | Legal target controls, gate explanation, confirmation/cancel reason, protected direct calls, reload on stale version, indication vs status, ordered history. | Partial: 5 workflow UI tests passed, including history pagination reset when switching Tickets and Asia/Bangkok timestamp formatting; full visual/accessibility/E2E assertions remain open. |
-| UI-03 | Component; C`RequesterDashboard.test.tsx` | FR-10,11,14; BR-16,18,19,22; AC-12–14,19 | Loading/zero/error/Retry/session expiry, correct owned cards/lists/links, time display, navigation/deep link and account-cache reset. | Partial: 3 dashboard component tests passed; Requester session-expiry/default-route behavior is covered by the 13-test App regression file. Live visual, account-switch, and authenticated E2E checks remain open. |
+| UI-03 | Component; C`RequesterDashboard.test.tsx` | FR-10,11,14; BR-16,18,19,22; AC-12–14,19 | Loading/zero/error/Retry/session expiry, correct owned cards/lists/links, time display, navigation/deep link and account-cache reset. | Partial: 3 dashboard component tests passed; Requester session-expiry/default-route behavior is covered by the 14-test App regression file. Live visual, account-switch, and authenticated E2E checks remain open. |
 | UI-04 | Component; C`StaffDashboard.test.tsx` and C`ActionsTaken.test.tsx` | FR-09,11,14; BR-17–19,22; AC-11,14,19 | Current-user assigned Actions and real metric links, capped summaries, all states/refresh, role navigation, keyboard semantics, and focus of a linked Action after its list loads. | Partial: 6 dashboard component/App tests and the linked Action-focus regression passed; live visual and authenticated E2E checks remain open. |
 | STYLE-01 | Style/responsive; C`ZenGreen.styles.test.tsx` | FR-14; BR-22; AC-19 | Token and breakpoint/style contracts; browser visual/overflow/accessibility checks remain E2E/MAN, not jsdom viewport claims. | Partial: 4 CSS contract tests passed, including dashboard tokens, visible focus and desktop/tablet/mobile column rules. No real browser dashboard screenshots, breakpoint-boundary, keyboard, or overflow checks were performed for Issue #60. |
 | E2E-01 | Browser; E`actions-taken-flow.spec.ts` | FR-01–06,13,14; BR-01–10,20,22; AC-01–06,15,18 | Authenticate real roles; create multiple Actions on one Ticket, assign/edit/complete/cancel, inactive rejection, read-only Requester, conflict/retry and attachment continuity; assert actual persisted records. | Planned |
@@ -202,7 +202,7 @@ All Issues are sequential. Issue #55 approved merge precedes #56; each later app
 | #57 Actions UI | feature/23-Lab4ActionsUI; UI-01 | Component tests, inherited client regression/build; real selected-record/read-only/validation captures. |
 | #58 Ticket workflow | feature/24-Lab4TicketWorkflow; UNIT-02, API-03/04, UI-02 | Commit-bound evidence below: full server/client regressions and builds passed. E2E/manual screenshots and wider matrix completion remain pending. |
 | #59 Dashboard APIs | feature/25-Lab4DashboardAPIs; UNIT-03, API-02/05/06/07, PERF-01 | [PR #68](https://github.com/osizk/TokTickIT/pull/68) merged into `lab4-staging` at `19117b1bed09407601e6e1064469dccff6b9a024`; TDD red then green; 13 focused dashboard API tests, full server regression (38 files/160 tests, including migration/seed), server build and bounded-query smoke. No formal GitHub **Approve** review submission was recorded. Detailed candidate-commit evidence below. |
-| #60 Dashboards UI | feature/26-Lab4DashboardsUI, based on merged staging commit `19117b1bed09407601e6e1064469dccff6b9a024`; UI-03/04, STYLE-01 | Dashboard UI, Requester/Staff list-filter forwarding, role-default routing and inherited regressions; full client tests/build passed in the uncommitted candidate worktree. Browser screenshots/manual checks remain pending because the local API and client endpoints were unavailable; see §4. |
+| #60 Dashboards UI | feature/26-Lab4DashboardsUI, based on merged staging commit `19117b1bed09407601e6e1064469dccff6b9a024`; UI-03/04, STYLE-01 | Dashboard UI, Requester/Staff list-filter forwarding, role-default routing and inherited regressions; see the PR #70 SHA-bound and local follow-up results in §4. Browser screenshots/manual checks remain pending because the local API and client endpoints were unavailable. |
 | #61 Final regression | feature/27-Lab4FinalRegression; E2E-01/02/03 and regressions | Full server/client/E2E, builds, migration/repeated seed/recovery, responsive/a11y/visual/API evidence. |
 | #62 Release evidence | feature/28-Lab4ReleaseEvidence; DOC-01/evidence gap audit | Final traceability/README/reviewer/real AI selection/authorized reflection; actual Project/history/reviews; release-candidate then required final-main verification. |
 
@@ -1049,9 +1049,9 @@ exit code 0
 
 The real-browser check was not available during this work: requests to `http://localhost:3000/api/health` and `http://localhost:5173` each timed out after three seconds. No dashboard screenshot, live database/API agreement, responsive-boundary inspection, keyboard audit, or Playwright result is claimed. Complete those manual/browser checks in the release evidence workflow; the component tests do not replace them.
 
-### PR #70 review follow-up — current working tree
+### PR #70 review follow-up — verification status
 
-These follow-up changes are in an uncommitted working tree based on `10198ffa073805bd899bc30d8004a1a30acd14a8`; results below are not yet tied to a new commit SHA. Session restoration now explicitly retains a permitted deep link while `mustChangePassword` is true, and a combined restore/change-password/deep-link regression test passes. `GET /api/tickets/:ticketNumber/actions-taken` now accepts optional `focusActionId`, returning the normal paginated page containing that Ticket-scoped Action in createdAt/id order. The UI requests that page from the Dashboard hash and focuses the Action. The 26-Action API fixture proves the target on page two is returned.
+The deep-link preservation and cross-page Action-focus changes are included in the pushed PR head `084eec56c0057f5be298e53957e33e4ddba481d1`. The local server test-fixture correction described below is not yet part of GitHub PR #70; its results are local worktree evidence based on that pushed head, not a passing check on the current remote PR head. Rerun after the correction is committed and pushed before recording a new tested SHA. `GET /api/tickets/:ticketNumber/actions-taken` accepts optional `focusActionId`, returning the normal paginated page containing that Ticket-scoped Action in createdAt/id order. The UI requests that page from the Dashboard hash and focuses the Action. The 26-Action API fixture proves that a target on page two is returned.
 
 Red-phase note: the cross-page UI test first failed because it displayed Page 1 even when its linked Action belonged on Page 2. The password-gate/deep-link regression was already green before the explicit retention change: the App happened to recapture the URL during its rerender. The conditional clear now preserves the contract directly rather than depending on that incidental render timing.
 
@@ -1077,7 +1077,7 @@ Complete client regression and builds:
 
 ```text
 cd client
-npm.cmd test
+npm.cmd test -- --run
 Test Files  18 passed (18)
      Tests  111 passed (111)
 
@@ -1089,7 +1089,45 @@ npm.cmd run build
 tsc — passed.
 ```
 
-The full server suite was attempted but did not pass: 9 files failed, 7 tests failed, 130 passed, and 24 were skipped. The observed failures were inherited Lab 1/2 seeded-Requester login fixtures returning 401/429; the focused Lab 4 Actions API suite and server build passed. Do not treat the full server regression gate as complete until those fixture credentials/rate-limit failures are resolved and the suite is rerun. No browser, Playwright, responsive screenshot, or manual keyboard evidence was produced by this follow-up.
+Historical full-server red run on pushed head `084eec56c0057f5be298e53957e33e4ddba481d1`, before the test-fixture correction:
+
+```text
+cd server
+npm.cmd test
+Test Files  9 failed | 29 passed (38)
+     Tests  7 failed | 130 passed | 24 skipped (161)
+Exit code 1
+```
+
+The inherited Lab 2 compatibility tests tried the login API with the configured initial password for seeded Requesters. Because the idempotent seed correctly preserves user-changed passwords, a manually changed test account no longer matched that password and subsequent attempts hit the login rate limiter. The compatibility helper now creates scoped test sessions without relying on seeded credentials, deletes only sessions it created, and restores the prior `mustChangePassword` state. The initial-password login assertion now uses a newly backfilled non-fixture Requester. The first-login-state regression was observed failing before the state-restoration correction (`expected true to be false`) and passing afterward.
+
+Post-fix local worktree validation, based on pushed PR head `084eec56c0057f5be298e53957e33e4ddba481d1` (test-fixture corrections are not yet pushed):
+
+```text
+cd server
+npm.cmd test
+Test Files  38 passed (38)
+     Tests  162 passed (162)
+Start at 20:32:57
+Duration 41.09s
+
+npm.cmd run build
+> tsc
+Exit code 0
+```
+
+Focused compatibility-session regression:
+
+```text
+cd server
+npm.cmd test -- --run tests/lab-02/reference-data.test.ts
+Test Files  1 passed (1)
+     Tests  6 passed (6)
+Start at 20:27:59
+Duration 765ms
+```
+
+GitHub snapshot for PR #70 checked on 12 October 2026: open at head `084eec56c0057f5be298e53957e33e4ddba481d1`; GitHub reports mergeable, but the head has no commit statuses and no PR workflow runs. The partner submitted two `CHANGES_REQUESTED` reviews; both inline threads remain unresolved (the App.tsx thread is outdated). No re-review or **Approve** is claimed. The PR description still cites implementation commit `e7f4af720bd4750f93f7dd9cf89b456e9ddbab32` and 109 client tests, while the current client regression recorded above has 111 tests. The server-fixture corrections and 162-test server result below are still local worktree evidence based on `084eec5`; they are not evidence from a new committed PR head. No final SHA for those changes exists yet, and no merge is claimed. Browser, Playwright, responsive screenshot, and manual keyboard evidence remain unperformed for this follow-up.
 
 ## 5. Release and visual checklist — actual work only
 
