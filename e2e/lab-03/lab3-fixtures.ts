@@ -15,7 +15,7 @@ const argon2 = requireFromServer("argon2") as {
   hash: (value: string, options: { type: number; memoryCost: number; timeCost: number; parallelism: number }) => Promise<string>;
 };
 
-export type Lab3Role = "requesterA" | "requesterB" | "staff" | "admin";
+export type Lab3Role = "requesterA" | "requesterB" | "requesterD" | "staff" | "admin";
 
 const roleSettings: Record<Lab3Role, { email: string; passwordKey: string }> = {
   requesterA: { email: "amina@example.test", passwordKey: "LAB3_REQUESTER_INITIAL_PASSWORD" },

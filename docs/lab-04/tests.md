@@ -203,7 +203,7 @@ All Issues are sequential. Issue #55 approved merge precedes #56; each later app
 | #58 Ticket workflow | feature/24-Lab4TicketWorkflow; UNIT-02, API-03/04, UI-02 | Commit-bound evidence below: full server/client regressions and builds passed. E2E/manual screenshots and wider matrix completion remain pending. |
 | #59 Dashboard APIs | feature/25-Lab4DashboardAPIs; UNIT-03, API-02/05/06/07, PERF-01 | [PR #68](https://github.com/osizk/TokTickIT/pull/68) merged into `lab4-staging` at `19117b1bed09407601e6e1064469dccff6b9a024`; TDD red then green; 13 focused dashboard API tests, full server regression (38 files/160 tests, including migration/seed), server build and bounded-query smoke. No formal GitHub **Approve** review submission was recorded. Detailed candidate-commit evidence below. |
 | #60 Dashboards UI | feature/26-Lab4DashboardsUI, based on merged staging commit `19117b1bed09407601e6e1064469dccff6b9a024`; UI-03/04, STYLE-01 | Dashboard UI, Requester/Staff list-filter forwarding, role-default routing and inherited regressions; see PR #70 SHA-bound and local follow-up results in §4. Browser/screenshots were unavailable during Issue #60 and were subsequently exercised locally in Issue #61 below. |
-| #61 Final regression | feature/27-Lab4FinalRegression; E2E-01/02/03 and regressions | On the uncommitted worktree based on staging SHA `8eec9ae4622dff57adba01f60022bfacf494ea0f`, server/client regressions and builds, guarded migration/repeated seed, and all 60 inherited Lab 3 + Lab 4 Playwright tests passed; detailed outputs and remaining review/release gates follow below. |
+| #61 Final regression | feature/27-Lab4FinalRegression; E2E-01/02/03 and regressions | Candidate SHA `fb4d3f8827497d2aa72e549473726969289314f3` (implementation commit `983e121`, staging base `8eec9ae4622dff57adba01f60022bfacf494ea0f`) passed server/client regressions and builds, guarded migration/repeated seed, and all 60 inherited Lab 3 + Lab 4 Playwright tests; detailed outputs and remaining review/release gates follow below. Later local review corrections are recorded separately. |
 | #62 Release evidence | feature/28-Lab4ReleaseEvidence; DOC-01/evidence gap audit | Final traceability/README/reviewer/real AI selection/authorized reflection; actual Project/history/reviews; release-candidate then required final-main verification. |
 
 For each card: Backlog → Specified (scope/maps) → Started (approved branch/failing tests) → PR Review (authorized PR) → Fixing if requested → PR Review again → Done only after actual approval and authorized merge. The table is a plan, not an assertion cards were moved.
@@ -1195,6 +1195,44 @@ Issue #61 added 15 real Playwright screenshots and preserved the three existing 
 - `artifacts/lab-04/screenshots/staff-dashboard/staff-populated-{desktop,tablet,mobile}.png`
 
 Automated axe and no-overflow checks passed on dashboard and Action pages; keyboard drill-down/focus and widths 767, 768, 991, and 992 were checked. Representative desktop, tablet, and mobile captures were visually sampled; no AI-generated image was used. PR #71 (`Issue #61: [Lab 4] Final regression, accessibility, and visual testing`) is open from `feature/27-Lab4FinalRegression` into `lab4-staging`, authored by `osizk`, and awaits teammate review; no approval or merge is claimed. Manual screen-reader/touch-target review, the Project board, migration-recovery rehearsal, final release audit, and final-main verification remain open.
+
+### PR #71 review corrections — focused local verification
+
+Applied locally on top of PR head `17a904014def9975776eea418353930dfe8326bc`: corrected PR #70's approval/merge record, aligned the Issue #61 summary with tested SHA `fb4d3f8827497d2aa72e549473726969289314f3`, and added the existing `requesterD` fixture key to `Lab3Role`. GitHub confirms that the partner approved PR #70 head `a33fb720b689ad7113e3d633d4fb17fc66bdec2e` before merge commit `8eec9ae4622dff57adba01f60022bfacf494ea0f`.
+
+The focused check uses the installed client TypeScript compiler API with strict/no-emit options and reports diagnostics for `e2e/lab-03/lab3-fixtures.ts`. It resolves Playwright from the existing client dependency; it is not a type-check of every E2E file. Reproduce in VS Code PowerShell from `client/`:
+
+```powershell
+$fixtureCheck = @'
+const ts = require('typescript');
+const path = require('node:path');
+const target = path.resolve('../e2e/lab-03/lab3-fixtures.ts');
+const program = ts.createProgram([target], { strict: true, noEmit: true, skipLibCheck: true, target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.NodeNext, moduleResolution: ts.ModuleResolutionKind.NodeNext, esModuleInterop: true, baseUrl: process.cwd(), paths: { '@playwright/test': [path.resolve('node_modules/@playwright/test')] }, types: ['node'], typeRoots: [path.resolve('node_modules/@types'), path.resolve('../server/node_modules/@types')] });
+const diagnostics = ts.getPreEmitDiagnostics(program).filter(d => d.file && path.resolve(d.file.fileName) === target);
+console.log(ts.formatDiagnosticsWithColorAndContext(diagnostics, { getCanonicalFileName: f => f, getCurrentDirectory: () => process.cwd(), getNewLine: () => '\n' }));
+console.log('Fixture type-check: ' + diagnostics.length + ' diagnostics');
+process.exitCode = diagnostics.length ? 1 : 0;
+'@
+$fixtureCheck | node
+```
+
+Observed before the type correction:
+
+```text
+TS2561: 'requesterD' does not exist in type 'Record<Lab3Role, ...>'.
+Fixture type-check: 1 diagnostics
+Exit code 1
+```
+
+Observed after the correction, with additional assertions checking the Issue #61 summary and PR #70 evidence:
+
+```text
+Fixture type-check: 0 diagnostics
+Review-evidence consistency: passed
+Exit code 0
+```
+
+The full server/client/Playwright suites were not rerun for this type-only and documentation correction. Their 162/112/60 results above remain tied to `fb4d3f8`, not to this correction. No runtime behavior, database data, screenshot, or CI configuration changed. This follow-up includes the three corrections and awaits teammate re-review; no new approval or merge is claimed.
 
 ## 5. Release and visual checklist — actual work only
 
