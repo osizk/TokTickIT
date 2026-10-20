@@ -1127,9 +1127,9 @@ The new six-test compatibility-session regression is included in this full run. 
 
 GitHub snapshot taken after pushing code/test commit `a3fd3f38ece92a19b3a778e4ade22d23620b675a` on 12 October 2026 and before the documentation-only evidence update: PR #70 was open at that head and GitHub reported it mergeable, but the head had no commit statuses and no PR workflow runs. The partner had submitted two `CHANGES_REQUESTED` reviews; both inline threads from the first review remained unresolved (the App.tsx thread was outdated). No re-review or **Approve** is claimed. The PR description still cites implementation commit `e7f4af720bd4750f93f7dd9cf89b456e9ddbab32` and 109 client tests, while the regression above records 111. No merge is claimed. Browser, Playwright, responsive screenshot, and manual keyboard evidence remain unperformed for this follow-up.
 
-### Issue #61 — final regression and visual evidence (pre-commit run)
+### Issue #61 — final regression and visual evidence (verified candidate commit)
 
-This work is on `feature/27-Lab4FinalRegression`, based on `lab4-staging` SHA `8eec9ae4622dff57adba01f60022bfacf494ea0f`. The results below were captured from the local worktree before commit, based on that SHA; they do not represent final `main`.
+This work is on `feature/27-Lab4FinalRegression`, based on `lab4-staging` SHA `8eec9ae4622dff57adba01f60022bfacf494ea0f`. The complete checks below were rerun from candidate commit `fb4d3f8827497d2aa72e549473726969289314f3`; the code-bearing Issue #61 commit is `983e121`, and the follow-up only records evidence and removes a trailing blank line. These are candidate-branch results, not final `main`.
 
 The new Action version-sync regression was first observed failing: after the parent Ticket refreshed from workflow version 3 to 4, the child Action form still sent version 3. `ActionsTaken` now synchronizes its version from the refreshed Ticket prop; the focused client regression and full client suite passed afterward. The authenticated empty My Tickets test was also run by itself in all three viewport projects (3 passed).
 
