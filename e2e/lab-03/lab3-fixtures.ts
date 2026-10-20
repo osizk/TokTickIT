@@ -20,6 +20,7 @@ export type Lab3Role = "requesterA" | "requesterB" | "staff" | "admin";
 const roleSettings: Record<Lab3Role, { email: string; passwordKey: string }> = {
   requesterA: { email: "amina@example.test", passwordKey: "LAB3_REQUESTER_INITIAL_PASSWORD" },
   requesterB: { email: "ben@example.test", passwordKey: "LAB3_REQUESTER_INITIAL_PASSWORD" },
+  requesterD: { email: "davi@example.test", passwordKey: "LAB3_REQUESTER_INITIAL_PASSWORD" },
   staff: { email: "michael.staff@example.test", passwordKey: "LAB3_IT_STAFF_INITIAL_PASSWORD" },
   admin: { email: "admin@example.test", passwordKey: "LAB3_ADMIN_INITIAL_PASSWORD" },
 };
@@ -118,7 +119,12 @@ export async function saveEvidenceScreenshot(
 ): Promise<void> {
   const directory = path.join(repositoryDirectory, "artifacts/lab-03/screenshots", area, projectName);
   await fs.mkdir(directory, { recursive: true });
-  await page.screenshot({ path: path.join(directory, `${name}.png`), fullPage: true });
+  const screenshotPath = path.join(directory, `${name}.png`);
+  try {
+    await fs.access(screenshotPath);
+  } catch {
+    await page.screenshot({ path: screenshotPath, fullPage: true });
+  }
 }
 
 export { cleanupE2eData };

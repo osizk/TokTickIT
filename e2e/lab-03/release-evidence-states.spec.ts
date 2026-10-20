@@ -16,7 +16,7 @@ test.describe("Lab 3 release evidence states", () => {
   test("captures a readable authenticated workspace at each responsive breakpoint", async ({ page }, testInfo) => {
     await signInWithInitialPassword(page, "requesterA");
     await completeFirstLogin(page, "requesterA");
-    await expect(page.getByRole("heading", { name: "My Tickets" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Requester Dashboard" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Logout", exact: true })).toBeVisible();
     await new AxeBuilder({ page }).analyze().then((result) => expect(result.violations).toEqual([]));
     await assertNoHorizontalOverflow(page);

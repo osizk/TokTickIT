@@ -14,7 +14,7 @@ test.describe("Lab 3 authentication and role navigation", () => {
     await resetLab3Users();
   });
 
-  test("requires the first-login password change and lands the Requester in My Tickets", async ({ page }, testInfo) => {
+  test("requires the first-login password change and lands the Requester on their dashboard", async ({ page }, testInfo) => {
     await page.goto("/login");
     await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
     await saveEvidenceScreenshot(page, testInfo.project.name, "authentication", "login");
@@ -27,8 +27,8 @@ test.describe("Lab 3 authentication and role navigation", () => {
     await saveEvidenceScreenshot(page, testInfo.project.name, "authentication", "change-password");
     await page.getByRole("button", { name: "Save password", exact: true }).click();
     await expect(page).not.toHaveURL(/\/change-password$/);
-    await expect(page).toHaveURL(/\/tickets$/);
-    await expect(page.getByRole("heading", { name: "My Tickets" })).toBeVisible();
+    await expect(page).toHaveURL(/\/dashboard$/);
+    await expect(page.getByRole("heading", { name: "Requester Dashboard" })).toBeVisible();
     await assertNoHorizontalOverflow(page);
     await saveEvidenceScreenshot(page, testInfo.project.name, "authentication", "requester-first-login");
   });
@@ -47,7 +47,9 @@ test.describe("Lab 3 authentication and role navigation", () => {
   test("routes each role to its permitted workspace", async ({ page }, testInfo) => {
     await signInWithInitialPassword(page, "admin");
     await completeFirstLogin(page, "admin");
-    await expect(page).toHaveURL(/\/admin\/users$/);
+    await expect(page).toHaveURL(/\/staff\/dashboard$/);
+    await expect(page.getByRole("heading", { name: "Staff Dashboard" })).toBeVisible();
+    await page.goto("/admin/users");
     await expect(page.getByRole("heading", { name: "User Management" })).toBeVisible();
     await assertNoHorizontalOverflow(page);
     await saveEvidenceScreenshot(page, testInfo.project.name, "authentication", "administrator-landing");
