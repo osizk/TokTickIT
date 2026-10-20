@@ -162,7 +162,7 @@ Exact inherited destinations: `e2e/lab-03/requester-regression.spec.ts` (owned l
 | R02-15 | Creation API failure and preserved Summary/draft | Issue #61 injects a one-time safe 500 for Ticket creation and verifies Summary and Description remain. | Passed. This is a controlled Playwright response, not a real outage. |
 | R02-16 | Delayed creation, busy submitting state and successful completion | Issue #61 delays the POST, checks the submit button is disabled, exactly one POST occurs, and creation succeeds. | Passed. The delay is controlled by Playwright, not a production-network claim. |
 
-REG-01 now has named authenticated browser assertions for retained R02-01–16 flows; selector-only states are explicitly retired, while API/component tests supplement filter semantics. The complete inherited Lab 3 plus Lab 4 Playwright suite, server/client regressions, builds, migration and repeated seed were run locally for Issue #61. See the Issue #61 evidence below. This is uncommitted worktree verification, not commit-bound or final-main evidence.
+REG-01 now has named authenticated browser assertions for retained R02-01–16 flows; selector-only states are explicitly retired, while API/component tests supplement filter semantics. The complete inherited Lab 3 plus Lab 4 Playwright suite, server/client regressions, builds, migration and repeated seed were run locally for Issue #61. See the Issue #61 evidence below. The test results are tied to candidate code/test SHA `fb4d3f8827497d2aa72e549473726969289314f3`, with documentation-only follow-up commits afterward; this is not final-main evidence. PR #71 is open for teammate review.
 
 ## 3. Safe test environment and commands
 
@@ -1194,7 +1194,7 @@ Issue #61 added 15 real Playwright screenshots and preserved the three existing 
 - `artifacts/lab-04/screenshots/requester-dashboard/requester-populated-{desktop,tablet,mobile}.png`
 - `artifacts/lab-04/screenshots/staff-dashboard/staff-populated-{desktop,tablet,mobile}.png`
 
-Automated axe and no-overflow checks passed on dashboard and Action pages; keyboard drill-down/focus and widths 767, 768, 991, and 992 were checked. Representative desktop, tablet, and mobile captures were visually sampled; no AI-generated image was used. Manual screen-reader/touch-target review, the Project board, teammate review/Approve, PR, migration-recovery rehearsal, final release audit, and final-main verification remain open. No GitHub or PR action is claimed.
+Automated axe and no-overflow checks passed on dashboard and Action pages; keyboard drill-down/focus and widths 767, 768, 991, and 992 were checked. Representative desktop, tablet, and mobile captures were visually sampled; no AI-generated image was used. PR #71 (`Issue #61: [Lab 4] Final regression, accessibility, and visual testing`) is open from `feature/27-Lab4FinalRegression` into `lab4-staging`, authored by `osizk`, and awaits teammate review; no approval or merge is claimed. Manual screen-reader/touch-target review, the Project board, migration-recovery rehearsal, final release audit, and final-main verification remain open.
 
 ## 5. Release and visual checklist — actual work only
 
