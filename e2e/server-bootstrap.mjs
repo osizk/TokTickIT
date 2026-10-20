@@ -75,7 +75,9 @@ const server = spawn(npmExecutable, npmArguments(["run", "dev"]), {
 server.stdout?.pipe(process.stdout);
 server.stderr?.pipe(process.stderr);
 
+let stopping = false;
 const stopServer = () => {
+  stopping = true;
   if (!server.killed) {
     server.kill();
   }
@@ -87,7 +89,7 @@ process.on("exit", stopServer);
 await new Promise((resolve, reject) => {
   server.once("error", reject);
   server.once("exit", (code, signal) => {
-    if (code === 0 || signal === "SIGINT" || signal === "SIGTERM") {
+    if (stopping || code === 0 || signal === "SIGINT" || signal === "SIGTERM") {
       resolve(undefined);
       return;
     }

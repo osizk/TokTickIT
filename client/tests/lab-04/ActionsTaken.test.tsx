@@ -350,6 +350,22 @@ describe("Lab 4 Actions Taken UI", () => {
     }));
   });
 
+  it("uses the refreshed Ticket version before creating an Action", async () => {
+    const user = userEvent.setup();
+    const props = { ticketNumber, currentUserId: 8, workflowVersion: 3 };
+    const { rerender } = render(<ActionsTaken {...props} />);
+    await user.click(await screen.findByRole("button", { name: "Create Action" }));
+    await user.type(screen.getByLabelText("Description"), "Continue work after a status update.");
+
+    rerender(<ActionsTaken {...props} workflowVersion={4} />);
+    await user.click(screen.getByRole("button", { name: "Save Action" }));
+
+    await waitFor(() => expect(api.createActionTaken).toHaveBeenCalledWith(ticketNumber, expect.objectContaining({
+      expectedTicketVersion: 4,
+      description: "Continue work after a status update.",
+    })));
+  });
+
   it("focuses and reports strict field validation before sending", async () => {
     const user = userEvent.setup();
     render(<ActionsTaken ticketNumber={ticketNumber} currentUserId={8} />);

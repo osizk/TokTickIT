@@ -1,6 +1,6 @@
 # Lab 4 Tests and Evidence
 
-Issue #55 establishes the contract baseline. Issues #56–60 and their verified implementation evidence are recorded in Section 4; authenticated E2E, live visual checks, and release evidence remain pending. Normative requirements: [specification.md](specification.md); [API](api-spec.md); [UI](ui-spec.md). Each ID below maps to an intended concrete test path. **Planned** means no automated test for that row has been run; **Partial** means some but not all assertions for that row have been verified. Issue evidence names the subset actually covered. Never check an unobserved result or claim candidate output came from final `main`.
+Issue #55 establishes the contract baseline. Issues #56–61 and their verified implementation evidence are recorded in Section 4; local authenticated E2E and visual evidence are now recorded for Issue #61, while review and release gates remain pending. Normative requirements: [specification.md](specification.md); [API](api-spec.md); [UI](ui-spec.md). Each ID below maps to an intended concrete test path. **Planned** means no automated test for that row has been run; **Partial** means some but not all assertions for that row have been verified; **Passed** means the row's stated assertions were observed. Issue evidence names the exact local scope and SHA status. Never check an unobserved result or claim candidate output came from final `main`.
 
 ## 1. Planned test matrix
 
@@ -20,17 +20,17 @@ For compactness, the exact path prefixes in this table are `S = server/tests/lab
 | API-07 | Migration/API; S`migration-regression.api.test.ts` | FR-07,12; BR-15,21; AC-10,16,17 | Apply the real Lab 4 migration to an actual pre-Lab-4 schema, preserve Ticket/Attachment/changed-password state; seed twice and after edits; collision skip; counter monotonic; backup/restore disposable rehearsal. | Partial: real migration and preservation plus repeat-seed checks passed; collision/counter and full recovery rehearsal remain open. |
 | API-08 | API; S`user-assignment-safety.api.test.ts` | FR-02,13; BR-02,05,20; AC-02,15 | Inactive/non-staff assignee, User active-Action conflict and session unchanged, self/last-Admin and owned-Ticket precedence, eligible role change and historical actors, concurrent eligibility change. | Partial: active-Action deactivation/demotion protection and assignment race passed; remaining safety cases stay open. |
 | PERF-01 | Performance-smoke; S`dashboard-performance.api.test.ts` | FR-09,10; BR-16–19; AC-13 | Representative 500-Ticket/1000-Action fixture; aggregate query count stays bounded as fixture doubles (no N+1), arrays capped5, response does not contain complete collections. Record elapsed diagnostics, no invented production SLA. | Passed in Issue #59 worktree; 1 test. Query count remained 23 at both sizes; see §4. |
-| UI-01 | Component; C`ActionsTaken.test.tsx` | FR-01–06; BR-01–10,22; AC-01–06,19 | Inline create/edit, required/optional markers, conditional requirements, plain-language field errors/focus, Requester and terminal-Ticket read-only views, lifecycle confirmation/reason, stale-draft retention, safe retry with stable idempotency key, active assignee and User-management safety feedback. | Partial: 23 Action component tests pass, including linked-Action page navigation, loading/error/retry gating and revision-history pagination; 10 Staff detail tests include all terminal statuses and loading/error guards. Focused Staff browser checks passed before the review fixes. Authenticated lifecycle E2E remains open. |
+| UI-01 | Component; C`ActionsTaken.test.tsx` | FR-01–06; BR-01–10,22; AC-01–06,19 | Inline create/edit, required/optional markers, conditional requirements, plain-language field errors/focus, Requester and terminal-Ticket read-only views, lifecycle confirmation/reason, stale-draft retention, safe retry with stable idempotency key, active assignee and User-management safety feedback. | Partial: 24 Action component tests pass, including version refresh, linked-Action page navigation, loading/error/retry gating and revision-history pagination; Staff detail tests include terminal and loading/error guards. E2E proves create/edit/complete/cancel, persisted revisions and Requester read-only behavior; Action assignment, inactive-assignee browser rejection and browser conflict retry remain API/component-only. |
 | UI-02 | Component; C`TicketWorkflow.test.tsx` | FR-07,08; BR-11–15,22; AC-06–10,19 | Legal target controls, gate explanation, confirmation/cancel reason, protected direct calls, reload on stale version, indication vs status, ordered history. | Partial: 5 workflow UI tests passed, including history pagination reset when switching Tickets and Asia/Bangkok timestamp formatting; full visual/accessibility/E2E assertions remain open. |
-| UI-03 | Component; C`RequesterDashboard.test.tsx` | FR-10,11,14; BR-16,18,19,22; AC-12–14,19 | Loading/zero/error/Retry/session expiry, correct owned cards/lists/links, time display, navigation/deep link and account-cache reset. | Partial: 3 dashboard component tests passed; Requester session-expiry/default-route behavior is covered by the 14-test App regression file. Live visual, account-switch, and authenticated E2E checks remain open. |
-| UI-04 | Component; C`StaffDashboard.test.tsx` and C`ActionsTaken.test.tsx` | FR-09,11,14; BR-17–19,22; AC-11,14,19 | Current-user assigned Actions and real metric links, capped summaries, all states/refresh, role navigation, keyboard semantics, and focus of a linked Action after its list loads. | Partial: 6 dashboard component/App tests and the linked Action-focus regression passed; live visual and authenticated E2E checks remain open. |
-| STYLE-01 | Style/responsive; C`ZenGreen.styles.test.tsx` | FR-14; BR-22; AC-19 | Token and breakpoint/style contracts; browser visual/overflow/accessibility checks remain E2E/MAN, not jsdom viewport claims. | Partial: 4 CSS contract tests passed, including dashboard tokens, visible focus and desktop/tablet/mobile column rules. No real browser dashboard screenshots, breakpoint-boundary, keyboard, or overflow checks were performed for Issue #60. |
-| E2E-01 | Browser; E`actions-taken-flow.spec.ts` | FR-01–06,13,14; BR-01–10,20,22; AC-01–06,15,18 | Authenticate real roles; create multiple Actions on one Ticket, assign/edit/complete/cancel, inactive rejection, read-only Requester, conflict/retry and attachment continuity; assert actual persisted records. | Planned |
-| E2E-02 | Browser; E`ticket-resolution.spec.ts` | FR-07,08,14; BR-11–15,22; AC-07–10,18 | Failed gate via direct API, complete/follow-up correction then resolve/close/reopen/cancel, confirmed transitions, retained events/revisions, advisory indication and legacy Ticket. | Planned |
-| E2E-03 | Browser; E`dashboards.spec.ts` | FR-09–11,14; BR-16–19,22; AC-11–14,18,19 | Requester/Staff/Admin dashboard roles, metrics-to-list totals, real Action links, zero/failure, 3 sizes/boundaries, keyboard/axe and no page overflow. | Planned |
-| REG-01 | Full prior/new suites; manifest and Lab 2 flow mapping below; planned e2e/lab-04/requester-regression.spec.ts | FR-07,12–14; BR-13,21,22; AC-09,16,18,20 | Full inherited server/client suites and authenticated equivalents of every retained Lab 2 browser flow, plus Lab 3/4 E2E; verify mapped scenarios actually pass, builds, migrations/repeat seed; no hidden skips. | Planned |
+| UI-03 | Component; C`RequesterDashboard.test.tsx` | FR-10,11,14; BR-16,18,19,22; AC-12–14,19 | Loading/zero/error/Retry/session expiry, correct owned cards/lists/links, time display, navigation/deep link and account-cache reset. | Partial: 3 dashboard component tests passed; Requester session-expiry/default-route behavior is covered by the App regression file. Authenticated E2E now compares live metrics, retries a safe failure, verifies an empty account and drills into owned Tickets; broader manual account-cache review remains open. |
+| UI-04 | Component; C`StaffDashboard.test.tsx` and C`ActionsTaken.test.tsx` | FR-09,11,14; BR-17–19,22; AC-11,14,19 | Current-user assigned Actions and real metric links, capped summaries, all states/refresh, role navigation, keyboard semantics, and focus of a linked Action after its list loads. | Partial: dashboard component/App tests and linked Action-focus regression passed; authenticated E2E now compares live role metrics and drills through a real Action link. Manual keyboard/screen-reader review remains open. |
+| STYLE-01 | Style/responsive; C`ZenGreen.styles.test.tsx` plus E2E browser assertions | FR-14; BR-22; AC-19 | Token and breakpoint/style contracts; real-browser responsive, visual, overflow and accessibility checks. | Partial: CSS contract tests pass. Issue #61 captured real dashboard and Action/detail screens at desktop/tablet/mobile sizes; axe and overflow assertions pass on dashboard/Action views, and 767/768/991/992 widths are checked. Manual screen-reader/touch-target review and full human visual checklist remain open. |
+| E2E-01 | Browser; E`actions-taken-flow.spec.ts` | FR-01–06,13,14; BR-01–10,20,22; AC-01–06,15,18 | Authenticate real roles; create multiple Actions on one Ticket, assign/edit/complete/cancel, inactive rejection, read-only Requester, conflict/retry and attachment continuity; assert actual persisted records. | Partial, locally exercised in all three projects: real create/edit/revision/start/complete/cancel and Requester read-only/ownership, persisted rows, attachment continuity, axe and overflow pass. Action assignment, inactive-assignee rejection and browser conflict retry are covered by lower-level tests, not this E2E. |
+| E2E-02 | Browser; E`ticket-resolution.spec.ts` | FR-07,08,14; BR-11–15,22; AC-07–10,18 | Failed gate via direct API, complete/follow-up correction then resolve/close/reopen/cancel, confirmed transitions, retained events/revisions, advisory indication and legacy Ticket. | Partial, locally exercised in all three projects: failed gate remains unchanged; valid completed Action permits resolve; requester indication, persisted resolve/reopen events and read-only detail pass. Close/cancel and legacy zero-Action transitions remain covered by API/component regression rather than this browser flow. |
+| E2E-03 | Browser; E`dashboards.spec.ts` | FR-09–11,14; BR-16–19,22; AC-11–14,18,19 | Requester/Staff/Admin dashboard roles, metrics-to-list totals, real Action links, zero/failure, 3 sizes/boundaries, keyboard/axe and no page overflow. | Passed locally in all three projects: live Requester and Staff metrics match API responses, Admin role navigation, real drill-down/focus, genuine empty-account state, safe failure/retry, axe, no overflow, and 767/768/991/992 width checks. |
+| REG-01 | Full prior/new suites; manifest and Lab 2 flow mapping below; `e2e/lab-04/requester-regression.spec.ts` | FR-07,12–14; BR-13,21,22; AC-09,16,18,20 | Full inherited server/client suites and authenticated equivalents of every retained Lab 2 browser flow, plus Lab 3/4 E2E; verify mapped scenarios actually pass, builds, migrations/repeat seed; no hidden skips. | Partial: full server/client regressions, builds, migrations/repeated seed and all 60 Lab 3/Lab 4 Playwright tests pass locally with no skips. R02-01–16 browser continuity is mapped below; R02-06 filter-value semantics also rely on existing API/component tests, and MAN-01/release checks remain open. |
 | DOC-01 | Manual/inline contract check; six files in docs/lab-04 | FR-14; BR-22; AC-20 | Presence, exact eleven specification headings, all IDs/paths mapped, exact APIs/decisions, labsheet rubric and peer approval order. Approval is separate from local structural success. | Committed-source green at `b9ebdc2`, exit0; PR #63 merged after student-accepted comment sign-off; no formal GitHub Approve claimed. |
-| MAN-01 | Real captures/manual review; artifacts/lab-04/screenshots directories in ui-spec | FR-12,14; BR-21,22; AC-17,19,20 | Disposable recovery observation, role/metric API evidence, real readable responsive screenshots, focus/console/links, Project/history/review audit and nine-part submission. | Planned |
+| MAN-01 | Real captures/manual review; artifacts/lab-04/screenshots directories in ui-spec | FR-12,14; BR-21,22; AC-17,19,20 | Disposable recovery observation, role/metric API evidence, real readable responsive screenshots, focus/console/links, Project/history/review audit and nine-part submission. | Partial: 15 genuine Playwright screenshots across three viewport projects plus automated axe/overflow/focus checks are recorded in Issue #61. Manual screen-reader/human visual review, Project/history/review audit, recovery observation and submission audit remain open. |
 
 The eleven required files in labsheet §12 are API-01,04,05,06; UI-01,02,03,04; E2E-01,02,03. Additional focused tests cover explicit validation, authorization, concurrency, migration and performance requirements; they do not expand product scope.
 
@@ -40,25 +40,25 @@ The AC table in specification is authoritative; every AC-01–20 appears above w
 
 | AC | Test IDs (paths in §1) | Implementation acceptance status |
 | --- | --- | --- |
-| AC-01 | API-01,02; UI-01; E2E-01 | Planned |
-| AC-02 | UNIT-01; API-01,08; E2E-01 | Planned |
-| AC-03 | UNIT-01; API-01; UI-01; E2E-01 | Planned |
-| AC-04 | API-01,03; UI-01; E2E-01 | Planned |
-| AC-05 | UNIT-02; API-01; UI-01; E2E-01 | Planned |
-| AC-06 | API-03; UI-01,02; E2E-01 | Partial: stale/no-op versioned Ticket writes and workflow UI regression passed; race/E2E coverage remains open. |
-| AC-07 | UNIT-02; API-04; UI-02; E2E-02 | Partial: complete unit transition matrix plus focused detail/API behavior passed; browser lifecycle proof remains open. |
-| AC-08 | UNIT-02; API-03,04; UI-02; E2E-02 | Partial: gate predicates, valid completion-to-resolution and cancellation effects passed; exhaustive concurrency/rollback/E2E remains open. |
-| AC-09 | API-04; REG-01; E2E-02 | Partial: versioned ordered status events and reopen history passed; complete role-isolation and inherited regression remains open. |
+| AC-01 | API-01,02; UI-01; E2E-01 | Partial: browser-persisted Action lifecycle and role-scoped read-only behavior passed; remaining API/auth edge cases remain open. |
+| AC-02 | UNIT-01; API-01,08; E2E-01 | Partial: browser create/edit and persisted Action records passed; inactive-assignee and assignment-safety cases are not all browser-tested. |
+| AC-03 | UNIT-01; API-01; UI-01; E2E-01 | Partial: valid browser create/edit passed; the broader invalid-input/conditional-validation matrix remains in unit/API/UI tests. |
+| AC-04 | API-01,03; UI-01; E2E-01 | Partial: multiple Actions and persisted revisions passed in browser; full concurrency/idempotency cases remain API-level. |
+| AC-05 | UNIT-02; API-01; UI-01; E2E-01 | Partial: browser start/complete/cancel and read-only behavior passed; exhaustive Action transition cases remain unit/API-level. |
+| AC-06 | API-03; UI-01,02; E2E-01 | Partial: stale/no-op versioned Ticket writes, workflow UI and synchronized Action version passed; full race/conflict E2E remains open. |
+| AC-07 | UNIT-02; API-04; UI-02; E2E-02 | Partial: complete unit transition matrix plus resolve/reopen browser flow passed; other terminal transitions remain API/component-tested. |
+| AC-08 | UNIT-02; API-03,04; UI-02; E2E-02 | Partial: gate predicates, failed and successful browser gate, valid completion-to-resolution and cancellation effects passed; exhaustive concurrency/rollback remains open. |
+| AC-09 | API-04; REG-01; E2E-02 | Partial: versioned ordered status events and browser resolve/reopen history passed; remaining role-isolation/history cases stay open. |
 | AC-10 | API-04,07; E2E-02 | Partial: legacy zero-Action reopen path and immutable workflow history passed; full event API/browser history coverage remains open. |
-| AC-11 | UNIT-03; API-06; UI-04; E2E-03 | Partial: Staff metrics/status/priority API plus component, default-role landing and drill-down checks passed; live browser/E2E remain pending. |
-| AC-12 | API-02,05; UI-03; E2E-03 | Partial: Requester-scoped API, component states/links, default landing, session-expiry route and list-filter forwarding passed; live browser/E2E remain pending. |
-| AC-13 | UNIT-03; API-05,06; PERF-01; E2E-03 | Partial: calculation, API, UI links/list-filter forwarding and bounded-query smoke tests passed; live browser/E2E remain pending. |
-| AC-14 | API-05,06; UI-03,04; E2E-03 | Partial: both dashboard APIs, role components, default landings and route filter forwarding passed; responsive browser and E2E checks remain pending. |
-| AC-15 | API-08; REG-01; E2E-01 | Planned |
+| AC-11 | UNIT-03; API-06; UI-04; E2E-03 | Partial: live Staff metrics/status/priority API comparison, role landing and Action drill-down pass in browser; additional API cases remain open. |
+| AC-12 | API-02,05; UI-03; E2E-03 | Partial: Requester-scoped API, empty/failure states, role landing, drill-down and authenticated list flows pass; account/session edge matrix remains open. |
+| AC-13 | UNIT-03; API-05,06; PERF-01; E2E-03 | Partial: calculation/API, UI links, bounded-query smoke and live metric comparison pass; remaining filter/tie scenarios stay lower-level. |
+| AC-14 | API-05,06; UI-03,04; E2E-03 | Partial: dashboards, role navigation, responsive projects, axe/overflow, drill-down and width boundaries pass; human visual review remains open. |
+| AC-15 | API-08; REG-01; E2E-01 | Partial: browser ownership/read-only and cross-requester isolation passed; complete User/assignment safety cases remain API-level. |
 | AC-16 | API-07; REG-01 | Partial: real pre-Lab-4 migration and repeated-seed preservation tests passed in the server regression; counter, broader fixture-collision and full integration gates remain open. |
 | AC-17 | API-07; MAN-01 | Planned |
-| AC-18 | API-02; REG-01; E2E-01,02,03 | Partial: server authorization and legacy server regressions passed; complete client, authenticated E2E and release-regression gates remain open. |
-| AC-19 | UI-01,02,03,04; STYLE-01; MAN-01 | Partial: dashboard CSS contract and component accessibility states passed; real responsive/keyboard/overflow review and E2E remain pending. |
+| AC-18 | API-02; REG-01; E2E-01,02,03 | Partial: server authorization, inherited E2E and Lab 4 role/ownership browser denials passed; remaining auth and release audit gates stay open. |
+| AC-19 | UI-01,02,03,04; STYLE-01; MAN-01 | Partial: CSS/component checks plus real responsive screenshots, axe, keyboard, overflow and boundary assertions passed; manual screen-reader/touch-target review remains open. |
 | AC-20 | DOC-01; REG-01; MAN-01 | Contract checks underway; approval/release pending |
 
 | FR | Test IDs | BR | Test IDs |
@@ -139,34 +139,34 @@ e2e/lab-03/release-evidence-states.spec.ts
 
 ### Lab 2 browser-flow continuity (REG-01)
 
-The files `e2e/lab-02/requester-ticket-flow.spec.ts` and `e2e/lab-02/release-evidence-states.spec.ts` use the removed development selector and spoofable header. Do not run them unchanged or count them as current authenticated passing tests. Retire only selector-specific behavior; preserve all still-relevant product assertions through the mapping below. “Existing” means inspected assertions exist, not newly run/passed. “Extend” means a browser gap remains and must be implemented/tested in Issue #61.
+The files `e2e/lab-02/requester-ticket-flow.spec.ts` and `e2e/lab-02/release-evidence-states.spec.ts` use the removed development selector and spoofable header. Do not run them unchanged or count them as current authenticated passing tests. Retire only selector-specific behavior; preserve all still-relevant product assertions through the mapping below. At planning time, “Existing” meant inspected assertions existed and “Extend” identified a browser gap; the final column below records the Issue #61 execution outcome and any remaining limitation.
 
-Exact existing destinations: `e2e/lab-03/requester-regression.spec.ts` (owned lifecycle and removed selector), `e2e/lab-03/authentication.spec.ts` (login/password gate/logout/role routing), `e2e/lab-03/release-evidence-states.spec.ts` (authenticated workspace responsiveness). Planned extension path: **`e2e/lab-04/requester-regression.spec.ts`**, part of REG-01, not a replacement for required Lab 4 files. Existing component/API assertions supplement browser coverage; they do not disguise a missing E2E interaction.
+Exact inherited destinations: `e2e/lab-03/requester-regression.spec.ts` (owned lifecycle and removed selector), `e2e/lab-03/authentication.spec.ts` (login/password gate/logout/role routing), and `e2e/lab-03/release-evidence-states.spec.ts` (authenticated workspace responsiveness). The authenticated extension is implemented in **`e2e/lab-04/requester-regression.spec.ts`**, in addition to the required Lab 4 browser files. Existing component/API assertions supplement the browser checks and are identified separately below.
 
-| Flow ID | Original Lab 2 assertions | Authenticated equivalent / inspected coverage | Remaining REG-01 work |
+| Flow ID | Original Lab 2 assertions | Authenticated equivalent / inspected coverage | Executed evidence / remaining limitation |
 | --- | --- | --- | --- |
-| R02-01 | Selector route, active selection/Continue, selector loading/empty/failure and selector accessibility | Selector UI retired deliberately. Lab 3 requester-regression directly checks old route has no selector/sessionStorage flow; authentication.spec tests real session login/gate/logout. | Adapt old-route redirect expectations to Lab 4 dashboard landing; keep removed-selector assertions. Do not reintroduce selector states. |
-| R02-02 | Selected Requester identity, Change Requester, other Requester's Ticket disappearing from list | Replace selection with authenticated A and B accounts. Lab 3 uses separate B context for detail isolation but does not assert A's list entry disappears after logout/login as B. | Extend: A list contains created Ticket; logout/login B refreshes identity/list and cannot find it; no stale cached A data. |
-| R02-03 | Create form Category/System/Requested Priority, summary/description, initial attachment selection | Lab 3 owned lifecycle fills these controls and creates a Ticket with initial PDF. | Retain assertions under new navigation/landing; assert chosen values on detail. |
-| R02-04 | Creation success and backend Ticket Number format | Lab 3 owned lifecycle asserts success and TKT-YYYY-######. API requester-regression verifies session ownership despite spoofed header. | Retain browser Number assertion; assert created Ticket requester matches authenticated A. |
-| R02-05 | My Tickets shows actual created Ticket, desktop table/mobile cards | Lab 3 release-states checks workspace/axe/overflow, but not actual created row and table/card visibility. Client MyTickets.test.tsx checks table/card rendering. | Extend browser assertions for actual row/card and responsive visibility, not heading-only proof. |
-| R02-06 | Search submitted through Apply Filters, URL query value and matching Ticket link/open detail | Client MyTickets.test.tsx and server my-tickets.api.test.ts exercise controls/query behavior; Lab 3 owned lifecycle jumps via View Ticket instead. | Extend authenticated browser search/URL/matching row/open-detail; also preserve category/system/priority/status/sort/page controls with real seeded results. |
-| R02-07 | Initial attachment visible and browser download filename | Lab 3 owned lifecycle lists metadata, asserts filename and waits for download event. | Retain with authenticated session. |
-| R02-08 | Add PNG after creation, ready state, upload success and new metadata | Existing Lab 3 browser lifecycle does not upload another file; client AttachmentSection.test.tsx and server attachments.api.test.ts cover lower layers. | Extend browser additional-file upload and persisted metadata/download. |
-| R02-09 | Removal dialog/reason, retained removed metadata and removed Download control | Lab 3 owned lifecycle performs removal and checks retained reason/no Download plus removed-file API404. | Retain; preserve repeat-removal conflict coverage in server attachments.api.test.ts. |
-| R02-10 | Cross-owner detail/list-metadata/download/upload/remove API404 | Lab 3 B context asserts detail and metadata404. server Lab 2 attachments.api.test.ts has lower-layer ownership tests. | Extend B authenticated download/upload/remove denials with B's valid CSRF/Origin, assert sanitized404 and unchanged attachment rows/files. No X-Requester-Id trust. |
-| R02-11 | Other Requester's filtered no-results and inaccessible detail/attachment errors | Lab 3 B browser asserts inaccessible detail/attachment errors; client MyTickets tests distinguish ownership empty vs filtered no-results. | Extend authenticated B no-results and real empty ownership states; retain direct-detail safe failure. |
-| R02-12 | Axe and no horizontal scroll on selector/create/list/detail/after removal/account switch | Lab 3 has axe/overflow for authenticated list/detail; release-states workspace. Selector-only check retired. | Extend real Create/list/detail and post-removal/account-switch at all three existing projects, with keyboard and no overflow. |
-| R02-13 | Initial Create state and strict invalid-summary field error | Client CreateTicket.test.tsx asserts validation/focus; Lab 3 browser lifecycle covers valid create only. | Extend authenticated initial/invalid submit with associated field error and no request/write. |
-| R02-14 | Invalid PDF signature, removal from pending selection | Client AttachmentSection/CreateTicket and server attachment-validation unit tests supplement signature checking; no equivalent Lab 3 browser failure scenario. | Extend invalid-signature browser rejection, remove selected file, and assert no Ticket/file created. |
-| R02-15 | Creation API failure and preserved Summary/draft | Client CreateTicket.test.tsx asserts failure draft retention. | Extend authenticated browser safe500/network failure with retained fields/files; explicitly label injected error evidence, not a real backend outage. |
-| R02-16 | Delayed creation, busy submitting state and successful completion | Client CreateTicket.test.tsx asserts duplicate-submission guard. | Extend delayed browser request, disabled duplicate submit/one resulting Ticket and success; label controlled delay. |
+| R02-01 | Selector route, active selection/Continue, selector loading/empty/failure and selector accessibility | Selector UI retired deliberately. Lab 3 requester-regression checks the old route has no selector/sessionStorage flow; authentication.spec tests real login, password gate, logout and role landing. | Passed in the full inherited E2E run; selector-only states remain excluded by the authenticated Lab 3 contract. |
+| R02-02 | Selected Requester identity, Change Requester, other Requester's Ticket disappearing from list | `e2e/lab-04/requester-regression.spec.ts` creates Tickets as A, logs out, signs in as B, and verifies A's Ticket is absent and cross-owner detail is 404. | Passed in all three viewport projects; authenticated account replacement and server ownership isolation are asserted. |
+| R02-03 | Create form Category/System/Requested Priority, summary/description, initial attachment selection | Inherited Lab 3 and Issue #61 browser flows create Tickets through the UI with these fields and an initial PDF. | Passed in inherited and new E2E; created Ticket fields and identity are checked on detail. |
+| R02-04 | Creation success and backend Ticket Number format | Inherited Lab 3 lifecycle plus the Issue #61 creation helper assert success and `TKT-YYYY-######`; authenticated requester session owns the Ticket. | Passed in inherited and new E2E; no spoofable Requester header is used. |
+| R02-05 | My Tickets shows actual created Ticket, desktop table/mobile cards | Issue #61 asserts the created Ticket link is visible in the populated list in desktop/tablet/mobile projects; component tests cover responsive table/card presentation. | Passed for actual listing visibility across configured projects. |
+| R02-06 | Search submitted through Apply Filters, URL query value and matching Ticket link/open detail | Issue #61 searches real Tickets, checks URL updates for search/category/system/priority/status/sort/order/page size, opens a matching row by keyboard, and checks no-results; API/component suites cover filter semantics. | Passed for browser control/URL/search/detail behavior and lower-level filter semantics. E2E does not create a unique result fixture for every filter value. |
+| R02-07 | Initial attachment visible and browser download filename | Inherited Lab 3 and Issue #61 Requester flows attach a real PDF and assert its browser download filename. | Passed in the complete E2E run. |
+| R02-08 | Add PNG after creation, ready state, upload success and new metadata | Issue #61 uploads a PNG after creation, then verifies persisted metadata and download in an authenticated flow. | Passed; lower-layer attachment API and validation regressions also ran in the full suite. |
+| R02-09 | Removal dialog/reason, retained removed metadata and removed Download control | Inherited Lab 3 and Issue #61 flows verify removal reason/retained metadata and blocked removed-file access. | Passed in authenticated E2E; repeat-removal conflict remains covered by the API regression. |
+| R02-10 | Cross-owner detail/list-metadata/download/upload/remove API404 | Issue #61 uses a second authenticated Requester and valid browser session/CSRF context for denied attachment operations; responses are sanitized and A's rows remain unchanged. | Passed for cross-owner detail/list/download/upload/remove isolation; no `X-Requester-Id` trust. |
+| R02-11 | Other Requester's filtered no-results and inaccessible detail/attachment errors | Issue #61 verifies B's filtered no-results and safe inaccessible detail; a separate empty-account test opens `/tickets` and checks genuine empty-list state versus filtered no-results. | Passed in the three-project Playwright run, including the added real empty-list assertion. |
+| R02-12 | Axe and no horizontal scroll on selector/create/list/detail/after removal/account switch | Selector UI is retired. Inherited requester E2E checks axe/overflow; Issue #61 adds keyboard list navigation, dashboard/Action axe and overflow, and 767/768/991/992 width boundaries. | Automated checks passed across desktop/tablet/mobile. Manual screen-reader, touch-target and full visual review remain open. |
+| R02-13 | Initial Create state and strict invalid-summary field error | Issue #61 submits an invalid summary, checks the field error/focus, and verifies that no Ticket POST was sent. | Passed in all three browser projects. |
+| R02-14 | Invalid PDF signature, removal from pending selection | Issue #61 submits a fake PDF signature, checks rejection/no Ticket POST, removes the invalid selected file, and continues with a valid draft. | Passed in all three browser projects. |
+| R02-15 | Creation API failure and preserved Summary/draft | Issue #61 injects a one-time safe 500 for Ticket creation and verifies Summary and Description remain. | Passed. This is a controlled Playwright response, not a real outage. |
+| R02-16 | Delayed creation, busy submitting state and successful completion | Issue #61 delays the POST, checks the submit button is disabled, exactly one POST occurs, and creation succeeds. | Passed. The delay is controlled by Playwright, not a production-network claim. |
 
-REG-01's release gate requires a scenario/assertion mapping for **R02-01–16** to final real test names/paths and observed passing output. Put these flow IDs in the corresponding authenticated test names/tags, report retired selector assertions separately, and verify no retained flow lacks an executed assertion. A static filename/ID check alone is not sufficient. Implement gaps in the planned authenticated regression file, adapt current Lab 3 landing assertions to new dashboards, and run those plus all inherited Vitest/API suites and required new E2E. Issue #61 extends client Playwright testMatch to Lab 3 + Lab 4 without skips or unsafe environment fallback. Product regression execution remains Planned in this docs-only Issue.
+REG-01 now has named authenticated browser assertions for retained R02-01–16 flows; selector-only states are explicitly retired, while API/component tests supplement filter semantics. The complete inherited Lab 3 plus Lab 4 Playwright suite, server/client regressions, builds, migration and repeated seed were run locally for Issue #61. See the Issue #61 evidence below. The test results are tied to candidate code/test SHA `fb4d3f8827497d2aa72e549473726969289314f3`, with documentation-only follow-up commits afterward; this is not final-main evidence. PR #71 is open for teammate review.
 
 ## 3. Safe test environment and commands
 
-All commands below belong in **VS Code PowerShell**, starting at repository root. They are planned implementation/release commands, not output from this docs Issue. Each command must finish successfully before continuing. Never paste terminal commands into DevTools Console.
+All commands below belong in **VS Code PowerShell**, starting at repository root. They are prescribed commands; observed Issue #61 output is recorded in Section 4 and must not be confused with a commit or final-main result. Each command must finish successfully before continuing. Never paste terminal commands into DevTools Console.
 
 Use required local `server/.env.test`, disposable PostgreSQL database ending `_test`, approved E2E schemas only (`toktickit_e2e`, `toktickit_release_e2e`, `toktickit_release_final`), and guarded temporary storage under `server/.test-attachments`. No fallback to `.env`, no random schema deletion, no unattended real database reset. Local passwords follow policy; keep them and real `.env.test` uncommitted. Existing seed uses three `LAB3_*_INITIAL_PASSWORD` variables. Record sanitized DB name/target, not connection string/password.
 
@@ -202,8 +202,8 @@ All Issues are sequential. Issue #55 approved merge precedes #56; each later app
 | #57 Actions UI | feature/23-Lab4ActionsUI; UI-01 | Component tests, inherited client regression/build; real selected-record/read-only/validation captures. |
 | #58 Ticket workflow | feature/24-Lab4TicketWorkflow; UNIT-02, API-03/04, UI-02 | Commit-bound evidence below: full server/client regressions and builds passed. E2E/manual screenshots and wider matrix completion remain pending. |
 | #59 Dashboard APIs | feature/25-Lab4DashboardAPIs; UNIT-03, API-02/05/06/07, PERF-01 | [PR #68](https://github.com/osizk/TokTickIT/pull/68) merged into `lab4-staging` at `19117b1bed09407601e6e1064469dccff6b9a024`; TDD red then green; 13 focused dashboard API tests, full server regression (38 files/160 tests, including migration/seed), server build and bounded-query smoke. No formal GitHub **Approve** review submission was recorded. Detailed candidate-commit evidence below. |
-| #60 Dashboards UI | feature/26-Lab4DashboardsUI, based on merged staging commit `19117b1bed09407601e6e1064469dccff6b9a024`; UI-03/04, STYLE-01 | Dashboard UI, Requester/Staff list-filter forwarding, role-default routing and inherited regressions; see the PR #70 SHA-bound and local follow-up results in §4. Browser screenshots/manual checks remain pending because the local API and client endpoints were unavailable. |
-| #61 Final regression | feature/27-Lab4FinalRegression; E2E-01/02/03 and regressions | Full server/client/E2E, builds, migration/repeated seed/recovery, responsive/a11y/visual/API evidence. |
+| #60 Dashboards UI | feature/26-Lab4DashboardsUI, based on merged staging commit `19117b1bed09407601e6e1064469dccff6b9a024`; UI-03/04, STYLE-01 | Dashboard UI, Requester/Staff list-filter forwarding, role-default routing and inherited regressions; see PR #70 SHA-bound and local follow-up results in §4. Browser/screenshots were unavailable during Issue #60 and were subsequently exercised locally in Issue #61 below. |
+| #61 Final regression | feature/27-Lab4FinalRegression; E2E-01/02/03 and regressions | Candidate SHA `fb4d3f8827497d2aa72e549473726969289314f3` (implementation commit `983e121`, staging base `8eec9ae4622dff57adba01f60022bfacf494ea0f`) passed server/client regressions and builds, guarded migration/repeated seed, and all 60 inherited Lab 3 + Lab 4 Playwright tests; detailed outputs and remaining review/release gates follow below. Later local review corrections are recorded separately. |
 | #62 Release evidence | feature/28-Lab4ReleaseEvidence; DOC-01/evidence gap audit | Final traceability/README/reviewer/real AI selection/authorized reflection; actual Project/history/reviews; release-candidate then required final-main verification. |
 
 For each card: Backlog → Specified (scope/maps) → Started (approved branch/failing tests) → PR Review (authorized PR) → Fixing if requested → PR Review again → Done only after actual approval and authorized merge. The table is a plan, not an assertion cards were moved.
@@ -1047,7 +1047,7 @@ npm.cmd run build
 exit code 0
 ```
 
-The real-browser check was not available during this work: requests to `http://localhost:3000/api/health` and `http://localhost:5173` each timed out after three seconds. No dashboard screenshot, live database/API agreement, responsive-boundary inspection, keyboard audit, or Playwright result is claimed. Complete those manual/browser checks in the release evidence workflow; the component tests do not replace them.
+At the end of Issue #60, the real-browser check was unavailable: requests to `http://localhost:3000/api/health` and `http://localhost:5173` each timed out after three seconds, so that Issue did not claim screenshots or Playwright results. Issue #61 later completed the local authenticated browser, metrics/API, responsive, axe, keyboard-drilldown, and screenshot checks recorded below. Manual screen-reader/touch-target review and remaining release audit are still open; component tests do not replace them.
 
 ### PR #70 review follow-up — verification status
 
@@ -1127,17 +1127,124 @@ The new six-test compatibility-session regression is included in this full run. 
 
 GitHub snapshot taken after pushing code/test commit `a3fd3f38ece92a19b3a778e4ade22d23620b675a` on 12 October 2026 and before the documentation-only evidence update: PR #70 was open at that head and GitHub reported it mergeable, but the head had no commit statuses and no PR workflow runs. The partner had submitted two `CHANGES_REQUESTED` reviews; both inline threads from the first review remained unresolved (the App.tsx thread was outdated). No re-review or **Approve** is claimed. The PR description still cites implementation commit `e7f4af720bd4750f93f7dd9cf89b456e9ddbab32` and 109 client tests, while the regression above records 111. No merge is claimed. Browser, Playwright, responsive screenshot, and manual keyboard evidence remain unperformed for this follow-up.
 
+### Issue #61 — final regression and visual evidence (verified candidate commit)
+
+This work is on `feature/27-Lab4FinalRegression`, based on `lab4-staging` SHA `8eec9ae4622dff57adba01f60022bfacf494ea0f`. The complete checks below were rerun from candidate commit `fb4d3f8827497d2aa72e549473726969289314f3`; the code-bearing Issue #61 commit is `983e121`, and the follow-up only records evidence and removes a trailing blank line. These are candidate-branch results, not final `main`.
+
+The new Action version-sync regression was first observed failing: after the parent Ticket refreshed from workflow version 3 to 4, the child Action form still sent version 3. `ActionsTaken` now synchronizes its version from the refreshed Ticket prop; the focused client regression and full client suite passed afterward. The authenticated empty My Tickets test was also run by itself in all three viewport projects (3 passed).
+
+Complete server regression and production build:
+
+```text
+cd server
+npm.cmd test -- --run
+Test Files  38 passed (38)
+     Tests  162 passed (162)
+No tests skipped.
+
+npm.cmd run build
+> tsc
+Exit code 0
+```
+
+Complete client regression and production build:
+
+```text
+cd client
+npm.cmd test -- --run
+Test Files  18 passed (18)
+     Tests  112 passed (112)
+
+npm.cmd run build
+> tsc && vite build
+Exit code 0
+```
+
+Guarded test migration and repeated idempotent seed used `server/.env.test` with database `toktickit_test`; no credentials are recorded:
+
+```text
+cd server
+npm.cmd run prisma:test:migrate
+8 migrations found in prisma/migrations
+No pending migrations to apply.
+
+npm.cmd run prisma:test:seed
+npm.cmd run prisma:test:seed
+Both runs reported the same counts:
+Ensured 4 categories, 7 related systems, 7 requesters, 16 Tickets, 6 Actions, and 13 Action revisions (0 Lab 3 and 0 Lab 4 Ticket graphs created this run, 0 Actions created, 3 existing Lab 4 fixture numbers left unchanged); all existing Requesters received idempotent credential backfill.
+```
+
+Complete authenticated Playwright regression:
+
+```text
+cd client
+npx.cmd playwright test
+Running 60 tests using 1 worker
+60 passed (4.5m)
+PLAYWRIGHT_EXIT_CODE=0
+```
+
+The 60 tests cover the inherited Lab 3 suites plus `e2e/lab-04/actions-taken-flow.spec.ts`, `ticket-resolution.spec.ts`, `dashboards.spec.ts`, and `requester-regression.spec.ts` across desktop, tablet, and mobile projects. No tests were skipped. A prior run first exposed three inherited Staff-flow timeouts caused by an outdated post-login Create Ticket locator; it was changed to the current navigation link and all projects passed. Another run completed all assertions but reported the API bootstrap's intentional shutdown as exit code 1; the bootstrap now treats parent-requested shutdown as normal, and the final run above exited 0. Node emitted a `url.parse()` deprecation warning; it did not fail the tests.
+
+Issue #61 added 15 real Playwright screenshots and preserved the three existing JPEG captures. New files are grouped below; each base name has `desktop`, `tablet`, and `mobile` PNGs:
+
+- `artifacts/lab-04/screenshots/actions-taken/dashboard-action-detail-{desktop,tablet,mobile}.png`
+- `artifacts/lab-04/screenshots/actions-taken/multi-action-workflow-{desktop,tablet,mobile}.png`
+- `artifacts/lab-04/screenshots/requester-dashboard/requester-empty-{desktop,tablet,mobile}.png`
+- `artifacts/lab-04/screenshots/requester-dashboard/requester-populated-{desktop,tablet,mobile}.png`
+- `artifacts/lab-04/screenshots/staff-dashboard/staff-populated-{desktop,tablet,mobile}.png`
+
+Automated axe and no-overflow checks passed on dashboard and Action pages; keyboard drill-down/focus and widths 767, 768, 991, and 992 were checked. Representative desktop, tablet, and mobile captures were visually sampled; no AI-generated image was used. PR #71 (`Issue #61: [Lab 4] Final regression, accessibility, and visual testing`) is open from `feature/27-Lab4FinalRegression` into `lab4-staging`, authored by `osizk`, and awaits teammate review; no approval or merge is claimed. Manual screen-reader/touch-target review, the Project board, migration-recovery rehearsal, final release audit, and final-main verification remain open.
+
+### PR #71 review corrections — focused local verification
+
+Applied locally on top of PR head `17a904014def9975776eea418353930dfe8326bc`: corrected PR #70's approval/merge record, aligned the Issue #61 summary with tested SHA `fb4d3f8827497d2aa72e549473726969289314f3`, and added the existing `requesterD` fixture key to `Lab3Role`. GitHub confirms that the partner approved PR #70 head `a33fb720b689ad7113e3d633d4fb17fc66bdec2e` before merge commit `8eec9ae4622dff57adba01f60022bfacf494ea0f`.
+
+The focused check uses the installed client TypeScript compiler API with strict/no-emit options and reports diagnostics for `e2e/lab-03/lab3-fixtures.ts`. It resolves Playwright from the existing client dependency; it is not a type-check of every E2E file. Reproduce in VS Code PowerShell from `client/`:
+
+```powershell
+$fixtureCheck = @'
+const ts = require('typescript');
+const path = require('node:path');
+const target = path.resolve('../e2e/lab-03/lab3-fixtures.ts');
+const program = ts.createProgram([target], { strict: true, noEmit: true, skipLibCheck: true, target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.NodeNext, moduleResolution: ts.ModuleResolutionKind.NodeNext, esModuleInterop: true, baseUrl: process.cwd(), paths: { '@playwright/test': [path.resolve('node_modules/@playwright/test')] }, types: ['node'], typeRoots: [path.resolve('node_modules/@types'), path.resolve('../server/node_modules/@types')] });
+const diagnostics = ts.getPreEmitDiagnostics(program).filter(d => d.file && path.resolve(d.file.fileName) === target);
+console.log(ts.formatDiagnosticsWithColorAndContext(diagnostics, { getCanonicalFileName: f => f, getCurrentDirectory: () => process.cwd(), getNewLine: () => '\n' }));
+console.log('Fixture type-check: ' + diagnostics.length + ' diagnostics');
+process.exitCode = diagnostics.length ? 1 : 0;
+'@
+$fixtureCheck | node
+```
+
+Observed before the type correction:
+
+```text
+TS2561: 'requesterD' does not exist in type 'Record<Lab3Role, ...>'.
+Fixture type-check: 1 diagnostics
+Exit code 1
+```
+
+Observed after the correction, with additional assertions checking the Issue #61 summary and PR #70 evidence:
+
+```text
+Fixture type-check: 0 diagnostics
+Review-evidence consistency: passed
+Exit code 0
+```
+
+The full server/client/Playwright suites were not rerun for this type-only and documentation correction. Their 162/112/60 results above remain tied to `fb4d3f8`, not to this correction. No runtime behavior, database data, screenshot, or CI configuration changed. This follow-up includes the three corrections and awaits teammate re-review; no new approval or merge is claimed.
+
 ## 5. Release and visual checklist — actual work only
 
-- [ ] Student and teammate approve engineering decisions; four public contracts merged before implementation.
+- [x] Student and teammate approve engineering decisions; four public contracts merged before implementation.
 - [ ] All mapped Lab 4 unit/API/UI/auth/workflow/concurrency/performance tests pass with actual counts/paths.
-- [ ] Complete inherited server/client regression and both builds pass.
-- [ ] Authenticated Lab 3 + Lab 4 Playwright suite passes with no skipped required test; complete output retained.
+- [x] Complete inherited server/client regression and both builds pass.
+- [x] Authenticated Lab 3 + Lab 4 Playwright suite passes with no skipped required test; complete output retained.
 - [ ] Real additive migration, repeated create-only seed, changed/non-fixture credential preservation, counter and recovery verification pass.
-- [ ] Dashboard metrics and drill-downs match guarded database/API fixtures; current-user Actions and ownership isolation proved.
+- [x] Dashboard metrics and drill-downs match guarded database/API fixtures; current-user Actions and ownership isolation proved.
 - [ ] Actions list/create/assign/edit/complete/cancel, inactive rejection, conditional validation, stale retry and immutable history captured.
 - [ ] Ticket matrix/gate, advisory indication, cancellation/reopening and direct API permission/gate proof captured.
-- [ ] Staff dashboard, Requester dashboard and Actions/workflow captured desktop/tablet/mobile; boundaries and no overflow inspected.
+- [x] Staff dashboard, Requester dashboard and Actions/workflow captured desktop/tablet/mobile; boundaries and no overflow inspected.
 - [ ] Keyboard, focus, labels, validation associations, non-color cues, touch targets and announcements checked.
 - [ ] Loading/empty/no-results where applicable/busy/error/Retry/403/404/401/draft retention checked; no broken links/unsafe console leaks.
 - [ ] Representative authentication/Requester/attachments/comments/Internal Notes/Staff/Admin regression evidence retained.

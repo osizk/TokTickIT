@@ -16,6 +16,7 @@ import {
 
 interface ActionsTakenProps {
   ticketNumber: string;
+  workflowVersion?: number;
   readOnly?: boolean;
   currentUserId?: number;
   onTicketChanged?: () => void;
@@ -100,7 +101,7 @@ function identityLabel(identity: { name: string; email: string }): string {
   return `${identity.name} (${identity.email})`;
 }
 
-export default function ActionsTaken({ ticketNumber, readOnly = false, currentUserId, onTicketChanged }: ActionsTakenProps) {
+export default function ActionsTaken({ ticketNumber, workflowVersion, readOnly = false, currentUserId, onTicketChanged }: ActionsTakenProps) {
   const [actions, setActions] = useState<ActionRecord[]>([]);
   const [ticketVersion, setTicketVersion] = useState(0);
   const [page, setPage] = useState(1);
@@ -143,6 +144,10 @@ export default function ActionsTaken({ ticketNumber, readOnly = false, currentUs
   const actionHeadingRefs = useRef<Record<number, HTMLHeadingElement | null>>({});
   const editButtonRefs = useRef<Record<number, HTMLButtonElement | null>>({});
   const cancelDialogRef = useRef<HTMLTextAreaElement | null>(null);
+
+  useEffect(() => {
+    if (workflowVersion !== undefined) setTicketVersion(workflowVersion);
+  }, [workflowVersion]);
 
   const loadActions = useCallback(async (requestedPage: number) => {
     setListState("loading");
