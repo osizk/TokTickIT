@@ -128,6 +128,10 @@ describe("Create Ticket", () => {
   });
 
   it("trims fields and shows the backend-created Ticket result after a successful submit", async () => {
+    const localDate = Date.prototype.toLocaleString;
+    vi.spyOn(Date.prototype, "toLocaleString").mockImplementation(function (this: Date, locales, options) {
+      return localDate.call(this, locales, { timeZone: "UTC", ...options });
+    });
     const user = userEvent.setup();
     await openCreateTicket(user);
     const createSpy = vi.spyOn(api, "createTicket").mockResolvedValue({
@@ -149,6 +153,7 @@ describe("Create Ticket", () => {
     });
     expect(await screen.findByText("TKT-2026-000001")).toBeInTheDocument();
     expect(screen.getByText("Current Status: NEW")).toBeInTheDocument();
+    expect(screen.getByText(new Date(createdTicket.createdAt).toLocaleString(undefined, { timeZone: "Asia/Bangkok" }), { exact: false })).toBeInTheDocument();
   });
 
   it("preserves entered values and shows a safe message when creation fails", async () => {

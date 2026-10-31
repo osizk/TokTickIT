@@ -57,10 +57,15 @@ describe("Ticket Detail", () => {
   });
 
   it("shows owned read-only fields and excludes staff workflow fields", async () => {
+    const localDate = Date.prototype.toLocaleString;
+    vi.spyOn(Date.prototype, "toLocaleString").mockImplementation(function (this: Date, locales, options) {
+      return localDate.call(this, locales, { timeZone: "UTC", ...options });
+    });
     render(<TicketDetail requester={requester} ticketNumber={ticket.ticketNumber} navigate={vi.fn()} />);
 
     expect(await screen.findByRole("heading", { name: "Ticket Detail" })).toBeInTheDocument();
-    expect(screen.getByLabelText("Ticket Number")).toHaveValue(ticket.ticketNumber);
+    expect(await screen.findByLabelText("Ticket Number")).toHaveValue(ticket.ticketNumber);
+    expect(screen.getByLabelText("Ticket Date")).toHaveValue(new Date(ticket.createdAt).toLocaleString(undefined, { timeZone: "Asia/Bangkok" }));
     expect(screen.getByLabelText("Requester")).toHaveValue("Amina Rahman (amina@example.test)");
     expect(screen.getByLabelText("Category")).toHaveValue("Hardware");
     expect(screen.getByLabelText("Related System")).toHaveValue("Network");

@@ -54,6 +54,17 @@ export async function captureLab4Screenshot(page: Page, testInfo: TestInfo, area
   }
 }
 
+export async function prepareDashboardAttentionTicket(ticketNumber: string): Promise<void> {
+  const prisma = new PrismaClient();
+  try {
+    const ticket = await prisma.ticket.findUniqueOrThrow({ where: { ticketNumber } });
+    if (!ticket.summary.startsWith("E2E-61-dashboard-")) throw new Error("Dashboard setup only accepts its test-created Ticket.");
+    await prisma.ticket.update({ where: { id: ticket.id }, data: { status: "WAITING_FOR_REQUESTER", updatedAt: new Date() } });
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
 export async function createEmptyRequester(): Promise<{ email: string; password: string }> {
   const password = process.env.LAB3_REQUESTER_INITIAL_PASSWORD;
   if (!password) throw new Error("LAB3_REQUESTER_INITIAL_PASSWORD is required in the local test environment.");

@@ -1771,6 +1771,11 @@ textarea:focus-visible {
   overflow-wrap: anywhere;
 }
 
+.dashboard-ticket-link .zen-status-badge,
+.dashboard-ticket-link .zen-priority-badge {
+  white-space: normal;
+}
+
 .dashboard-ticket-link time,
 .dashboard-action-link time {
   color: var(--zen-muted);
@@ -1799,7 +1804,13 @@ textarea:focus-visible {
 .dashboard-summary-list .zen-status-badge,
 .dashboard-summary-list .zen-priority-badge {
   max-width: 100%;
+  min-width: 0;
+  white-space: normal;
   overflow-wrap: anywhere;
+}
+
+.dashboard-summary-list strong {
+  flex-shrink: 0;
 }
 
 .dashboard-empty {

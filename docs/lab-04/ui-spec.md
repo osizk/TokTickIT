@@ -1,6 +1,6 @@
 # Lab 4 UI Specification
 
-Draft engineering contract, Issue #55; approval pending. Requirements and exact backend contracts: [specification.md](specification.md), [api-spec.md](api-spec.md). Mockups in the labsheet provide visual direction, not permission for extra features. Reuse React, current routing/shell/forms/styles; do not add a chart, dialog, router, or component framework.
+Implemented engineering contract established in [PR #63](https://github.com/osizk/TokTickIT/pull/63); release-evidence audit in Issue #62. Requirements and exact backend contracts: [specification.md](specification.md), [api-spec.md](api-spec.md). Mockups in the labsheet provide visual direction, not permission for extra features. Reuse React, current routing/shell/forms/styles; do not add a chart, dialog, router, or component framework.
 
 ## 1. Routes, navigation, and role identity
 
@@ -33,7 +33,7 @@ States: loading with accessible status; all-zero metrics with genuine empty sect
 
 ## 4. Requester dashboard
 
-Show own active, waiting-for-Requester, currently resolved and currently closed counts, plus attention and recent Ticket lists. Link metrics to owned My Tickets filters; attention is WAITING_FOR_REQUESTER. Recent means Ticket.updatedAt within the displayed seven-day window, not undocumented attachment/comment activity or a fabricated resolution timestamp. Keep this a concise summary, not a copy of My Tickets search/filter/table controls. Links open owned detail. Explain zero and loading/failure/Retry states; switching accounts clears cached role/owned data. Direct Requester query injection or unauthorized routes must not expose other Tickets.
+Show own active, waiting-for-Requester, currently resolved and currently closed counts, plus attention and recent Ticket lists. Link metrics to owned My Tickets filters; attention is WAITING_FOR_REQUESTER. Recent means Ticket.updatedAt within the displayed seven-day window, not undocumented attachment/comment activity or a fabricated resolution timestamp. Keep this a concise summary, not a copy of My Tickets search/filter/table controls. Links open owned detail. When all four counts and both lists are empty, say `No active or recent Tickets to show.` and link to My Tickets: older CANCELLED Tickets may still exist. Explain loading/failure/Retry states; switching accounts clears cached role/owned data. Direct Requester query injection or unauthorized routes must not expose other Tickets.
 
 ## 5. Actions Taken on Ticket detail
 
@@ -53,7 +53,7 @@ Edit opens inline adjacent to that Action, not below a long unrelated list. Popu
 
 Lifecycle buttons are explicit: Start Work, Complete, Cancel Action. Confirm completion with valid Result; cancellation asks for a 5–250-character reason and confirmation. Completed performer/date stay unchanged after correction. Cancellation history remains visible. Follow-up Note is required when checked and any nonempty note is 5–2000 characters; clearing the checkbox may retain its optional note. Apply trimmed boundaries specified in BR-06 on frontend and backend.
 
-On STALE_VERSION, retain the unsaved draft, explain another change occurred, and offer Reload current record; never silently overwrite. Reload requires explicit user choice because it may replace draft values. On uncertain creation failure, Retry uses the same key and body; changing the intended draft after a timeout requires first reconciling the original request or treating it as a clearly separate creation. Disable duplicate submits. No optimistic success before server commit. Success refreshes Action/history/versions/gate and invalidates dashboard data; failed writes leave prior committed UI consistent.
+On STALE_VERSION, retain the unsaved draft and explain another change occurred; never silently overwrite. During creation, disable Save and offer `Reload Ticket version`. A successful reload refreshes the Actions and expected Ticket version without replacing the new Action draft or creation key; a failed reload keeps Save disabled and permits another reload. During editing, offer `Reload current Action`; this explicit choice replaces draft fields with the current saved Action for review. On uncertain creation failure, Retry uses the same key and body; changing the intended draft after a timeout requires first reconciling the original request or treating it as a clearly separate creation. Disable duplicate submits. No optimistic success before server commit. Success refreshes Action/history/versions/gate and invalidates dashboard data; failed writes leave prior committed UI consistent.
 
 ## 6. Ticket workflow and resolution gate
 
@@ -73,4 +73,26 @@ Store approved genuine screenshots under `artifacts/lab-04/screenshots/staff-das
 
 Capture multi-Action list/create/assign/edit/complete/cancel, inactive assignee, conditional validation, safe conflict/failure, owned Requester read-only view, resolution gate and legal transition/history, accurate dashboard zero/nonzero/drill-downs, role/ownership API denial and representative inherited workflows. Captions state both what is visible and the requirement it proves. Crop/split long details into readable labeled figures instead of shrinking a full page.
 
-Visual/manual checks are **planned**, not performed in Issue #55: consistent Zen Green; all responsive sizes/boundaries; no page overflow; readable badges/text; keyboard/focus/labels/error associations; touch controls; announcements; drafts/retry/duplicate protection; broken-link/console inspection; no secrets; real figures and working links. Record actual results in [tests.md](tests.md).
+Issue #61 captured real dashboard and Actions/workflow screens in all three projects and ran axe, overflow, breakpoint, keyboard-drill-down and focus assertions. Issue #62 inspected representative Staff desktop, Requester tablet, and Actions mobile images. These checks do not imply a completed screen-reader or exhaustive manual visual audit. Exact observed results and remaining checks are in [tests.md](tests.md).
+
+Existing screenshot families below have desktop, tablet, and mobile variants. Use the variant matching the claimed viewport; captured values describe that fixture at capture time, not current production totals.
+
+| Screenshot family under `artifacts/lab-04/screenshots/` | Caption / evidence |
+| --- | --- |
+| `staff-dashboard/staff-populated-{desktop,tablet,mobile}.png` | Staff dashboard: operational metrics, status/priority summaries and the current-user Actions section; supports AC-11,14,19. |
+| `requester-dashboard/requester-populated-{desktop,tablet,mobile}.png` | Requester dashboard: owned metrics, attention/recent sections and responsive navigation; supports AC-12,14,19. |
+| `requester-dashboard/requester-empty-{desktop,tablet,mobile}.png` | A real isolated empty account shows zero metrics and useful empty feedback; supports AC-12,19. |
+| `actions-taken/multi-action-workflow-{desktop,tablet,mobile}.png` | Staff detail retains distinct completed/cancelled Actions, public metadata, revisions and workflow context; supports AC-01,05,19. |
+| `actions-taken/dashboard-action-detail-{desktop,tablet,mobile}.png` | A dashboard Action link reaches its Ticket detail and matching Action; supports AC-11,14,19. |
+
+The full mobile Action page is very long. For submission, use readable crops/split figures with captions identifying the same Ticket and viewport; do not shrink the entire page into one unreadable image. Existing PNG/JPEG bytes are preserved during Issue #62. Additional manual captures are still needed for any required state not visible in the retained images.
+
+### 29 October candidate corrections and capture follow-up
+
+Action and revision timestamps explicitly use Asia/Bangkok. Changing Ticket resets the entire Actions view, including pagination, editors and revision state. Real stale-version responses containing version field errors still show the conflict explanation and Reload current Action; the failed draft remains visible until the user explicitly reloads. Dashboard summary badges wrap their full status/priority labels and keep the count visible without shrinking it.
+
+Existing captures are historical and were not overwritten. Replace the overlapping Staff tablet summary capture with a real screenshot after the CSS correction. Add Requester dashboard captures showing nonempty Recent Tickets and Tickets needing your attention; the E2E dashboard fixture now creates its own current waiting Ticket to exercise both lists. Add real reassignment/conflict/retry and inactive-assignee rejection evidence where required. These are capture instructions, not claims that new screenshots or the human visual/accessibility checklist have been completed.
+
+### 31 October PR-readiness corrections
+
+Dashboard Ticket-card status/priority text wraps within its own card, including tablet boundary widths. Ticket creation/result, owned detail, Staff detail, My Tickets and Staff Queue now also display Asia/Bangkok dates explicitly, matching Actions/workflow/dashboard presentation. Create Action offers Reload Ticket version after a conflict, preserving the new draft and creation key through failed reloads; Save stays blocked until reload succeeds. The empty Requester summary links to My Tickets and does not imply that older cancelled work is absent. Automated tests exercise these cases; existing screenshots remain historical and require human recapture where the presentation changed.

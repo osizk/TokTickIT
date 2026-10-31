@@ -39,7 +39,7 @@ const emptyDraft = (): ActionDraft => ({ description: "", assigneeUserId: "", re
 function formatDate(value: string | null): string {
   if (!value) return "Not recorded";
   const date = new Date(value);
-  return Number.isNaN(date.valueOf()) ? value : date.toLocaleString();
+  return Number.isNaN(date.valueOf()) ? value : date.toLocaleString(undefined, { timeZone: "Asia/Bangkok" });
 }
 
 function errorMessage(error: unknown, fallback: string): string {
@@ -101,7 +101,11 @@ function identityLabel(identity: { name: string; email: string }): string {
   return `${identity.name} (${identity.email})`;
 }
 
-export default function ActionsTaken({ ticketNumber, workflowVersion, readOnly = false, currentUserId, onTicketChanged }: ActionsTakenProps) {
+export default function ActionsTaken(props: ActionsTakenProps) {
+  return <TicketActionsTaken key={props.ticketNumber} {...props} />;
+}
+
+function TicketActionsTaken({ ticketNumber, workflowVersion, readOnly = false, currentUserId, onTicketChanged }: ActionsTakenProps) {
   const [actions, setActions] = useState<ActionRecord[]>([]);
   const [ticketVersion, setTicketVersion] = useState(0);
   const [page, setPage] = useState(1);
@@ -121,6 +125,7 @@ export default function ActionsTaken({ ticketNumber, workflowVersion, readOnly =
   const [createDraft, setCreateDraft] = useState<ActionDraft>(emptyDraft);
   const [createErrors, setCreateErrors] = useState<FieldErrors>({});
   const [createError, setCreateError] = useState<string | null>(null);
+  const [createStale, setCreateStale] = useState(false);
   const [uncertainCreate, setUncertainCreate] = useState(false);
   const [createBusy, setCreateBusy] = useState(false);
   const createBusyRef = useRef(false);
@@ -165,9 +170,11 @@ export default function ActionsTaken({ ticketNumber, workflowVersion, readOnly =
         setPage(result.pagination.page);
       }
       setListState("success");
+      return true;
     } catch (error) {
       setListError(errorMessage(error, "Unable to load Actions Taken."));
       setListState("error");
+      return false;
     }
   }, [pageSize, ticketNumber]);
 
@@ -246,6 +253,7 @@ export default function ActionsTaken({ ticketNumber, workflowVersion, readOnly =
     setCreateDraft({ ...emptyDraft(), assigneeUserId: currentUserId && assignees.some((assignee) => assignee.id === currentUserId) ? String(currentUserId) : "" });
     setCreateErrors({});
     setCreateError(null);
+    setCreateStale(false);
     setSuccess(null);
     setCreateOpen(true);
   }
@@ -258,7 +266,7 @@ export default function ActionsTaken({ ticketNumber, workflowVersion, readOnly =
 
   async function submitCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (createBusyRef.current) return;
+    if (createBusyRef.current || createStale || listState !== "success") return;
     const fieldErrors = createFieldErrors(createDraft, assignees);
     if (Object.keys(fieldErrors).length > 0) {
       setCreateErrors(fieldErrors);
@@ -289,14 +297,17 @@ export default function ActionsTaken({ ticketNumber, workflowVersion, readOnly =
       onTicketChanged?.();
     } catch (error) {
       const apiError = error instanceof ApiClientError ? error : null;
-      if (apiError?.fieldErrors) setCreateErrors(apiError.fieldErrors as FieldErrors);
-      if (!apiError || apiError.status === 0 || apiError.status >= 500 || apiError.code === "IDEMPOTENCY_KEY_REUSED") {
+      if (apiError?.code === "STALE_VERSION") {
+        setCreateErrors({});
+        setCreateStale(true);
+        setCreateError("This Ticket changed while you were creating the Action. Your draft is preserved. Choose Reload Ticket version, review the current Actions, then save again.");
+      } else if (!apiError || apiError.status === 0 || apiError.status >= 500 || apiError.code === "IDEMPOTENCY_KEY_REUSED") {
         retryCreatePayload.current = payload;
         setUncertainCreate(true);
         setCreateError("We couldn't confirm whether the Action was saved. Your details are locked to prevent a duplicate. Choose Retry Save to safely check the same request.");
       } else {
+        setCreateErrors((apiError.fieldErrors ?? {}) as FieldErrors);
         setCreateError(apiError?.fieldErrors ? "Fix the errors listed below, then choose Save Action again." : errorMessage(error, "Unable to save Action."));
-        if (apiError.code === "STALE_VERSION") setListRetry((value) => value + 1);
       }
     } finally {
       createBusyRef.current = false;
@@ -359,7 +370,7 @@ export default function ActionsTaken({ ticketNumber, workflowVersion, readOnly =
     } catch (error) {
       const apiError = error instanceof ApiClientError ? error : null;
       if (apiError?.fieldErrors) setEditErrors(apiError.fieldErrors as FieldErrors);
-      setEditError(apiError?.fieldErrors ? "Fix the errors listed below, then choose Save Action again." : errorMessage(error, "Unable to update Action."));
+      setEditError(apiError?.fieldErrors && apiError.code !== "STALE_VERSION" ? "Fix the errors listed below, then choose Save Action again." : errorMessage(error, "Unable to update Action."));
     } finally {
       editBusyRef.current = false;
       setEditBusy(false);
@@ -558,8 +569,8 @@ export default function ActionsTaken({ ticketNumber, workflowVersion, readOnly =
     {createOpen && !readOnly && <form className="action-taken-editor" aria-label="Create Action form" onSubmit={(event) => void submitCreate(event)} noValidate>
       <h3 ref={createHeadingRef} tabIndex={-1}>Create Action</h3>
       {renderFields(createDraft, updateCreateDraft, createErrors, createBusy || uncertainCreate, true, "create")}
-      {createError && <div className="zen-state zen-state-error" role="alert"><p>{createError}</p>{uncertainCreate && <button className="zen-button zen-button-secondary" type="button" onClick={(event) => event.currentTarget.closest("form")?.requestSubmit()} disabled={createBusy}>Retry Save</button>}</div>}
-      <div className="zen-form-actions"><button className="zen-button zen-button-secondary" type="button" onClick={() => { if (!uncertainCreate) { setCreateOpen(false); setCreateErrors({}); setCreateError(null); window.setTimeout(() => createButtonRef.current?.focus(), 0); } }} disabled={createBusy || uncertainCreate}>Cancel</button><button className="zen-button zen-button-primary" type="submit" disabled={createBusy || uncertainCreate || assigneeState !== "success"}>{createBusy ? "Saving..." : "Save Action"}</button></div>
+      {createError && <div className="zen-state zen-state-error" role="alert"><p>{createError}</p>{createStale && <button className="zen-button zen-button-secondary" type="button" disabled={listState === "loading"} onClick={async () => { if (await loadActions(page)) { setCreateStale(false); setCreateError(null); } }}>Reload Ticket version</button>}{uncertainCreate && <button className="zen-button zen-button-secondary" type="button" onClick={(event) => event.currentTarget.closest("form")?.requestSubmit()} disabled={createBusy}>Retry Save</button>}</div>}
+      <div className="zen-form-actions"><button className="zen-button zen-button-secondary" type="button" onClick={() => { if (!uncertainCreate) { setCreateOpen(false); setCreateErrors({}); setCreateError(null); window.setTimeout(() => createButtonRef.current?.focus(), 0); } }} disabled={createBusy || uncertainCreate}>Cancel</button><button className="zen-button zen-button-primary" type="submit" disabled={createBusy || uncertainCreate || createStale || listState !== "success" || assigneeState !== "success"}>{createBusy ? "Saving..." : "Save Action"}</button></div>
     </form>}
     {success && <p className="zen-state zen-state-success" role="status">{success}</p>}
     {mutationError && <p className="zen-state zen-state-error" role="alert">{mutationError}</p>}

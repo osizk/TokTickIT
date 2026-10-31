@@ -47,9 +47,14 @@ describe("Lab 3 Staff Ticket Detail operations", () => {
   afterEach(() => vi.restoreAllMocks());
 
   it("renders the staff operation controls and keeps comments and notes distinct", async () => {
+    const localDate = Date.prototype.toLocaleString;
+    vi.spyOn(Date.prototype, "toLocaleString").mockImplementation(function (this: Date, locales, options) {
+      return localDate.call(this, locales, { timeZone: "UTC", ...options });
+    });
     render(<StaffTicketDetail ticketNumber={ticket.ticketNumber} currentUserId={8} navigate={vi.fn()} />);
     expect(await screen.findByRole("heading", { name: "Staff Ticket Detail" })).toBeInTheDocument();
     expect(await screen.findByRole("heading", { name: "Ticket Operations" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Ticket Date")).toHaveValue(new Date(ticket.createdAt).toLocaleString(undefined, { timeZone: "Asia/Bangkok" }));
     expect(screen.getByRole("combobox", { name: "Assignee" })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "IT Priority" })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Status" })).toBeInTheDocument();

@@ -1,6 +1,6 @@
 # Lab 4 API Contract
 
-Draft for Issue #55; approval pending. Read with [specification.md](specification.md). Preserve existing route names and inherited behavior; proposed coordinated extensions are marked below. `/api` is the base prefix. JSON uses camelCase; timestamps are ISO 8601 UTC strings (`...Z`), positive IDs are integers, versions are nonnegative integers. Reject unknown fields on new mutation bodies. No body-controlled creator/performer/date/requester identity.
+Implemented contract established in [PR #63](https://github.com/osizk/TokTickIT/pull/63); release evidence is audited in Issue #62. Read with [specification.md](specification.md). Preserve existing route names and inherited behavior; the coordinated Lab 4 input extensions are defined below. `/api` is the base prefix. JSON uses camelCase; timestamps are ISO 8601 UTC strings (`...Z`), positive IDs are integers, versions are nonnegative integers. Reject unknown fields on new mutation bodies. No body-controlled creator/performer/date/requester identity.
 
 ## 1. Common security and errors
 
@@ -217,4 +217,4 @@ Inherited safe failure codes remain explicit: references500 REFERENCE_DATA_UNAVA
 
 ## 6. Implementation and test dependencies
 
-Issue #56 adds Action schema/list/create/update/history and User safety; #57 adds Actions UI; #58 integrates Ticket versions/gate/events/cancellation and existing callers; #59 adds dashboard APIs/list predicates; #60 adds dashboard routes/UI; #61 expands isolated Playwright coverage and regression; #62 finishes evidence. Transitional APIs must keep existing features functional until coordinated caller extensions land. [tests.md](tests.md) records planned tests and actual evidence; no endpoint is claimed implemented by this contract.
+Issue #56 added Action schema/list/create/update/history and User safety; #57 added Actions UI; #58 integrated Ticket versions/gate/events/cancellation and existing callers; #59 added dashboard APIs/list predicates; #60 added dashboard routes/UI; #61 expanded isolated Playwright coverage and regression. Their PRs are integrated into `lab4-staging`; #62 audits release evidence. [tests.md](tests.md) records exact coverage, observed results, and remaining gaps rather than treating contract text as test evidence.

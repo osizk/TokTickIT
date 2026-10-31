@@ -1,6 +1,6 @@
 # Lab 4 Tests and Evidence
 
-Issue #55 establishes the contract baseline. Issues #56–61 and their verified implementation evidence are recorded in Section 4; local authenticated E2E and visual evidence are now recorded for Issue #61, while review and release gates remain pending. Normative requirements: [specification.md](specification.md); [API](api-spec.md); [UI](ui-spec.md). Each ID below maps to an intended concrete test path. **Planned** means no automated test for that row has been run; **Partial** means some but not all assertions for that row have been verified; **Passed** means the row's stated assertions were observed. Issue evidence names the exact local scope and SHA status. Never check an unobserved result or claim candidate output came from final `main`.
+Issues #55–61 are merged into `lab4-staging`; Issue #62 audits the release candidate on `feature/28-Lab4ReleaseEvidence`, based on `5c51a0bb6bb9e5d26a25769f5a854f5e1f9ba266`. Section 4 preserves historical red/green evidence and the current Issue #62 checks separately. Normative requirements: [specification.md](specification.md); [API](api-spec.md); [UI](ui-spec.md). **Planned** means no check for that row has run; **Partial** means some but not all stated assertions/evidence were verified; **Passed** means the stated assertions were observed. A passing test suite does not automatically complete every planned scenario or human/course-delivery gate. Never claim candidate results came from final `main`.
 
 ## 1. Planned test matrix
 
@@ -9,28 +9,28 @@ For compactness, the exact path prefixes in this table are `S = server/tests/lab
 | Test ID | Type / exact planned path | Requirements and ACs | Required assertions | Status |
 | --- | --- | --- | --- | --- |
 | UNIT-01 | Unit; S`action-validation.unit.test.ts` | FR-02,05; BR-02,04,05,06; AC-02,03 | Trim boundaries, wrong types/unknown actor/date fields, default assignee, conditional note, Result completion and cancellation reason. | Partial: Issue #56 validation subset passed; full matrix remains open. |
-| UNIT-02 | Unit; S`workflow-rules.unit.test.ts` | FR-04,07; BR-07,08,11,12,15; AC-05,07,08,10 | Every allowed/forbidden Action/Ticket transition, terminal edits, gate combinations, cancellation and legacy zero-Action rules. | Partial: all 37 unit tests passed, including exhaustive Action/Ticket status-pair checks and gate predicates; broader lifecycle/API/browser assertions remain open. |
+| UNIT-02 | Unit; S`workflow-rules.unit.test.ts` | FR-04,07; BR-07,08,11,12,15; AC-05,07,08,10 | Every allowed/forbidden Action/Ticket transition, terminal edits, gate combinations, cancellation and legacy zero-Action rules. | Passed unit scope: 37 tests, including exhaustive Action/Ticket status-pair checks, gate predicates and legacy reopening. Integration and visual evidence have their own rows. |
 | UNIT-03 | Unit; S`dashboard-calculations.unit.test.ts` | FR-09,10; BR-17,18; AC-11,13 | Distinct Tickets vs Actions, active states, zero counts, UTC seven-day edges/future dates, Asia/Bangkok display, deterministic ties. | Passed in Issue #59 worktree; 4 tests. |
 | API-01 | API; S`actions-taken.api.test.ts` | FR-01,02,03,04,05,06; BR-01–09; AC-01–05 | Real create/list/edit/assign/complete/cancel, Owner≠actors, completed correction with inactive assignee, actor active-role recheck inside each write transaction, immutable prefix snapshots, no-op, scoped pagination, validation and rollback. | Partial: implemented lifecycle subset plus stale-actor and inactive-assignee corrections passed; remaining lifecycle assertions stay open. |
 | API-02 | API; S`authorization.api.test.ts` | FR-01,10,13,14; BR-01,03,16,22; AC-01,12,18 | Missing/expired/revoked/password-gated sessions, CSRF/Origin, Requester mutation403, own read, cross-owner/resource404, Staff/Admin access and sanitized errors. | Partial: dashboard unauthenticated/wrong-role checks and existing session/role/ownership tests passed in full server run; complete authorization and browser matrix remains open. |
-| API-03 | API; S`concurrency.api.test.ts` | FR-03,06,07,08; BR-09,10,12,14; AC-04,06,08 | Same-key concurrent create one row/revision; different payload409; replay after stale version; edit/edit, resolve/create, resolve/follow-up, assignment/Admin races; forced transaction failure; bounded conflict retry. | Partial: existing idempotency/stale replay/rollback/race tests and Issue #58 version/no-op/stale Ticket mutations passed; workflow race scenarios remain open. |
+| API-03 | API; S`concurrency.api.test.ts` | FR-03,06,07,08; BR-09,10,12,14; AC-04,06,08,10 | Same-key concurrent create one row/revision; different payload409; replay after stale version; edit/edit, resolve/create, resolve/follow-up, assignment/Admin races; forced transaction failure; bounded conflict retry. | Partial: five concurrency tests pass on 29 October, including resolve/create, resolve/follow-up and forced cancellation rollback. Idempotency, stale replay and Action-insert rollback remain covered; additional simultaneous edit/edit interleavings remain planned. |
 | API-04 | API; S`ticket-workflow.api.test.ts` | FR-07,08,12; BR-11–15; AC-07–10 | Full matrix, confirmation/reason, each gate predicate, event order, advisory indication, reopen clearing, terminal legacy behavior, atomic Ticket/Action cancellation rollback. | Partial: 4 workflow API tests passed, including gate rejection and success after a valid completed Action, cancellation effects, indication idempotency/reopen and history; exhaustive predicate/error/history isolation checks remain open. |
 | API-05 | API; S`requester-dashboard.api.test.ts` | FR-10,11; BR-16,18,19; AC-12–14 | Session scope, all owned statuses, exact metrics, bounds/ties/zero, attention and recent, shared filtered totals, unsupported identity query400. | Passed in Issue #59 worktree; 4 tests. |
 | API-06 | API; S`staff-dashboard.api.test.ts` | FR-09,11; BR-17–19; AC-11,13,14 | Unassigned/my-owned/urgent/distinct my-Action metrics, current-user Action rows, status/IT-priority counts, bounded lists, drill-down and Owner≠assignee. | Passed in Issue #59 worktree; 4 tests. |
-| API-07 | Migration/API; S`migration-regression.api.test.ts` | FR-07,12; BR-15,21; AC-10,16,17 | Apply the real Lab 4 migration to an actual pre-Lab-4 schema, preserve Ticket/Attachment/changed-password state; seed twice and after edits; collision skip; counter monotonic; backup/restore disposable rehearsal. | Partial: real migration and preservation plus repeat-seed checks passed; collision/counter and full recovery rehearsal remain open. |
+| API-07 | Migration/API; S`migration-regression.api.test.ts`; `server/scripts/verify-test-recovery.mjs` | FR-07,12; BR-15,21; AC-10,16,17 | Apply real Lab 4 migration to a pre-Lab-4 schema, preserve Ticket/Attachment/changed-password state; seed twice and after edits; collision skip; counter monotonic; disposable backup/restore. | Passed for migration/seed/recovery: two API tests verify real upgrade and edited-data preservation; Issue #62's guarded command verifies an edited reserved-number graph and a counter already above the highest Ticket, then restores all 15 tables/sequences and protected bytes. Legacy workflow assertions remain in API-04. |
 | API-08 | API; S`user-assignment-safety.api.test.ts` | FR-02,13; BR-02,05,20; AC-02,15 | Inactive/non-staff assignee, User active-Action conflict and session unchanged, self/last-Admin and owned-Ticket precedence, eligible role change and historical actors, concurrent eligibility change. | Partial: active-Action deactivation/demotion protection and assignment race passed; remaining safety cases stay open. |
 | PERF-01 | Performance-smoke; S`dashboard-performance.api.test.ts` | FR-09,10; BR-16–19; AC-13 | Representative 500-Ticket/1000-Action fixture; aggregate query count stays bounded as fixture doubles (no N+1), arrays capped5, response does not contain complete collections. Record elapsed diagnostics, no invented production SLA. | Passed in Issue #59 worktree; 1 test. Query count remained 23 at both sizes; see §4. |
-| UI-01 | Component; C`ActionsTaken.test.tsx` | FR-01–06; BR-01–10,22; AC-01–06,19 | Inline create/edit, required/optional markers, conditional requirements, plain-language field errors/focus, Requester and terminal-Ticket read-only views, lifecycle confirmation/reason, stale-draft retention, safe retry with stable idempotency key, active assignee and User-management safety feedback. | Partial: 24 Action component tests pass, including version refresh, linked-Action page navigation, loading/error/retry gating and revision-history pagination; Staff detail tests include terminal and loading/error guards. E2E proves create/edit/complete/cancel, persisted revisions and Requester read-only behavior; Action assignment, inactive-assignee browser rejection and browser conflict retry remain API/component-only. |
+| UI-01 | Component; C`ActionsTaken.test.tsx` | FR-01–06; BR-01–10,18,22; AC-01–06,19 | Inline create/edit, required/optional markers, conditional requirements, plain-language field errors/focus, Requester and terminal-Ticket read-only views, lifecycle confirmation/reason, stale-draft retention, safe retry with stable idempotency key, active assignee and User-management safety feedback. | 27 component tests pass on 31 October: includes Create conflict draft/key retention, failed reload and successful refreshed-version retry, alongside Bangkok time, Ticket-switch reset and Edit conflict fieldErrors. Existing focus, loading/retry, revisions and terminal guards remain covered. Browser reassignment/conflict recovery is exercised in E2E-01; inactive-assignee browser capture and human visual/accessibility checks remain pending. |
 | UI-02 | Component; C`TicketWorkflow.test.tsx` | FR-07,08; BR-11–15,22; AC-06–10,19 | Legal target controls, gate explanation, confirmation/cancel reason, protected direct calls, reload on stale version, indication vs status, ordered history. | Partial: 5 workflow UI tests passed, including history pagination reset when switching Tickets and Asia/Bangkok timestamp formatting; full visual/accessibility/E2E assertions remain open. |
 | UI-03 | Component; C`RequesterDashboard.test.tsx` | FR-10,11,14; BR-16,18,19,22; AC-12–14,19 | Loading/zero/error/Retry/session expiry, correct owned cards/lists/links, time display, navigation/deep link and account-cache reset. | Partial: 3 dashboard component tests passed; Requester session-expiry/default-route behavior is covered by the App regression file. Authenticated E2E now compares live metrics, retries a safe failure, verifies an empty account and drills into owned Tickets; broader manual account-cache review remains open. |
 | UI-04 | Component; C`StaffDashboard.test.tsx` and C`ActionsTaken.test.tsx` | FR-09,11,14; BR-17–19,22; AC-11,14,19 | Current-user assigned Actions and real metric links, capped summaries, all states/refresh, role navigation, keyboard semantics, and focus of a linked Action after its list loads. | Partial: dashboard component/App tests and linked Action-focus regression passed; authenticated E2E now compares live role metrics and drills through a real Action link. Manual keyboard/screen-reader review remains open. |
 | STYLE-01 | Style/responsive; C`ZenGreen.styles.test.tsx` plus E2E browser assertions | FR-14; BR-22; AC-19 | Token and breakpoint/style contracts; real-browser responsive, visual, overflow and accessibility checks. | Partial: CSS contract tests pass. Issue #61 captured real dashboard and Action/detail screens at desktop/tablet/mobile sizes; axe and overflow assertions pass on dashboard/Action views, and 767/768/991/992 widths are checked. Manual screen-reader/touch-target review and full human visual checklist remain open. |
-| E2E-01 | Browser; E`actions-taken-flow.spec.ts` | FR-01–06,13,14; BR-01–10,20,22; AC-01–06,15,18 | Authenticate real roles; create multiple Actions on one Ticket, assign/edit/complete/cancel, inactive rejection, read-only Requester, conflict/retry and attachment continuity; assert actual persisted records. | Partial, locally exercised in all three projects: real create/edit/revision/start/complete/cancel and Requester read-only/ownership, persisted rows, attachment continuity, axe and overflow pass. Action assignment, inactive-assignee rejection and browser conflict retry are covered by lower-level tests, not this E2E. |
+| E2E-01 | Browser; E`actions-taken-flow.spec.ts` | FR-01–06,13,14; BR-01–10,20,22; AC-01–06,15,18 | Authenticate real roles; create multiple Actions on one Ticket, assign/edit/complete/cancel, inactive rejection, read-only Requester, conflict/retry and attachment continuity; assert actual persisted records. | Partial: all three projects pass on 29 October with real reassignment and a concurrent API edit followed by browser stale-draft/reload/review/retry. Existing lifecycle, immutable revisions, ownership, attachments, axe and overflow still pass. Inactive-assignee browser rejection is not in this E2E; lower-level assignment safety and remaining human evidence are recorded separately. |
 | E2E-02 | Browser; E`ticket-resolution.spec.ts` | FR-07,08,14; BR-11–15,22; AC-07–10,18 | Failed gate via direct API, complete/follow-up correction then resolve/close/reopen/cancel, confirmed transitions, retained events/revisions, advisory indication and legacy Ticket. | Partial, locally exercised in all three projects: failed gate remains unchanged; valid completed Action permits resolve; requester indication, persisted resolve/reopen events and read-only detail pass. Close/cancel and legacy zero-Action transitions remain covered by API/component regression rather than this browser flow. |
 | E2E-03 | Browser; E`dashboards.spec.ts` | FR-09–11,14; BR-16–19,22; AC-11–14,18,19 | Requester/Staff/Admin dashboard roles, metrics-to-list totals, real Action links, zero/failure, 3 sizes/boundaries, keyboard/axe and no page overflow. | Passed locally in all three projects: live Requester and Staff metrics match API responses, Admin role navigation, real drill-down/focus, genuine empty-account state, safe failure/retry, axe, no overflow, and 767/768/991/992 width checks. |
 | REG-01 | Full prior/new suites; manifest and Lab 2 flow mapping below; `e2e/lab-04/requester-regression.spec.ts` | FR-07,12–14; BR-13,21,22; AC-09,16,18,20 | Full inherited server/client suites and authenticated equivalents of every retained Lab 2 browser flow, plus Lab 3/4 E2E; verify mapped scenarios actually pass, builds, migrations/repeat seed; no hidden skips. | Partial: full server/client regressions, builds, migrations/repeated seed and all 60 Lab 3/Lab 4 Playwright tests pass locally with no skips. R02-01–16 browser continuity is mapped below; R02-06 filter-value semantics also rely on existing API/component tests, and MAN-01/release checks remain open. |
-| DOC-01 | Manual/inline contract check; six files in docs/lab-04 | FR-14; BR-22; AC-20 | Presence, exact eleven specification headings, all IDs/paths mapped, exact APIs/decisions, labsheet rubric and peer approval order. Approval is separate from local structural success. | Committed-source green at `b9ebdc2`, exit0; PR #63 merged after student-accepted comment sign-off; no formal GitHub Approve claimed. |
-| MAN-01 | Real captures/manual review; artifacts/lab-04/screenshots directories in ui-spec | FR-12,14; BR-21,22; AC-17,19,20 | Disposable recovery observation, role/metric API evidence, real readable responsive screenshots, focus/console/links, Project/history/review audit and nine-part submission. | Partial: 15 genuine Playwright screenshots across three viewport projects plus automated axe/overflow/focus checks are recorded in Issue #61. Manual screen-reader/human visual review, Project/history/review audit, recovery observation and submission audit remain open. |
+| DOC-01 | Manual/inline contract check; six files in docs/lab-04 | FR-14; BR-22; AC-20 | Presence, exact eleven specification headings, all IDs/paths mapped, exact APIs/decisions, labsheet rubric and peer approval order. Approval is separate from local structural success. | Structural/path/ID checks pass in Issue #62; git ancestry confirms the four contract files preceded implementation. PR #63's comment-only exception is recorded accurately; external course-delivery gates remain pending. |
+| MAN-01 | Real captures/manual review; artifacts/lab-04/screenshots directories in ui-spec | FR-12,14; BR-21,22; AC-17,19,20 | Disposable recovery observation, role/metric API evidence, real readable responsive screenshots, focus/console/links, Project/history/review audit and nine-part submission. | Partial: 15 real screenshots and automated axe/overflow/focus checks are retained. Issue #62 verified disposable recovery, sampled responsive images, checked contract ancestry and actual own/partner PR reviews. Human accessibility/full visual evidence, Project/final-main and submission audits remain open. |
 
 The eleven required files in labsheet §12 are API-01,04,05,06; UI-01,02,03,04; E2E-01,02,03. Additional focused tests cover explicit validation, authorization, concurrency, migration and performance requirements; they do not expand product scope.
 
@@ -41,22 +41,22 @@ The AC table in specification is authoritative; every AC-01–20 appears above w
 | AC | Test IDs (paths in §1) | Implementation acceptance status |
 | --- | --- | --- |
 | AC-01 | API-01,02; UI-01; E2E-01 | Partial: browser-persisted Action lifecycle and role-scoped read-only behavior passed; remaining API/auth edge cases remain open. |
-| AC-02 | UNIT-01; API-01,08; E2E-01 | Partial: browser create/edit and persisted Action records passed; inactive-assignee and assignment-safety cases are not all browser-tested. |
+| AC-02 | UNIT-01; API-01,08; E2E-01 | API verifies backend creator/date/default assignee, a distinct reassigned user and server completion performer independently of Ticket Owner; browser lifecycle supplements it. Inactive-assignee rejection belongs to AC-15, not a blanket browser prerequisite for this AC. |
 | AC-03 | UNIT-01; API-01; UI-01; E2E-01 | Partial: valid browser create/edit passed; the broader invalid-input/conditional-validation matrix remains in unit/API/UI tests. |
-| AC-04 | API-01,03; UI-01; E2E-01 | Partial: multiple Actions and persisted revisions passed in browser; full concurrency/idempotency cases remain API-level. |
-| AC-05 | UNIT-02; API-01; UI-01; E2E-01 | Partial: browser start/complete/cancel and read-only behavior passed; exhaustive Action transition cases remain unit/API-level. |
+| AC-04 | API-01,03; UI-01; E2E-01 | Passed automated acceptance: API lifecycle assertions verify reassignment, immutable prior snapshots, advancing real-change versions and unchanged no-op versions; UI/browser coverage supplements this. API-level coverage is valid acceptance evidence. |
+| AC-05 | UNIT-02; API-01; UI-01; E2E-01 | Passed automated acceptance: exhaustive unit transition pairs, API completion/cancellation metadata and UI/browser lifecycle assertions. Every transition does not also require its own browser test. |
 | AC-06 | API-03; UI-01,02; E2E-01 | Partial: stale/no-op versioned Ticket writes, workflow UI and synchronized Action version passed; full race/conflict E2E remains open. |
-| AC-07 | UNIT-02; API-04; UI-02; E2E-02 | Partial: complete unit transition matrix plus resolve/reopen browser flow passed; other terminal transitions remain API/component-tested. |
+| AC-07 | UNIT-02; API-04; UI-02; E2E-02 | Passed automated acceptance: exhaustive unit matrix, direct API transition/confirmation tests and UI/browser lifecycle coverage. Matrix entries proved at unit/API level need not each be repeated in a browser. |
 | AC-08 | UNIT-02; API-03,04; UI-02; E2E-02 | Partial: gate predicates, failed and successful browser gate, valid completion-to-resolution and cancellation effects passed; exhaustive concurrency/rollback remains open. |
-| AC-09 | API-04; REG-01; E2E-02 | Partial: versioned ordered status events and browser resolve/reopen history passed; remaining role-isolation/history cases stay open. |
-| AC-10 | API-04,07; E2E-02 | Partial: legacy zero-Action reopen path and immutable workflow history passed; full event API/browser history coverage remains open. |
+| AC-09 | API-04; REG-01; E2E-02 | Passed automated acceptance: API indication is idempotent/advisory; reopen clears it without deleting ordered history. E2E verifies the indication, resolve and reopen flow. Wider history authorization remains tracked in API-02 rather than changing this AC's scope. |
+| AC-10 | API-03,04,07; E2E-02 | Passed automated acceptance: unit legacy/terminal rules and API legacy reopening pass; API-03 forces workflow-event insertion failure and verifies unchanged Ticket, Action, revision and event state after cancellation rollback. |
 | AC-11 | UNIT-03; API-06; UI-04; E2E-03 | Partial: live Staff metrics/status/priority API comparison, role landing and Action drill-down pass in browser; additional API cases remain open. |
 | AC-12 | API-02,05; UI-03; E2E-03 | Partial: Requester-scoped API, empty/failure states, role landing, drill-down and authenticated list flows pass; account/session edge matrix remains open. |
 | AC-13 | UNIT-03; API-05,06; PERF-01; E2E-03 | Partial: calculation/API, UI links, bounded-query smoke and live metric comparison pass; remaining filter/tie scenarios stay lower-level. |
 | AC-14 | API-05,06; UI-03,04; E2E-03 | Partial: dashboards, role navigation, responsive projects, axe/overflow, drill-down and width boundaries pass; human visual review remains open. |
-| AC-15 | API-08; REG-01; E2E-01 | Partial: browser ownership/read-only and cross-requester isolation passed; complete User/assignment safety cases remain API-level. |
-| AC-16 | API-07; REG-01 | Partial: real pre-Lab-4 migration and repeated-seed preservation tests passed in the server regression; counter, broader fixture-collision and full integration gates remain open. |
-| AC-17 | API-07; MAN-01 | Planned |
+| AC-15 | API-08; REG-01; E2E-01 | API-08 and inherited User safety regressions prove active-Action assignment conflicts and unchanged User/session state; ownership/read-only isolation is also exercised in browser. Inactive-assignee browser capture is still pending as course evidence; API-level proof remains valid. |
+| AC-16 | API-07; REG-01 | Passed: real pre-Lab-4 migration/credential/row preservation and repeat-seed tests pass; the Issue #62 scratch-schema check preserves an edited reserved-number graph and a counter above the maximum seeded Ticket. |
+| AC-17 | API-07; MAN-01 | Passed: Issue #62 ran `npm.cmd run prisma:test:recovery`; all 15 table fingerprints and sequences plus protected attachment bytes matched after restore, and its generated schema/storage/backup were cleaned. Operational rollback guidance retains post-upgrade data. |
 | AC-18 | API-02; REG-01; E2E-01,02,03 | Partial: server authorization, inherited E2E and Lab 4 role/ownership browser denials passed; remaining auth and release audit gates stay open. |
 | AC-19 | UI-01,02,03,04; STYLE-01; MAN-01 | Partial: CSS/component checks plus real responsive screenshots, axe, keyboard, overflow and boundary assertions passed; manual screen-reader/touch-target review remains open. |
 | AC-20 | DOC-01; REG-01; MAN-01 | Contract checks underway; approval/release pending |
@@ -204,7 +204,7 @@ All Issues are sequential. Issue #55 approved merge precedes #56; each later app
 | #59 Dashboard APIs | feature/25-Lab4DashboardAPIs; UNIT-03, API-02/05/06/07, PERF-01 | [PR #68](https://github.com/osizk/TokTickIT/pull/68) merged into `lab4-staging` at `19117b1bed09407601e6e1064469dccff6b9a024`; TDD red then green; 13 focused dashboard API tests, full server regression (38 files/160 tests, including migration/seed), server build and bounded-query smoke. No formal GitHub **Approve** review submission was recorded. Detailed candidate-commit evidence below. |
 | #60 Dashboards UI | feature/26-Lab4DashboardsUI, based on merged staging commit `19117b1bed09407601e6e1064469dccff6b9a024`; UI-03/04, STYLE-01 | Dashboard UI, Requester/Staff list-filter forwarding, role-default routing and inherited regressions; see PR #70 SHA-bound and local follow-up results in §4. Browser/screenshots were unavailable during Issue #60 and were subsequently exercised locally in Issue #61 below. |
 | #61 Final regression | feature/27-Lab4FinalRegression; E2E-01/02/03 and regressions | Candidate SHA `fb4d3f8827497d2aa72e549473726969289314f3` (implementation commit `983e121`, staging base `8eec9ae4622dff57adba01f60022bfacf494ea0f`) passed server/client regressions and builds, guarded migration/repeated seed, and all 60 inherited Lab 3 + Lab 4 Playwright tests; detailed outputs and remaining review/release gates follow below. Later local review corrections are recorded separately. |
-| #62 Release evidence | feature/28-Lab4ReleaseEvidence; DOC-01/evidence gap audit | Final traceability/README/reviewer/real AI selection/authorized reflection; actual Project/history/reviews; release-candidate then required final-main verification. |
+| #62 Release evidence | feature/28-Lab4ReleaseEvidence; DOC-01, REG-01, MAN-01 | In progress from staging `5c51a0b`. Current contract/README/review audit, complete regression rerun, two asynchronous assertion fixes, and real guarded database/file recovery are recorded below. AI selection/reflection, human evidence, Project access, Issue #62 PR/review and final-main/submission gates remain explicit. |
 
 For each card: Backlog → Specified (scope/maps) → Started (approved branch/failing tests) → PR Review (authorized PR) → Fixing if requested → PR Review again → Done only after actual approval and authorized merge. The table is a plan, not an assertion cards were moved.
 
@@ -1234,24 +1234,656 @@ Exit code 0
 
 The full server/client/Playwright suites were not rerun for this type-only and documentation correction. Their 162/112/60 results above remain tied to `fb4d3f8`, not to this correction. No runtime behavior, database data, screenshot, or CI configuration changed. This follow-up includes the three corrections and awaits teammate re-review; no new approval or merge is claimed.
 
+
+### Issue #62 — release evidence and verification (25 October 2026)
+
+Branch: `feature/28-Lab4ReleaseEvidence`, created from live staging/PR #71 merge `5c51a0bb6bb9e5d26a25769f5a854f5e1f9ba266`. GitHub confirms that PR #71 was approved at `1c497d2` before merge. Issues #55–61 are closed; #62 is open. The four contract files exist at `5cb5b31`, and `git merge-base --is-ancestor 5cb5b31 6cabca6` exits 0, proving contract integration preceded the foundation implementation merge. Live main still points to `a6cd507efcf4c666491cd79ef81ec0fbfba0f18c`; no Lab 4 final-main result is claimed.
+
+These checks describe the Issue #62 worktree on that recorded baseline. Server/client product source is unchanged. Server 162/build passed before the verification-only changes. The client 112/build result below includes two test synchronization fixes. The final Playwright result includes direct API spawning in the harness; recovery uses the new guarded script. A clean, committed release-candidate SHA cannot be assigned before the student authorizes committing. Record that SHA and rerun affected checks before freezing/opening its release PR; do not relabel these runs as a future commit.
+
+#### DOC-01 / MAN-01 red audit and corrections
+
+Observed before correction: README lacked current Lab 4/demo/recovery instructions and still described the removed selector as current; contract headers still said Draft/approval pending; reviewer evidence omitted PR #64 and PR #71's actual approval/merge; the AI log had 12 records and no reflection. The recovery command did not exist (`Missing script: prisma:test:recovery`, exit 1).
+
+Corrections: updated the existing six documents and README; kept historical failures separate; used actual GitHub outcomes rather than invented approvals; selected ten real prompts and drafted the reflection after the student's explicit request. No extra release-evidence hierarchy, local submission document, GitHub mutation, commit or push was created by this Issue-start task.
+
+The first complete client run observed 2 failures/110 passes: RequesterTicketDetail queried Ticket Number before the async data rendered, and UserManagement queried its table before its async list rendered. Both passed in isolation. Replaced only those two synchronous assertions with awaited findBy queries; full rerun is green below. The initial browser run completed 60 assertions and exited 0 but logged an API wrapper exit-1 diagnostic during Windows teardown. The harness now starts one Node/tsx API process directly instead of npm/dev/watch; the full rerun below has no teardown error. Nonfatal url.parse and color-environment warnings remain visible.
+
+The extended recovery script initially used the wrong Prisma relation name `actions`; that run failed and cleaned its own scratch state. Corrected it to the existing `actionsTaken` relation and reran successfully. This was a verification-script correction, not a data/model change.
+
+#### Guarded migrations, repeated seed and recovery — observed exit 0
+
+Commands from `server/`: `npm.cmd run prisma:test:migrate`, then `npm.cmd run prisma:test:seed` twice. Configuration is exclusively local `server/.env.test`, database `toktickit_test`; all three initial-password keys were checked for presence without printing their values.
+
+<details>
+<summary>Complete migration and repeated-seed output</summary>
+
+```text
+> toktickit-server@1.0.0 prisma:test:migrate
+> node scripts/run-test-prisma.mjs migrate
+
+Using server/.env.test for Prisma migrate against database toktickit_test.
+Environment variables loaded from .env
+Prisma schema loaded from prisma\schema.prisma
+Datasource "db": PostgreSQL database "toktickit_test", schema "public" at "localhost:5432"
+
+8 migrations found in prisma/migrations
+
+
+No pending migrations to apply.
+npm notice
+npm notice New minor version of npm available! 11.11.0 -> 11.21.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.21.1
+npm notice To update run: npm install -g npm@11.21.1
+npm notice
+
+> toktickit-server@1.0.0 prisma:test:seed
+> node scripts/run-test-prisma.mjs seed
+
+Using server/.env.test for Prisma seed against database toktickit_test.
+Environment variables loaded from .env
+Running seed command `tsx prisma/seed.ts` ...
+(node:27520) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+Ensured 4 categories, 7 related systems, 7 requesters, 16 Tickets, 6 Actions, and 13 Action revisions (0 Lab 3 and 0 Lab 4 Ticket graphs created this run, 0 Actions created, 3 existing Lab 4 fixture numbers left unchanged); all existing Requesters received idempotent credential backfill.
+
+The seed command has been executed.
+┌─────────────────────────────────────────────────────────┐
+│  Update available 5.22.0 -> 8.0.0-rc.27                 │
+│                                                         │
+│  This is a major update - please follow the guide at    │
+│  https://pris.ly/d/major-version-upgrade                │
+│                                                         │
+│  Run the following to update                            │
+│    npm i --save-dev prisma@latest                       │
+│    npm i @prisma/client@latest                          │
+└─────────────────────────────────────────────────────────┘
+
+> toktickit-server@1.0.0 prisma:test:seed
+> node scripts/run-test-prisma.mjs seed
+
+Using server/.env.test for Prisma seed against database toktickit_test.
+Environment variables loaded from .env
+Running seed command `tsx prisma/seed.ts` ...
+(node:16140) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+Ensured 4 categories, 7 related systems, 7 requesters, 16 Tickets, 6 Actions, and 13 Action revisions (0 Lab 3 and 0 Lab 4 Ticket graphs created this run, 0 Actions created, 3 existing Lab 4 fixture numbers left unchanged); all existing Requesters received idempotent credential backfill.
+
+The seed command has been executed.
+```
+
+</details>
+
+Recovery command from `server/`: put the matching PostgreSQL bin directory on the current terminal PATH, then run `npm.cmd run prisma:test:recovery`. Only a fresh generated schema and a fresh protected test-storage directory are created and removed. The check uses real pg_dump/pg_restore, all-table row fingerprints and sequence values, and a separately backed-up attachment file. It additionally changes a reserved-number fixture graph and advances the test-owned counter above the highest existing Ticket, then repeats seed to verify neither is overwritten/lowered.
+
+```text
+> toktickit-server@1.0.0 prisma:test:recovery
+> node scripts/verify-test-recovery.mjs
+
+Recovery target: disposable schema toktickit_lab4_recovery_test_16440_1792917482916 in toktickit_test; existing schemas are untouched.
+PASS: repeated seed preserves an edited reserved-number graph and never lowers a counter above the highest Ticket.
+PASS: restored all 15 tables, row fingerprints, IDs, credential flags/hashes, audit rows, counters, and sequences.
+PASS: restored protected attachment bytes match the backed-up metadata/file.
+PASS: disposable recovery schema, backup, and test storage cleaned.
+```
+
+All post-upgrade IDs, credential fields, audit rows, counter values and sequences in that scratch schema are included in the restored fingerprints. The matching protected file bytes are compared directly. This complements the actual pre-Lab-4 upgrade and changed/non-fixture credential tests in the server suite; it does not claim to back up a development database. Operational application rollback retains additive tables/new work; restoring real data requires a coordinated database-and-files backup under maintenance, not dropping live Lab 4 tables.
+
+#### Complete server regression/build — observed exit 0
+
+Commands from `server/`: `npm.cmd test -- --run`, then `npm.cmd run build`. All 38 discovered files/162 tests pass; no tests skipped.
+
+<details>
+<summary>Complete passing server test/build output</summary>
+
+```text
+> toktickit-server@1.0.0 test
+> vitest run --run
+
+RUN v2.1.9 C:/Users/Ashira Sansoda/Desktop/TokTickIT/server
+
+(node:26824) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ tests/lab-04/actions-taken.api.test.ts (4 tests) 2488ms
+   ✓ Lab 4 Actions Taken API > creates, replays, edits, assigns and completes an Action with immutable revisions 1304ms
+(node:28560) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ tests/lab-04/migration-regression.api.test.ts (2 tests) 11811ms
+   ✓ Lab 4 migration and repeat seed regression > applies the real Lab 4 migration to a pre-Lab-4 schema and preserves existing Tickets, Attachments, and changed credentials 2045ms
+   ✓ Lab 4 migration and repeat seed regression > runs the guarded seed twice without duplicating graphs or overwriting user-edited references and credentials 9582ms
+(node:31404) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ tests/lab-03/staff-queue.api.test.ts (6 tests) 689ms
+(node:31240) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ tests/lab-04/ticket-workflow.api.test.ts (4 tests) 716ms
+(node:28336) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ tests/lab-02/attachments.api.test.ts (8 tests) 379ms
+(node:23820) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ tests/lab-03/users-admin.api.test.ts (6 tests) 784ms
+(node:20040) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ tests/lab-03/staff-ticket-detail.api.test.ts (4 tests) 490ms
+(node:19324) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ tests/lab-02/create-ticket.api.test.ts (7 tests) 295ms
+(node:32680) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ tests/lab-04/user-assignment-safety.api.test.ts (2 tests) 441ms
+(node:30480) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ tests/lab-03/migration-seed.api.test.ts (5 tests) 7456ms
+   ✓ Lab 3 migration and seed preservation > preserves a changed non-fixture credential across repeated seed runs 4683ms
+(node:15552) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ tests/lab-02/my-tickets.api.test.ts (4 tests) 265ms
+(node:16720) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ tests/lab-03/requester-regression.api.test.ts (3 tests) 453ms
+(node:20964) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ tests/lab-04/authorization.api.test.ts (3 tests) 515ms
+(node:22512) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ tests/lab-04/concurrency.api.test.ts (2 tests) 381ms
+(node:25152) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ tests/lab-04/requester-dashboard.api.test.ts (4 tests) 566ms
+(node:7888) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ tests/lab-04/staff-dashboard.api.test.ts (4 tests) 638ms
+(node:28936) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ tests/lab-03/auth-session.api.test.ts (5 tests) 358ms
+(node:23548) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ tests/lab-02/reference-data.test.ts (6 tests) 150ms
+(node:16688) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ tests/lab-03/comments-notes.api.test.ts (2 tests) 279ms
+(node:24060) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ tests/lab-02/ticket-detail.api.test.ts (3 tests) 178ms
+ ✓ tests/lab-04/workflow-rules.unit.test.ts (37 tests) 6ms
+(node:31300) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ tests/lab-02/attachment-rollback.api.test.ts (1 test) 134ms
+(node:22168) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ tests/lab-03/auth.api.test.ts (5 tests) 239ms
+(node:21128) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ tests/lab-02/create-ticket-rollback.api.test.ts (1 test) 128ms
+(node:4500) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+stdout | tests/lab-04/dashboard-performance.api.test.ts > Lab 4 dashboard performance smoke > keeps query count and payload bounded when the fixture doubles from 500/1,000 to 1,000/2,000
+Dashboard smoke diagnostics: 500 Tickets/1,000 Actions=23 queries, 27 ms; 1,000 Tickets/2,000 Actions=23 queries, 18 ms.
+
+ ✓ tests/lab-04/dashboard-performance.api.test.ts (1 test) 769ms
+   ✓ Lab 4 dashboard performance smoke > keeps query count and payload bounded when the fixture doubles from 500/1,000 to 1,000/2,000 374ms
+ ✓ tests/lab-04/action-validation.unit.test.ts (5 tests) 4ms
+ ✓ tests/lab-04/dashboard-calculations.unit.test.ts (4 tests) 5ms
+ ✓ tests/lab-02/ticket-validation.unit.test.ts (3 tests) 2ms
+ ✓ tests/lab-02/attachment-validation.unit.test.ts (2 tests) 4ms
+(node:31120) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ tests/lab-03/auth-rate-limit.api.test.ts (1 test) 398ms
+   ✓ Lab 3 login rate limiting > blocks after five failed attempts and allows recovery after the bucket is cleared 302ms
+(node:5740) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ tests/lab-03/auth-validation.unit.test.ts (4 tests) 62ms
+(node:26208) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ tests/lab-03/session-security.unit.test.ts (3 tests) 4ms
+ ✓ tests/lab-03/status-transition.unit.test.ts (2 tests) 3ms
+ ✓ tests/lab-02/e2e-environment.unit.test.ts (3 tests) 4ms
+(node:2876) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ tests/lab-01/categories.test.ts (1 test) 102ms
+(node:33396) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ tests/lab-03/authorization.api.test.ts (2 tests) 23ms
+(node:24976) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ tests/lab-01/health.test.ts (2 tests) 19ms
+(node:30500) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ tests/lab-03/resolution-indication.unit.test.ts (1 test) 3ms
+
+ Test Files  38 passed (38)
+      Tests  162 passed (162)
+   Start at  15:20:33
+   Duration  58.62s (transform 2.14s, setup 0ms, collect 18.92s, tests 31.24s, environment 5ms, prepare 2.97s)
+
+
+> toktickit-server@1.0.0 build
+> tsc
+```
+
+</details>
+
+#### Complete client regression/build — observed exit 0 after synchronization fixes
+
+Commands from `client/`: `npm.cmd test -- --run`, then `npm.cmd run build`. All 18 files/112 tests pass; no tests skipped. No application logic or expected value was weakened.
+
+<details>
+<summary>Complete passing client test/build output</summary>
+
+```text
+> toktickit-client@1.0.0 test
+> vitest run --run
+
+RUN v2.1.9 C:/Users/Ashira Sansoda/Desktop/TokTickIT/client
+
+✓ tests/lab-01/App.test.tsx (4 tests) 2575ms
+   ✓ App > renders the TokTickIT heading 796ms
+   ✓ App > shows categories returned by the API 1255ms
+   ✓ App > shows a loading state while categories are being requested 341ms
+ ✓ tests/lab-04/RequesterDashboard.test.tsx (3 tests) 3550ms
+   ✓ Lab 4 Requester dashboard > announces loading, renders owned metrics, and links each metric/list to its real destination 2755ms
+   ✓ Lab 4 Requester dashboard > shows a real empty state for zero Tickets and supports refresh 439ms
+   ✓ Lab 4 Requester dashboard > hides untrusted error details and retries a failed dashboard request 353ms
+ ✓ tests/lab-02/RequesterTicketDetail.test.tsx (2 tests) 4013ms
+   ✓ Ticket Detail > shows owned read-only fields and excludes staff workflow fields 2897ms
+   ✓ Ticket Detail > keeps Ticket and Attachment loading states independent and offers safe retry 1113ms
+ ✓ tests/lab-02/ZenGreen.styles.test.tsx (5 tests) 3ms
+ ✓ tests/lab-04/ZenGreen.styles.test.tsx (4 tests) 3ms
+ ✓ tests/lab-03/Login.test.tsx (1 test) 76ms
+ ✓ tests/lab-02/RequesterSelection.test.tsx (2 tests) 4322ms
+   ✓ Lab 3 authenticated Requester context > guards a protected route with Sign in and does not render the removed selector 1377ms
+   ✓ Lab 3 authenticated Requester context > uses the authenticated shell identity and clears legacy storage 2933ms
+ ✓ tests/lab-02/AttachmentSection.test.tsx (3 tests) 6297ms
+   ✓ Ticket Detail Attachments > validates a signature, uploads one file, and exposes active download 4077ms
+   ✓ Ticket Detail Attachments > requires a removal reason and renders a removed attachment without Download or Preview 1971ms
+ ✓ tests/lab-04/TicketWorkflow.test.tsx (5 tests) 6964ms
+   ✓ Lab 4 Ticket workflow UI > keeps the Requester indication advisory and renders immutable status history 559ms
+   ✓ Lab 4 Ticket workflow UI > resets history pagination when the displayed Ticket changes 1743ms
+   ✓ Lab 4 Ticket workflow UI > shows resolution prerequisites and only permits legal Status targets 3885ms
+   ✓ Lab 4 Ticket workflow UI > offers an explicit Ticket reload after a stale workflow write 692ms
+ ✓ tests/lab-03/StaffTicketDetail.test.tsx (10 tests) 7550ms
+   ✓ Lab 3 Staff Ticket Detail operations > renders the staff operation controls and keeps comments and notes distinct 2442ms
+   ✓ Lab 3 Staff Ticket Detail operations > keeps Actions Taken read-only on a RESOLVED Ticket 357ms
+   ✓ Lab 3 Staff Ticket Detail operations > keeps Actions Taken read-only on a CLOSED Ticket 443ms
+   ✓ Lab 3 Staff Ticket Detail operations > requires confirmation for reassignment and terminal status changes 1790ms
+   ✓ Lab 3 Staff Ticket Detail operations > posts a public comment and a staff-only internal note 1455ms
+ ✓ tests/lab-03/ChangePassword.test.tsx (4 tests) 7846ms
+   ✓ Lab 3 mandatory Change Password screen > keeps a first-login User on the password-change route with required controls 1660ms
+   ✓ Lab 3 mandatory Change Password screen > shows precise local password validation before making a request 2634ms
+   ✓ Lab 3 mandatory Change Password screen > updates every password requirement and confirmation status while the User types 2121ms
+   ✓ Lab 3 mandatory Change Password screen > surfaces safe server messages and field errors 1415ms
+ ✓ tests/lab-04/StaffDashboard.test.tsx (6 tests) 8330ms
+   ✓ Lab 4 Staff dashboard > announces the Staff dashboard loading state and disables refresh until data arrives 1686ms
+   ✓ Lab 4 Staff dashboard > lands an authenticated 'IT_STAFF' user on the Staff dashboard 3408ms
+   ✓ Lab 4 Staff dashboard > lands an authenticated 'ADMINISTRATOR' user on the Staff dashboard 1632ms
+   ✓ Lab 4 Staff dashboard > shows linked operational metrics, summaries and real dashboard sections 813ms
+   ✓ Lab 4 Staff dashboard > links current-user Actions to the matching detail heading and recent lists to the seven-day predicate 333ms
+   ✓ Lab 4 Staff dashboard > shows empty sections, safe retryable failures, and a distinct forbidden state 446ms
+ ✓ tests/lab-03/UserManagement.test.tsx (6 tests) 11151ms
+   ✓ Lab 3 Administrator User Management > loads a searchable, role-filterable safe user list 3111ms
+   ✓ Lab 3 Administrator User Management > renders mobile user cards with usable Edit actions 301ms
+   ✓ Lab 3 Administrator User Management > creates and edits one-role users with safe conflict feedback 4081ms
+   ✓ Lab 3 Administrator User Management > reapplies the active search and role filters after creating or editing a User 2715ms
+   ✓ Lab 3 Administrator User Management > shows safe owner/safety failures and offers a password reset action 439ms
+   ✓ Lab 3 Administrator User Management > explains that unfinished assigned Actions must be reassigned or finished before User changes 500ms
+ ✓ tests/lab-02/MyTickets.test.tsx (5 tests) 11045ms
+   ✓ My Tickets > loads owned Tickets with controls and a desktop table plus mobile cards 4834ms
+   ✓ My Tickets > writes search/filter controls to the URL and requests the selected page 2088ms
+   ✓ My Tickets > applies Requester dashboard date and active filters from a deep link 1043ms
+   ✓ My Tickets > distinguishes no owned Tickets from filtered no-results and can clear filters 1607ms
+   ✓ My Tickets > shows loading and safe retry states 1467ms
+ ✓ tests/lab-03/RequesterRegression.test.tsx (14 tests) 11022ms
+   ✓ Lab 3 authenticated Requester UI > shows Login instead of the Lab 2 requester selector 1601ms
+   ✓ Lab 3 authenticated Requester UI > redirects the removed selector route to Login 546ms
+   ✓ Lab 3 authenticated Requester UI > signs in and reaches the Requester shell without sessionStorage or requester-header context 2495ms
+   ✓ Lab 3 authenticated Requester UI > keeps the authenticated workspace visible and offers retry when logout fails 1470ms
+   ✓ Lab 3 authenticated Requester UI > redirects to Login when a protected dashboard request returns SESSION_REQUIRED after sign-in 940ms
+   ✓ Lab 3 authenticated Requester UI > returns a successfully authenticated Requester to a permitted deep link 1073ms
+   ✓ Lab 3 authenticated Requester UI > returns a restored session through mandatory password change to its permitted deep link 1835ms
+   ✓ Lab 3 authenticated Requester UI > ignores a stale initial session restore after a successful Login 943ms
+ ✓ tests/lab-03/StaffTicketQueue.test.tsx (6 tests) 14177ms
+   ✓ Lab 3 Staff Ticket Queue > renders queue controls, priorities, ownership, table, and mobile cards 5294ms
+   ✓ Lab 3 Staff Ticket Queue > keeps queue filters in the URL and passes all selected parameters to the API 3908ms
+   ✓ Lab 3 Staff Ticket Queue > applies Staff dashboard ownership, Action and date filters from a deep link 1197ms
+   ✓ Lab 3 Staff Ticket Queue > opens a queue Ticket in the staff detail route 1193ms
+   ✓ Lab 3 Staff Ticket Queue > distinguishes an empty queue from filtered no-results and can clear filters 1345ms
+   ✓ Lab 3 Staff Ticket Queue > shows a safe retryable failure and a distinct forbidden state 1233ms
+ ✓ tests/lab-04/ActionsTaken.test.tsx (24 tests) 15602ms
+   ✓ Lab 4 Actions Taken UI > focuses the linked Action heading after its list loads 1357ms
+   ✓ Lab 4 Actions Taken UI > loads and focuses a dashboard-linked Action beyond the first page 494ms
+   ✓ Lab 4 Actions Taken UI > shows public Action history to Requesters without edit controls or Internal Notes 462ms
+   ✓ Lab 4 Actions Taken UI > keeps Create Action disabled after a list failure until retry succeeds 580ms
+   ✓ Lab 4 Actions Taken UI > paginates revision history beyond the first 25 records 1970ms
+   ✓ Lab 4 Actions Taken UI > retries failed revision loading without closing the panel and preserves show/hide 753ms
+   ✓ Lab 4 Actions Taken UI > closes Edit Action when read-only is enabled and does not reopen it later 360ms
+   ✓ Lab 4 Actions Taken UI > marks required fields clearly and identifies optional fields 1077ms
+   ✓ Lab 4 Actions Taken UI > requires a valid Result when editing a completed Action 427ms
+   ✓ Lab 4 Actions Taken UI > creates with validated fields, an eligible assignee and a stable request key 2704ms
+   ✓ Lab 4 Actions Taken UI > retains an edited draft after a stale-version response and offers an explicit reload 1005ms
+   ✓ Lab 4 Actions Taken UI > retains the same creation key and payload when retrying an uncertain request 993ms
+   ✓ Lab 4 Actions Taken UI > requires a reason and confirmation before cancelling an Action 681ms
+   ✓ Lab 4 Actions Taken UI > uses the refreshed Ticket version before creating an Action 911ms
+ ✓ tests/lab-02/CreateTicket.test.tsx (8 tests) 18098ms
+   ✓ Create Ticket > renders the approved Create Ticket form inside the selected requester shell 4330ms
+   ✓ Create Ticket > keeps submission disabled while Ticket reference data is loading 1507ms
+   ✓ Create Ticket > shows a safe reference-data failure and retries successfully 1203ms
+   ✓ Create Ticket > shows strict validation errors and focuses the first invalid field before submission 1196ms
+   ✓ Create Ticket > trims fields and shows the backend-created Ticket result after a successful submit 3274ms
+   ✓ Create Ticket > preserves entered values and shows a safe message when creation fails 2698ms
+   ✓ Create Ticket > guards against duplicate submissions while the create request is pending 2880ms
+   ✓ Create Ticket > rejects unsupported attachment metadata before calling the API 1007ms
+
+ Test Files  18 passed (18)
+      Tests  112 passed (112)
+   Start at  15:24:05
+   Duration  26.00s (transform 10.61s, setup 4.94s, collect 71.86s, tests 132.62s, environment 29.44s, prepare 3.42s)
+
+
+> toktickit-client@1.0.0 build
+> tsc && vite build
+
+vite v6.4.3 building for production...
+transforming...
+✓ 38 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.39 kB │ gzip:  0.27 kB
+dist/assets/index-BMkhRdt7.css  256.68 kB │ gzip: 35.73 kB
+dist/assets/index-C-3zJbjA.js   312.37 kB │ gzip: 81.88 kB
+✓ built in 826ms
+```
+
+</details>
+
+#### Complete authenticated E2E — observed exit 0 after harness correction
+
+Command from `client/`: `npx.cmd playwright test`. Desktop/tablet/mobile each execute the 20 current Lab 3/4 tests. All 60 pass; no tests skipped, no retries, and no API teardown error in this rerun. This is test execution evidence; retained old screenshot bytes are not represented as newly captured on this date.
+
+<details>
+<summary>Complete passing Playwright test output</summary>
+
+```text
+Running 60 tests using 1 worker
+
+(node:21304) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:33044) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:33044) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+  ok  1 [desktop] › ..\e2e\lab-03\authentication.spec.ts:17:7 › Lab 3 authentication and role navigation › requires the first-login password change and lands the Requester on their dashboard (2.1s)
+  ok  2 [desktop] › ..\e2e\lab-03\authentication.spec.ts:36:7 › Lab 3 authentication and role navigation › logs out and blocks a protected route after the session is revoked (1.6s)
+  ok  3 [desktop] › ..\e2e\lab-03\authentication.spec.ts:47:7 › Lab 3 authentication and role navigation › routes each role to its permitted workspace (1.5s)
+  ok  4 [desktop] › ..\e2e\lab-03\release-evidence-states.spec.ts:16:7 › Lab 3 release evidence states › captures a readable authenticated workspace at each responsive breakpoint (2.1s)
+  ok  5 [desktop] › ..\e2e\lab-03\requester-regression.spec.ts:23:7 › Lab 3 authenticated Requester regression › creates an owned Ticket, preserves the attachment lifecycle, and keeps notes private (8.3s)
+  ok  6 [desktop] › ..\e2e\lab-03\requester-regression.spec.ts:95:7 › Lab 3 authenticated Requester regression › does not expose the legacy selector route or sessionStorage context (2.0s)
+  ok  7 [desktop] › ..\e2e\lab-03\staff-ticket-flow.spec.ts:25:7 › Lab 3 IT Staff queue and Ticket detail › shows the responsive staff queue and preserves searchable URL controls (3.0s)
+  ok  8 [desktop] › ..\e2e\lab-03\staff-ticket-flow.spec.ts:49:7 › Lab 3 IT Staff queue and Ticket detail › executes Staff Ticket Detail operations and reads an active Attachment (6.7s)
+  ok  9 [desktop] › ..\e2e\lab-03\staff-ticket-flow.spec.ts:111:7 › Lab 3 IT Staff queue and Ticket detail › does not expose staff workspace controls to a Requester (1.8s)
+  ok 10 [desktop] › ..\e2e\lab-03\user-administration.spec.ts:16:7 › Lab 3 Administrator User Management › lists users, opens an editor, and shows a safe no-results state (3.8s)
+  ok 11 [desktop] › ..\e2e\lab-03\user-administration.spec.ts:43:7 › Lab 3 Administrator User Management › keeps Administrator actions isolated from Requester navigation (1.7s)
+  ok 12 [desktop] › ..\e2e\lab-04\actions-taken-flow.spec.ts:14:7 › Lab 4 Actions Taken browser flow › E2E-01 persists Action create, edit, completion, cancellation, ownership and read-only Requester behavior (8.6s)
+  ok 13 [desktop] › ..\e2e\lab-04\dashboards.spec.ts:14:7 › Lab 4 role dashboard browser regression › E2E-03 compares live dashboard metrics, drills into owned work, and preserves role boundaries (6.3s)
+  ok 14 [desktop] › ..\e2e\lab-04\dashboards.spec.ts:90:7 › Lab 4 role dashboard browser regression › shows a genuine zero-data Requester dashboard for an isolated empty account (1.7s)
+  ok 15 [desktop] › ..\e2e\lab-04\dashboards.spec.ts:109:7 › Lab 4 role dashboard browser regression › shows a safe dashboard failure and retries to a real response (1.9s)
+  ok 16 [desktop] › ..\e2e\lab-04\requester-regression.spec.ts:14:7 › Authenticated Lab 2 Requester continuity (REG-01) › R02-11 distinguishes a genuinely empty My Tickets list from filtered no-results (1.5s)
+  ok 17 [desktop] › ..\e2e\lab-04\requester-regression.spec.ts:27:7 › Authenticated Lab 2 Requester continuity (REG-01) › R02-02/05/06/11/12 keeps ownership, URL filters, pagination, keyboard navigation and responsive list behavior (9.0s)
+  ok 18 [desktop] › ..\e2e\lab-04\requester-regression.spec.ts:94:7 › Authenticated Lab 2 Requester continuity (REG-01) › R02-03/04/07/08/09/10 preserves initial and added Attachments with safe cross-owner denial (4.6s)
+  ok 19 [desktop] › ..\e2e\lab-04\requester-regression.spec.ts:164:7 › Authenticated Lab 2 Requester continuity (REG-01) › R02-13/14/15/16 validates locally, retains drafts on safe failure and blocks duplicate submit (3.7s)
+  ok 20 [desktop] › ..\e2e\lab-04\ticket-resolution.spec.ts:12:7 › Lab 4 Ticket workflow browser flow › E2E-02 exercises the resolution gate, advisory, persisted history, resolve and reopen (7.7s)
+(node:12444) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:12444) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+  ok 21 [tablet] › ..\e2e\lab-03\authentication.spec.ts:17:7 › Lab 3 authentication and role navigation › requires the first-login password change and lands the Requester on their dashboard (1.9s)
+  ok 22 [tablet] › ..\e2e\lab-03\authentication.spec.ts:36:7 › Lab 3 authentication and role navigation › logs out and blocks a protected route after the session is revoked (1.3s)
+  ok 23 [tablet] › ..\e2e\lab-03\authentication.spec.ts:47:7 › Lab 3 authentication and role navigation › routes each role to its permitted workspace (1.5s)
+  ok 24 [tablet] › ..\e2e\lab-03\release-evidence-states.spec.ts:16:7 › Lab 3 release evidence states › captures a readable authenticated workspace at each responsive breakpoint (2.1s)
+  ok 25 [tablet] › ..\e2e\lab-03\requester-regression.spec.ts:23:7 › Lab 3 authenticated Requester regression › creates an owned Ticket, preserves the attachment lifecycle, and keeps notes private (8.6s)
+  ok 26 [tablet] › ..\e2e\lab-03\requester-regression.spec.ts:95:7 › Lab 3 authenticated Requester regression › does not expose the legacy selector route or sessionStorage context (1.8s)
+  ok 27 [tablet] › ..\e2e\lab-03\staff-ticket-flow.spec.ts:25:7 › Lab 3 IT Staff queue and Ticket detail › shows the responsive staff queue and preserves searchable URL controls (3.0s)
+  ok 28 [tablet] › ..\e2e\lab-03\staff-ticket-flow.spec.ts:49:7 › Lab 3 IT Staff queue and Ticket detail › executes Staff Ticket Detail operations and reads an active Attachment (6.7s)
+  ok 29 [tablet] › ..\e2e\lab-03\staff-ticket-flow.spec.ts:111:7 › Lab 3 IT Staff queue and Ticket detail › does not expose staff workspace controls to a Requester (1.9s)
+  ok 30 [tablet] › ..\e2e\lab-03\user-administration.spec.ts:16:7 › Lab 3 Administrator User Management › lists users, opens an editor, and shows a safe no-results state (3.9s)
+  ok 31 [tablet] › ..\e2e\lab-03\user-administration.spec.ts:43:7 › Lab 3 Administrator User Management › keeps Administrator actions isolated from Requester navigation (1.6s)
+  ok 32 [tablet] › ..\e2e\lab-04\actions-taken-flow.spec.ts:14:7 › Lab 4 Actions Taken browser flow › E2E-01 persists Action create, edit, completion, cancellation, ownership and read-only Requester behavior (9.2s)
+  ok 33 [tablet] › ..\e2e\lab-04\dashboards.spec.ts:14:7 › Lab 4 role dashboard browser regression › E2E-03 compares live dashboard metrics, drills into owned work, and preserves role boundaries (6.7s)
+  ok 34 [tablet] › ..\e2e\lab-04\dashboards.spec.ts:90:7 › Lab 4 role dashboard browser regression › shows a genuine zero-data Requester dashboard for an isolated empty account (1.4s)
+  ok 35 [tablet] › ..\e2e\lab-04\dashboards.spec.ts:109:7 › Lab 4 role dashboard browser regression › shows a safe dashboard failure and retries to a real response (1.6s)
+  ok 36 [tablet] › ..\e2e\lab-04\requester-regression.spec.ts:14:7 › Authenticated Lab 2 Requester continuity (REG-01) › R02-11 distinguishes a genuinely empty My Tickets list from filtered no-results (1.7s)
+  ok 37 [tablet] › ..\e2e\lab-04\requester-regression.spec.ts:27:7 › Authenticated Lab 2 Requester continuity (REG-01) › R02-02/05/06/11/12 keeps ownership, URL filters, pagination, keyboard navigation and responsive list behavior (8.4s)
+  ok 38 [tablet] › ..\e2e\lab-04\requester-regression.spec.ts:94:7 › Authenticated Lab 2 Requester continuity (REG-01) › R02-03/04/07/08/09/10 preserves initial and added Attachments with safe cross-owner denial (5.1s)
+  ok 39 [tablet] › ..\e2e\lab-04\requester-regression.spec.ts:164:7 › Authenticated Lab 2 Requester continuity (REG-01) › R02-13/14/15/16 validates locally, retains drafts on safe failure and blocks duplicate submit (3.2s)
+  ok 40 [tablet] › ..\e2e\lab-04\ticket-resolution.spec.ts:12:7 › Lab 4 Ticket workflow browser flow › E2E-02 exercises the resolution gate, advisory, persisted history, resolve and reopen (6.9s)
+(node:31896) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:31896) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+  ok 41 [mobile] › ..\e2e\lab-03\authentication.spec.ts:17:7 › Lab 3 authentication and role navigation › requires the first-login password change and lands the Requester on their dashboard (1.7s)
+  ok 42 [mobile] › ..\e2e\lab-03\authentication.spec.ts:36:7 › Lab 3 authentication and role navigation › logs out and blocks a protected route after the session is revoked (1.3s)
+  ok 43 [mobile] › ..\e2e\lab-03\authentication.spec.ts:47:7 › Lab 3 authentication and role navigation › routes each role to its permitted workspace (1.3s)
+  ok 44 [mobile] › ..\e2e\lab-03\release-evidence-states.spec.ts:16:7 › Lab 3 release evidence states › captures a readable authenticated workspace at each responsive breakpoint (2.0s)
+  ok 45 [mobile] › ..\e2e\lab-03\requester-regression.spec.ts:23:7 › Lab 3 authenticated Requester regression › creates an owned Ticket, preserves the attachment lifecycle, and keeps notes private (7.7s)
+  ok 46 [mobile] › ..\e2e\lab-03\requester-regression.spec.ts:95:7 › Lab 3 authenticated Requester regression › does not expose the legacy selector route or sessionStorage context (1.7s)
+  ok 47 [mobile] › ..\e2e\lab-03\staff-ticket-flow.spec.ts:25:7 › Lab 3 IT Staff queue and Ticket detail › shows the responsive staff queue and preserves searchable URL controls (2.7s)
+  ok 48 [mobile] › ..\e2e\lab-03\staff-ticket-flow.spec.ts:49:7 › Lab 3 IT Staff queue and Ticket detail › executes Staff Ticket Detail operations and reads an active Attachment (6.3s)
+  ok 49 [mobile] › ..\e2e\lab-03\staff-ticket-flow.spec.ts:111:7 › Lab 3 IT Staff queue and Ticket detail › does not expose staff workspace controls to a Requester (1.5s)
+  ok 50 [mobile] › ..\e2e\lab-03\user-administration.spec.ts:16:7 › Lab 3 Administrator User Management › lists users, opens an editor, and shows a safe no-results state (4.6s)
+  ok 51 [mobile] › ..\e2e\lab-03\user-administration.spec.ts:43:7 › Lab 3 Administrator User Management › keeps Administrator actions isolated from Requester navigation (1.4s)
+  ok 52 [mobile] › ..\e2e\lab-04\actions-taken-flow.spec.ts:14:7 › Lab 4 Actions Taken browser flow › E2E-01 persists Action create, edit, completion, cancellation, ownership and read-only Requester behavior (18.3s)
+  ok 53 [mobile] › ..\e2e\lab-04\dashboards.spec.ts:14:7 › Lab 4 role dashboard browser regression › E2E-03 compares live dashboard metrics, drills into owned work, and preserves role boundaries (5.9s)
+  ok 54 [mobile] › ..\e2e\lab-04\dashboards.spec.ts:90:7 › Lab 4 role dashboard browser regression › shows a genuine zero-data Requester dashboard for an isolated empty account (1.6s)
+  ok 55 [mobile] › ..\e2e\lab-04\dashboards.spec.ts:109:7 › Lab 4 role dashboard browser regression › shows a safe dashboard failure and retries to a real response (1.6s)
+  ok 56 [mobile] › ..\e2e\lab-04\requester-regression.spec.ts:14:7 › Authenticated Lab 2 Requester continuity (REG-01) › R02-11 distinguishes a genuinely empty My Tickets list from filtered no-results (1.7s)
+  ok 57 [mobile] › ..\e2e\lab-04\requester-regression.spec.ts:27:7 › Authenticated Lab 2 Requester continuity (REG-01) › R02-02/05/06/11/12 keeps ownership, URL filters, pagination, keyboard navigation and responsive list behavior (13.9s)
+  ok 58 [mobile] › ..\e2e\lab-04\requester-regression.spec.ts:94:7 › Authenticated Lab 2 Requester continuity (REG-01) › R02-03/04/07/08/09/10 preserves initial and added Attachments with safe cross-owner denial (4.5s)
+  ok 59 [mobile] › ..\e2e\lab-04\requester-regression.spec.ts:164:7 › Authenticated Lab 2 Requester continuity (REG-01) › R02-13/14/15/16 validates locally, retains drafts on safe failure and blocks duplicate submit (3.3s)
+  ok 60 [mobile] › ..\e2e\lab-04\ticket-resolution.spec.ts:12:7 › Lab 4 Ticket workflow browser flow › E2E-02 exercises the resolution gate, advisory, persisted history, resolve and reopen (9.5s)
+
+  60 passed (4.5m)
+```
+
+</details>
+
+#### Current document, visual and GitHub audit
+
+The inline Node assertion audit checked all six documents, the exact eleven specification headings, FR-01–14/BR-01–22/AC-01–20 in traceability, all S/C/E matrix paths and local Markdown links, exactly ten selected prompts and the requested reflection draft, unique own-PR rows, and all fifteen expected responsive PNGs. It exited 0. `node --check server/scripts/verify-test-recovery.mjs` and `git diff --check` pass.
+
+Representative existing images inspected: Staff populated desktop (metric and current-user Actions sections); Requester populated tablet (owned metric grid and zero attention/recent sections); multi-Action workflow mobile (stacked form/record layout). Captions and AC mappings are in ui-spec.md. The long mobile screenshot needs readable split/cropped figures for submission; no screenshot was replaced or generated. These samples do not prove every state, touch target or screen-reader behavior.
+
+Historical 25 October GitHub read-only audit: PRs #63–71 had distinct entries in reviewer.md, including comment-only exceptions and the closed-unmerged wrong-account PRs #66 and #69. At that time the partner repository returned no Lab 4 PR; that finding is superseded by the 31 October audit below, which verifies partner PRs #57–62 and osizk's formal approvals. Issue #62 returned no Project items. Project access failed because the token lacked `read:project`; no board state was inferred or modified. No CI was added or falsely reported as green.
+
+| Remaining gate | What completes it |
+| --- | --- |
+| Extra planned assertion coverage | Partial rows in §§1–2 remain explicit. The 29 October follow-up adds resolve/create and resolve/follow-up races, cancellation rollback, browser reassignment/conflict recovery, Action timezone/Ticket switching and dashboard glyph-overlap checks. Remaining edge-case assertions and inactive-assignee browser evidence must still be evaluated individually. A requirement can be proved by an appropriate unit/API/component test; no blanket all-AC E2E gate is imposed. |
+| Human accessibility and state evidence | Observe screen-reader announcements, touch targets and the full visual/state checklist; retain readable real validation/conflict/denial/inactive-assignee captures where current images do not prove the requirement. |
+| Student reflection review | Edit/accept the requested My Reflection draft in ai-use.md in the student's own words. Ten prompts are selected as requested. |
+| Partner Lab 4 review | Completed and linked on 31 October: six real partner PRs #57–62, actual feedback, responses, formal approvals by osizk and merged outcomes. The student's own Issue #62 still requires its separate PR/review/authorized merge. |
+| Project/Kanban evidence | Student can grant the CLI read scope using `gh auth refresh -h github.com -s read:project`, or supply the actual board link/evidence. Recheck cards; a closed Issue is not proof of Project Done. |
+| Frozen candidate and Issue #62 PR | After authorized commit, bind checks to the real SHA and open the branch PR only when separately authorized. Record actual teammate Approve and authorized merge afterward. |
+| Final main / final board / PDF | After authorized staging-to-main merge, verify its real SHA and rerun complete required commands from main, capture the final all-Done board, and audit exactly one readable/captioned Answer Part 1–9 PDF. Future events remain unchecked. |
+
 ## 5. Release and visual checklist — actual work only
 
 - [x] Student and teammate approve engineering decisions; four public contracts merged before implementation.
 - [ ] All mapped Lab 4 unit/API/UI/auth/workflow/concurrency/performance tests pass with actual counts/paths.
-- [x] Complete inherited server/client regression and both builds pass.
+- [x] Complete inherited server/client regression and both builds pass independently of local API state. The 31 October isolation defect is fixed: the full client suite passes with the API endpoint reachable, and the Requester context test asserts no unmocked network request.
 - [x] Authenticated Lab 3 + Lab 4 Playwright suite passes with no skipped required test; complete output retained.
-- [ ] Real additive migration, repeated create-only seed, changed/non-fixture credential preservation, counter and recovery verification pass.
+- [x] Real additive migration, repeated create-only seed, changed/non-fixture credential preservation, counter and recovery verification pass.
 - [x] Dashboard metrics and drill-downs match guarded database/API fixtures; current-user Actions and ownership isolation proved.
 - [ ] Actions list/create/assign/edit/complete/cancel, inactive rejection, conditional validation, stale retry and immutable history captured.
 - [ ] Ticket matrix/gate, advisory indication, cancellation/reopening and direct API permission/gate proof captured.
 - [x] Staff dashboard, Requester dashboard and Actions/workflow captured desktop/tablet/mobile; boundaries and no overflow inspected.
 - [ ] Keyboard, focus, labels, validation associations, non-color cues, touch targets and announcements checked.
 - [ ] Loading/empty/no-results where applicable/busy/error/Retry/403/404/401/draft retention checked; no broken links/unsafe console leaks.
-- [ ] Representative authentication/Requester/attachments/comments/Internal Notes/Staff/Admin regression evidence retained.
+- [x] Representative authentication/Requester/attachments/comments/Internal Notes/Staff/Admin regression evidence retained: the passing 31 October Lab 3/4 E2E run covers these flows; existing authentication, Staff queue/detail and User Management captures remain under `artifacts/lab-03/screenshots/`. These historical captures are not claimed as new Lab 4 screenshots.
 - [ ] Actual own/partner PR comments/responses/Approve reviews are linked without duplicate PR entries; each merge authorized.
 - [ ] README and .gitignore/tree/branch/history evidence sanitized; final Lab 4 Project cards all Done.
 - [ ] Release-candidate exact SHA verified; affected checks rerun after changes.
 - [ ] After authorized release merge, final main SHA and required passing complete output verified from main, not prechecked.
-- [ ] One concise PDF audited: exact Answer Part 1–9 order, working links, readable genuine images and captions; personal reflection and 6–10 real selected prompts present.
+- [x] Submission-file gate accepted as complete at the student's explicit instruction: one concise PDF with exact Answer Part 1–9 order, working links, readable genuine images/captions, personal reflection and 6–10 selected prompts. This is a student-authorized assumption for this checklist, not an independently performed PDF audit.
 
-These pending boxes represent future implementation/release checks. Do not remove or mark them simply to make the draft look complete. Preserve evolving real evidence within required documents; no extra release-evidence folder is mandated.
+Unchecked boxes represent missing coverage, human evidence or later course/release events, as detailed in Issue #62. They are not failed assertions in the current passing suites. The submission-file gate above is the student's explicit exception and does not establish completion of unrelated product, review or Project gates. Preserve real evidence in the required documents; no extra release-evidence folder is mandated. The student requires repository documentation to be finalized in this PR: record its own review while the PR is open, and retain later merge/final-main/board facts in GitHub and local release evidence without another Markdown-only correction PR. Until those events occur, this document must not describe them as observed.
+
+## 6. Issue #62 audit corrections — 29 October 2026
+
+Scope: existing candidate branch `feature/28-Lab4ReleaseEvidence`, base HEAD `5c51a0bb6bb9e5d26a25769f5a854f5e1f9ba266`, with the student's existing uncommitted work preserved. These are working-tree checks, not results from that unchanged base commit or actual final main. No commit, push, PR or GitHub mutation was authorized by “fix it”. Historical outputs above are retained.
+
+### Reproduced failures and corrections
+
+- UI-01 / AC-01,19 / BR-18: two new regressions failed before the fix (24 passed / 2 failed). A simulated UTC viewer displayed Action timestamps seven hours early; switching from Ticket A page 2 to Ticket B left a blank Actions view. Explicit Asia/Bangkok formatting and a Ticket-keyed inner view fix both without changing API contracts. The focused suite then passed 26/26.
+- STYLE-01 / E2E-03 / AC-19: the original browser element-box check passed despite overflowing glyphs. A text Range measured actual overlap (label right 397.484375 versus count left 357.203125). The regression failed before the CSS change and passed afterward across widths 390, 767, 768, 900, 991, 992 and 1440. Summary labels wrap fully; counts do not shrink. No existing screenshot was replaced.
+- UI-01 / E2E-01 / AC-06: a real concurrent API edit exposed an additional defect: STALE_VERSION includes fieldErrors, which previously suppressed the conflict explanation and Reload button. The updated component test failed with the real error shape before the fix. Stale errors now retain the failed draft and offer Reload; explicitly reloading still replaces fields with current server values for review.
+- API-03 / AC-06,08,10: added actual concurrent resolve/create and resolve/follow-up tests, asserting exactly one successful write and a valid final resolution gate. Added a test-owned trigger that fails workflow-event insertion after cancellation writes; Ticket/Action/revisions/history remain unchanged. All five concurrency tests pass; the trigger/function and test-created records are removed afterward.
+- E2E-01 now performs a real reassignment plus an API edit while the browser editor is open, checks the stale draft, reloads/reviews and retries. Revision assertions target Revision 1 explicitly because the additional real edit creates another snapshot with the original description.
+- E2E-03 creates its own recent Requester Ticket and prepares a waiting-state fixture, asserting that the exact owned Ticket appears in both recent and attention lists. This makes a future human capture meaningful rather than presenting empty sections as populated evidence.
+
+### Observed full server and client results
+
+Commands below ran against the guarded test environment; credentials and connection strings are not recorded.
+
+```text
+server> npm.cmd test -- --run
+Test Files  38 passed (38)
+     Tests  165 passed (165)
+Start at  00:05:17
+Duration  46.95s
+server> npm.cmd run build
+> tsc
+Exit 0
+
+client> npm.cmd test -- --run --maxWorkers=2 --minWorkers=1
+Test Files  18 passed (18)
+     Tests  114 passed (114)
+Start at  00:06:22
+Duration  36.50s
+client> npm.cmd run build
+> tsc && vite build
+38 modules transformed; production bundle built successfully
+Exit 0
+
+client> npx.cmd playwright test
+Running 60 tests using 1 worker
+desktop: 20 passed
+tablet: 20 passed
+mobile: 20 passed
+60 passed (4.8m)
+Exit 0
+```
+
+These are result excerpts, not complete final-main submission transcripts. No tests were skipped in the passing full runs. An earlier default-worker client run under simultaneous browser/server load timed out in two inherited UI tests (112 passed / 2 failed); bounding workers reran every test successfully without increasing timeouts or disabling assertions. Restricted-sandbox startup failures occurred before tests ran; the successful runs used the normal host permissions. The E2E validation also found and corrected a strict locator ambiguity after an extra revision was intentionally introduced; it was not a product regression.
+
+The final browser run exercised the expanded Action reassignment/conflict flow, nonempty owned recent/attention sections and actual summary glyph/count bounds in all three projects, with no skipped tests. `git diff --check` passed; relative document links resolve, the specification retains eleven numbered sections, and the ten selected prompts remain intact. `git diff --name-only -- artifacts` is empty.
+
+Human screenshots, database-query capture, complete accessibility observation, personal reflection acceptance, partner review and Project/final-main evidence remain separate. Existing screenshots and the ten selected AI prompts are preserved. No image was generated and no checkbox was checked for an unobserved or future event.
+
+## 7. Issue #62 recheck — 31 October 2026 (historical red audit; fixes in §8)
+
+Scope confirmed by the student: inspect current code, tests, six Lab 4 documents and artifacts against the instructor's Lab 4 handout, including existing uncommitted work; exclude the submission PDF. Update reviewer.md using actual partner PRs in `HolyThiccDaddy/toktickit`. This audit changes only reviewer.md and this test/evidence record; existing product edits, prompts and screenshot bytes are preserved. No commit, push, branch, PR, review, merge, Issue or Project mutation was performed.
+
+Branch remains `feature/28-Lab4ReleaseEvidence`, HEAD `5c51a0bb6bb9e5d26a25769f5a854f5e1f9ba266`, with pre-existing uncommitted product changes. Results below test that working tree, not the unchanged HEAD contents, a frozen committed candidate, or final main. They supersede older summaries only for the commands actually rerun. Future final-main output is still required by rubric Part 3.
+
+### Observed commands and results
+
+| Working directory | Command/check | Observed result |
+| --- | --- | --- |
+| server | `npm.cmd test -- --run` | Exit 0; 38 files, 165 tests passed, no skips; duration 70.61s. Includes real pre-Lab-4 migration, two-run seed preservation, workflow, authorization, concurrency, inherited regression and performance smoke. |
+| server | `npm.cmd run build` | Exit 0; TypeScript build passed. |
+| client | `npm.cmd test -- --run --maxWorkers=2 --minWorkers=1` | Exit 0; 18 files, 114 tests passed, no skips; duration 44.19s. This standalone success does not invalidate the separate failing isolation diagnostic below. |
+| client | `npm.cmd run build` | Exit 0; TypeScript/Vite production build passed, 38 modules transformed. |
+| server | `npm.cmd run prisma:test:recovery` with installed PostgreSQL 18 bin added to this process's PATH | Exit 0; repeat seed preserves an edited reserved-number graph and higher counter; all 15 tables/fingerprints/sequences and protected attachment bytes match after restore; generated recovery schema, backup and storage cleaned. The initial invocation failed before creating data because `pg_dump` was not on PATH; README already documents the remedy. |
+| client | `$env:LAB4_CAPTURE_EVIDENCE='0'; npx.cmd playwright test` | Exit 0; 60 tests passed in 4.8m across desktop/tablet/mobile, no skipped test. Uses the allowlisted isolated test schema and preserves existing captures. |
+| client | `npm.cmd test -- --run tests/lab-02/RequesterSelection.test.tsx --maxWorkers=1 --minWorkers=1` | Exit 0; 2 tests passed with the default endpoint in this environment. |
+| client | `$env:VITE_API_URL='http://127.0.0.1:3000'; npm.cmd test -- --run tests/lab-02/RequesterSelection.test.tsx --maxWorkers=1 --minWorkers=1` while the isolated E2E API is running | Exit 1; 1 passed, 1 failed. The authenticated-shell test loses My Tickets and returns to Sign in. A real unmocked dashboard 401 invalidates mocked authentication. This diagnostic changes only its child-process environment. |
+| repository | Inline structural assertions | Exit 0: six documents, eleven exact specification sections, all 14 FR/22 BR/20 AC IDs represented in traceability, ten selected prompts plus My Reflection, eleven mandatory test paths, no broken local Markdown links, fifteen unique own/partner PR rows, and fifteen valid PNG headers/dimensions. Presence checks do not prove every planned scenario. |
+| repository | `git diff --check`; `git diff --name-only -- artifacts` | Whitespace check passed; no artifact diff. Existing screenshots were inspected, not replaced or generated. |
+
+These are observed command/result excerpts, not a complete final-main terminal transcript. Initial Vitest startup attempts failed under restricted filesystem permissions before tests ran; the host-permission reruns above completed. No assertion, timeout or fixture was changed to make the audit pass.
+
+### Confirmed remaining product/test findings
+
+| Finding | Evidence and impact | Smallest completion step |
+| --- | --- | --- |
+| Test isolation, REG-01 / FR-14 | `client/tests/lab-02/RequesterSelection.test.tsx` mocks Login/currentUser but omits fetchRequesterDashboard. The live-API diagnostic fails at its My Tickets assertion although the standalone full suite passes. | Mock the Dashboard API with a contract-valid response, then rerun the focused test with a running API and the complete client suite. Do not hide the request with an unreachable endpoint or longer timeout. |
+| Create Action conflict feedback, UI-01 / AC-03,06 | `client/src/ActionsTaken.tsx` submitCreate prioritizes fieldErrors over STALE_VERSION. Executing the current handler with a real-shaped 409 and expectedTicketVersion field error yields `Fix the errors listed below, then choose Save Action again.` That version key has no rendered form field; the list reloads but the user is given no visible field correction. | Classify stale conflicts before ordinary field validation, retain the draft and provide an explicit Ticket-version recovery message/action; add a create-conflict regression. Existing Edit conflict coverage does not cover Create. |
+| Ticket-card status overflow, STYLE-01 / AC-19 | `client/src/styles.css` wraps summary badges but leaves `.dashboard-ticket-link` badges with inherited nowrap. Real Chromium measurement using current CSS and a representative tablet card shows WAITING_FOR_REQUESTER text extending 32.83px outside the card at 768px and 24.83px at 800px. This is a card-text check, not a claim that the whole page scrolls. | Scope wrapping to Ticket-card badges and assert actual text bounds inside their cards at responsive boundaries. Keep the already-correct summary wrapping. |
+| Timezone consistency, BR-18 | Actual date helpers extracted/transpiled from ActionsTaken, TicketWorkflow and Dashboards render 07:00 for `2026-10-01T00:00:00.000Z` under a UTC viewer. TicketDetail, StaffTicketDetail, StaffTicketQueue and MyTickets render 00:00; CreateTicket's date helper also omits an explicit timezone. | Apply Asia/Bangkok consistently to the affected retained screens and add an appropriate non-Bangkok-viewer regression. No date/schema migration is needed. |
+| Requester empty wording, UI-03 / AC-12,13 | `client/src/Dashboards.tsx` infers `You have no Tickets yet.` from four zero metrics and empty bounded lists. An account with only CANCELLED Tickets older than seven days produces those values despite owning Tickets. The API correctly excludes those rows from the four metrics/recent window. | Use accurate wording such as `No active or recent Tickets to show` and retain a My Tickets link; test this response shape. A new total-count API is unnecessary. |
+
+These findings do not authorize product edits during this audit. Passing current suites does not establish absence of defects or complete the Partial matrix rows. The additional planned edge assertions still need individual reconciliation against the actual unit/API/component/browser tests; every AC does not require its own E2E test.
+
+### Review, visual and course-delivery evidence
+
+- Partner evidence is now verified: reviewer.md has one row each for partner PRs #57–62, actual feedback, response links, formal osizk Approve reviews and merged outcomes. Partner #57–61 target lab4-staging; partner #62 targets main. This documents the partner's actual workflow rather than silently presenting it as this repository's workflow.
+- Own PR metadata/reviews were rechecked: #63–65, #67–68, #70–71 are merged; #66 and #69 are closed unmerged. Formal teammate Approve exists on #65, #67, #70 and #71. #63, #64 and #68 remain accurately identified as historical comment-only sign-offs; no formal approval is invented. Own Issue #62 remains open and has no PR recorded in this branch's evidence.
+- Existing Staff tablet capture still shows the old overlapping status summary and long Ticket-card status text; it is not proof of the corrected summary layout. Existing populated Requester tablet capture shows both attention/recent sections empty. Recapture meaningful current states after fixes; preserve readable human screenshots for inactive-assignee rejection, direct denial, metric/database comparison and required lifecycle/failure states. No new screenshots were taken for this audit.
+- `gh project list --owner osizk --format json` fails with missing `read:project`. The actual final all-Done board remains unverified; a closed Issue is not board evidence. Read access or a real board link/capture is needed; no authorization scope or Project status was changed.
+- Student acceptance of the My Reflection draft, remaining human keyboard/screen-reader/touch-target checks, frozen committed candidate, own Issue #62 PR/Approve/authorized merge, and actual final-main evidence remain open. The submission PDF was expressly excluded from this recheck, so no PDF audit is claimed.
+- At audit time, local-only submission files were not covered by an ignore rule; the Lab 4-specific ignore patterns added in §8 now protect them. No extra release-evidence hierarchy, generated evidence images, blanket CI requirement or unrelated feature was introduced.
+
+Historical conclusion before fixes: partner review documentation was corrected and the full suites/builds/recovery passed, but the five confirmed defects prevented declaring the candidate ready. Section 8 records the student's subsequent authorized fixes and verification; course-delivery gates remain distinct from readiness to request PR review.
+
+## 8. Issue #62 PR-readiness fixes — 31 October 2026
+
+Student instruction: fix all five findings from §7 and prepare the branch for PR review. Existing work is preserved; no commit, push, branch creation or GitHub mutation is authorized by this instruction. The source remains the uncommitted working tree based on `5c51a0bb6bb9e5d26a25769f5a854f5e1f9ba266`, not a frozen committed candidate or final main. The code/test/config fingerprint covers 131 files and is SHA-256 `09de705f90133997fc9c391ba5400e3347e2d94c0ae917a9930bb34442853da9`; it is a content checksum, not a Git commit SHA. Bind the eventual authorized commit to this tested content before publication; rerun affected checks if product content changes.
+
+### Red evidence before implementation
+
+- Eight focused component files: **8 failed / 55 passed (63 tests)**. Five date-display assertions simulate a UTC viewer; the other failures cover the unmocked Requester dashboard request, Create Action stale-version feedback and inaccurate dashboard empty wording.
+- Tablet dashboard E2E: **1 failed** at the added actual-text/card-bounds assertion. A status label's right edge was `729.96875` while the card ended at `699.28125`. This is the expected red result before the scoped CSS fix, not a hidden final-suite failure.
+- The first focused rerun after implementation passed 62 tests and failed one Requester-context locator because both the navigation and the new empty-summary link correctly say My Tickets. The assertion now scopes to the navigation, rather than selecting an arbitrary first match. The complete client rerun below verifies the correction.
+
+### Fixes and regression mapping
+
+| Finding / IDs | Implemented correction and verification path |
+| --- | --- |
+| Requester test isolation — REG-01 / FR-14 | `client/tests/lab-02/RequesterSelection.test.tsx` mocks a contract-valid fetchRequesterDashboard response. Its authenticated-shell test installs a failing network response and asserts fetch is never called. The full suite also runs with VITE_API_URL pointing to the reachable isolated E2E API. |
+| Create Action stale conflict — UI-01 / AC-03,06 | Classify STALE_VERSION before fieldErrors; preserve draft and creation key. Save is blocked until the user chooses Reload Ticket version and the current Actions/version load successfully. A failed reload retains the draft and disabled Save. `client/tests/lab-04/ActionsTaken.test.tsx` exercises conflict, failed reload, successful reload and retry using the updated version and original key. All 27 Action component tests pass. |
+| Ticket-card overflow — STYLE-01 / E2E-03 / AC-19 | Scope normal whitespace to status/priority badges inside dashboard Ticket links; retain existing anywhere wrapping and summary badge rules. `e2e/lab-04/dashboards.spec.ts` measures actual badge text ranges inside card boundaries at 390, 767, 768, 900, 991, 992 and 1440px. No hidden overflow or tooltip substitutes for readable text. |
+| Bangkok dates — REG-01 / BR-18 | Add explicit Asia/Bangkok to CreateTicket, TicketDetail, StaffTicketDetail, MyTickets and StaffTicketQueue date helpers. Existing render/success tests in `client/tests/lab-02/{CreateTicket,RequesterTicketDetail,MyTickets}.test.tsx` and `client/tests/lab-03/{StaffTicketDetail,StaffTicketQueue}.test.tsx` simulate UTC defaults and assert actual displayed Bangkok dates. Existing invalid-date fallback and date formatting styles are retained. |
+| Accurate dashboard empty state — UI-03 / E2E-03 / AC-12,13 | The all-zero/empty response says No active or recent Tickets to show and links to My Tickets, so it remains true for older CANCELLED Tickets. `client/tests/lab-04/RequesterDashboard.test.tsx` verifies wording, destination and refresh; the real empty-account browser assertion is updated too. My Tickets retains its separate genuine no-owned-Tickets wording. No API/count/schema change is needed. |
+
+The UI contract now distinguishes Create Ticket-version reload from Edit Action reload, and specifies the accurate empty-summary text. Lab 4-specific ignore patterns keep local submission documents out of later commits. Current ai-use.md contents and ten selected prompts are preserved; no reflection acceptance or human evidence was invented.
+
+### Observed post-fix regression
+
+```text
+server> npm.cmd test -- --run
+Test Files  38 passed (38)
+     Tests  165 passed (165)
+Start at 22:53:01
+Duration 58.03s
+Exit 0
+
+server> npm.cmd run build
+> tsc
+Exit 0
+
+client> $env:VITE_API_URL='http://127.0.0.1:3000'
+client> npm.cmd test -- --run --maxWorkers=2 --minWorkers=1
+Test Files  18 passed (18)
+     Tests  115 passed (115)
+Start at 22:52:17
+Duration 44.89s
+Exit 0
+
+client> npm.cmd run build
+> tsc && vite build
+38 modules transformed; production bundle built successfully
+Exit 0
+```
+
+All tests in these passing runs executed; none were skipped. The server suite includes the real pre-Lab-4 upgrade and repeat-seed preservation checks. The guarded recovery rehearsal from §7 remains valid because the recovery script/schema/backend were not changed by these five fixes. These excerpts do not replace the required complete output from actual final main.
+
+```text
+client> $env:LAB4_CAPTURE_EVIDENCE='0'
+client> npx.cmd playwright test
+Running 60 tests using 1 worker
+desktop: 20 passed
+tablet: 20 passed
+mobile: 20 passed
+60 passed (5.1m)
+Exit 0
+```
+
+The full browser run includes the new card-text bounds and accurate empty-state assertions; all three projects pass without skips. `git diff --check` passes, local document links resolve, no artifact diff exists, and local environment/submission files are ignored. No screenshots were replaced or generated as submission evidence.
+
+**PR-review readiness:** all five confirmed code/test defects from §7 are fixed and their affected checks pass. The branch can be prepared for an authorized commit/push and a PR into lab4-staging, with these limits stated in its description. This does not mean Issue #62/course delivery is Done: remaining Partial test-matrix scenarios need individual reconciliation, human visual/accessibility/state captures and reflection acceptance remain unobserved, Project access still lacks read:project, and this Issue's actual PR/Approve/authorized merge and final-main/PDF evidence cannot be prechecked. Existing pending course-delivery boxes remain intact. A reviewer must assess these remaining gates before release approval; opening a PR for review is not authorization to merge it.

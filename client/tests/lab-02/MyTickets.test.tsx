@@ -76,11 +76,17 @@ describe("My Tickets", () => {
   });
 
   it("loads owned Tickets with controls and a desktop table plus mobile cards", async () => {
+    const Formatter = Intl.DateTimeFormat;
+    vi.spyOn(Intl, "DateTimeFormat").mockImplementation(function (locales, options) {
+      return new Formatter(locales, { timeZone: "UTC", ...options });
+    } as typeof Intl.DateTimeFormat);
     const user = userEvent.setup();
     await openMyTickets(user);
 
     expect(await screen.findByRole("table", { name: "My Tickets" })).toBeInTheDocument();
     expect(screen.getAllByText("VPN access fails")).toHaveLength(2);
+    const bangkokDate = new Formatter(undefined, { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Bangkok" }).format(new Date(tickets[0].updatedAt));
+    expect(screen.getAllByText(bangkokDate)).toHaveLength(2);
     expect(screen.getByRole("link", { name: "Create Ticket" })).toBeInTheDocument();
     expect(screen.getByRole("searchbox", { name: "Search Tickets" })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Category" })).toBeInTheDocument();

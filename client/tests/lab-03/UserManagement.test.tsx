@@ -52,7 +52,7 @@ describe("Lab 3 Administrator User Management", () => {
     expect(await screen.findByRole("heading", { name: "User Management" })).toBeInTheDocument();
     expect(screen.getByRole("searchbox", { name: "Search users" })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Role" })).toBeInTheDocument();
-    expect(screen.getByRole("table", { name: "Users" })).toBeInTheDocument();
+    expect(await screen.findByRole("table", { name: "Users" })).toBeInTheDocument();
     expect(screen.getAllByText("Michael Staff").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Inactive").length).toBeGreaterThan(0);
 

@@ -67,7 +67,8 @@ await execFileAsync(npmExecutable, npmArguments(["run", "prisma:test:seed"]), {
   maxBuffer: 4 * 1024 * 1024,
 });
 
-const server = spawn(npmExecutable, npmArguments(["run", "dev"]), {
+// E2E needs one API process; the development watcher adds a Windows shutdown race.
+const server = spawn(process.execPath, ["--import", "tsx", "src/index.ts"], {
   cwd: serverDirectory,
   env: childEnvironment,
   windowsHide: true,
