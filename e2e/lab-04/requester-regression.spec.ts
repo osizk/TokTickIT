@@ -25,6 +25,7 @@ test.describe("Authenticated Lab 2 Requester continuity (REG-01)", () => {
   });
 
   test("R02-02/05/06/11/12 keeps ownership, URL filters, pagination, keyboard navigation and responsive list behavior", async ({ page }, testInfo) => {
+    test.setTimeout(90_000);
     await loginAs(page, "requesterA");
     const summaries: string[] = [];
     const numbers: string[] = [];

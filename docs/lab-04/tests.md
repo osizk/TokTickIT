@@ -59,7 +59,7 @@ The AC table in specification is authoritative; every AC-01–20 appears above w
 | AC-17 | API-07; MAN-01 | Passed: Issue #62 ran `npm.cmd run prisma:test:recovery`; all 15 table fingerprints and sequences plus protected attachment bytes matched after restore, and its generated schema/storage/backup were cleaned. Operational rollback guidance retains post-upgrade data. |
 | AC-18 | API-02; REG-01; E2E-01,02,03 | Partial: server authorization, inherited E2E and Lab 4 role/ownership browser denials passed; remaining auth and release audit gates stay open. |
 | AC-19 | UI-01,02,03,04; STYLE-01; MAN-01 | Partial: CSS/component checks plus real responsive screenshots, axe, keyboard, overflow and boundary assertions passed; manual screen-reader/touch-target review remains open. |
-| AC-20 | DOC-01; REG-01; MAN-01 | Contract checks underway; approval/release pending |
+| AC-20 | DOC-01; REG-01; MAN-01 | Contract structure, paths, IDs and pre-implementation merge order verified. PR #72 is open; formal review, approved integration and remaining release evidence are pending. |
 
 | FR | Test IDs | BR | Test IDs |
 | --- | --- | --- | --- |
@@ -1698,26 +1698,31 @@ Historical 25 October GitHub read-only audit: PRs #63–71 had distinct entries 
 | Student reflection review | Edit/accept the requested My Reflection draft in ai-use.md in the student's own words. Ten prompts are selected as requested. |
 | Partner Lab 4 review | Completed and linked on 31 October: six real partner PRs #57–62, actual feedback, responses, formal approvals by osizk and merged outcomes. The student's own Issue #62 still requires its separate PR/review/authorized merge. |
 | Project/Kanban evidence | Student can grant the CLI read scope using `gh auth refresh -h github.com -s read:project`, or supply the actual board link/evidence. Recheck cards; a closed Issue is not proof of Project Done. |
-| Frozen candidate and Issue #62 PR | After authorized commit, bind checks to the real SHA and open the branch PR only when separately authorized. Record actual teammate Approve and authorized merge afterward. |
+| Frozen candidate and Issue #62 PR | Product/test candidate `4038abee06ec9ca8a8f3bc642c36d342e63478a1` is committed; publication head `002c2858153dbd11edfe5a2c331c3c4951571159` is PR #72 into `lab4-staging`. The partner left a top-level merge question, not a review submission. A formal teammate review and authorized merge are still pending. |
 | Final main / final board / PDF | After authorized staging-to-main merge, verify its real SHA and rerun complete required commands from main, capture the final all-Done board, and audit exactly one readable/captioned Answer Part 1–9 PDF. Future events remain unchecked. |
 
 ## 5. Release and visual checklist — actual work only
 
 - [x] Student and teammate approve engineering decisions; four public contracts merged before implementation.
-- [ ] All mapped Lab 4 unit/API/UI/auth/workflow/concurrency/performance tests pass with actual counts/paths.
+- [x] The executed Lab 4 unit/API/UI/auth/workflow/concurrency/performance suites pass with actual counts and paths: server 165, client 115, and Playwright 60 (no skips); the post-publication working-tree rerun is recorded in §10. Rows marked Partial identify uncovered scenario/evidence gaps, not failures in these runs.
 - [x] Complete inherited server/client regression and both builds pass independently of local API state. The 31 October isolation defect is fixed: the full client suite passes with the API endpoint reachable, and the Requester context test asserts no unmocked network request.
 - [x] Authenticated Lab 3 + Lab 4 Playwright suite passes with no skipped required test; complete output retained.
 - [x] Real additive migration, repeated create-only seed, changed/non-fixture credential preservation, counter and recovery verification pass.
 - [x] Dashboard metrics and drill-downs match guarded database/API fixtures; current-user Actions and ownership isolation proved.
-- [ ] Actions list/create/assign/edit/complete/cancel, inactive rejection, conditional validation, stale retry and immutable history captured.
-- [ ] Ticket matrix/gate, advisory indication, cancellation/reopening and direct API permission/gate proof captured.
+- [x] Automated Action lifecycle, assignment safety, conditional validation, stale retry and immutable-history checks pass; the existing genuine desktop/tablet/mobile workflow captures show completed and cancelled Actions. The full 1 November Playwright rerun passed all three projects. The current images do not show an inactive-assignee rejection.
+- [x] Automated Ticket status/gate, advisory indication, cancellation/reopening and direct API gate/permission checks pass in unit/API/browser tests; the existing workflow image shows the gate prerequisites.
+- [ ] Add a readable sanitized image or API-response capture of the inactive-assignee rejection and the denied Ticket gate/permission response; the Playwright rerun did not write screenshots.
 - [x] Staff dashboard, Requester dashboard and Actions/workflow captured desktop/tablet/mobile; boundaries and no overflow inspected.
-- [ ] Keyboard, focus, labels, validation associations, non-color cues, touch targets and announcements checked.
-- [ ] Loading/empty/no-results where applicable/busy/error/Retry/403/404/401/draft retention checked; no broken links/unsafe console leaks.
+- [x] Automated axe, keyboard/focus, labels, validation and responsive-overflow checks pass in the recorded suites.
+- [ ] Human screen-reader announcements and touch-target usability reviewed.
+- [x] Automated loading, empty/no-results, busy/error/Retry, role-denial, session-expiry and draft-retention scenarios covered by the passing server/client/Playwright suites.
+- [ ] Manual browser audit for broken links and unsafe console errors completed.
 - [x] Representative authentication/Requester/attachments/comments/Internal Notes/Staff/Admin regression evidence retained: the passing 31 October Lab 3/4 E2E run covers these flows; existing authentication, Staff queue/detail and User Management captures remain under `artifacts/lab-03/screenshots/`. These historical captures are not claimed as new Lab 4 screenshots.
-- [ ] Actual own/partner PR comments/responses/Approve reviews are linked without duplicate PR entries; each merge authorized.
-- [ ] README and .gitignore/tree/branch/history evidence sanitized; final Lab 4 Project cards all Done.
-- [x] Release-candidate code SHA verified: `4038abee06ec9ca8a8f3bc642c36d342e63478a1` contains the unchanged product/test/config content verified in §8. The publication follow-up changes documentation only; affected product checks need rerunning if that content changes. See §9 for the exact distinction from the later PR head.
+- [x] Earlier own/partner PR review and response records are linked without duplicate PR rows; actual formal approvals are distinguished from comments in `reviewer.md`.
+- [ ] PR #72 has a teammate formal **Approve** and the student has explicitly authorized its merge. GitHub currently reports the PR open with no submitted reviews; the partner's conversation comment is not an **Approve**.
+- [x] README, `.gitignore`, and repository/branch evidence were checked during Issue #62; local secrets, submission files and generated test output remain excluded.
+- [ ] Final Lab 4 Project board verified with every Issue in Done; Project access still requires `read:project` or a supplied board capture.
+- [x] Release-candidate product SHA verified: `4038abee06ec9ca8a8f3bc642c36d342e63478a1`. The post-publication E2E timeout adjustment is test-only and remains local; §10 binds its results to the working tree based on PR head `002c2858153dbd11edfe5a2c331c3c4951571159`, not to that earlier SHA or final `main`.
 - [ ] After authorized release merge, final main SHA and required passing complete output verified from main, not prechecked.
 - [x] Submission-file gate accepted as complete at the student's explicit instruction: one concise PDF with exact Answer Part 1–9 order, working links, readable genuine images/captions, personal reflection and 6–10 selected prompts. This is a student-authorized assumption for this checklist, not an independently performed PDF audit.
 
@@ -1886,12 +1891,59 @@ Exit 0
 
 The full browser run includes the new card-text bounds and accurate empty-state assertions; all three projects pass without skips. `git diff --check` passes, local document links resolve, no artifact diff exists, and local environment/submission files are ignored. No screenshots were replaced or generated as submission evidence.
 
-**PR-review readiness:** all five confirmed code/test defects from §7 are fixed and their affected checks pass. The branch can be prepared for an authorized commit/push and a PR into lab4-staging, with these limits stated in its description. This does not mean Issue #62/course delivery is Done: remaining Partial test-matrix scenarios need individual reconciliation, human visual/accessibility/state captures and reflection acceptance remain unobserved, Project access still lacks read:project, and this Issue's actual PR/Approve/authorized merge and final-main/PDF evidence cannot be prechecked. Existing pending course-delivery boxes remain intact. A reviewer must assess these remaining gates before release approval; opening a PR for review is not authorization to merge it.
+**Pre-publication readiness snapshot:** before the authorized commit and PR, all five confirmed code/test defects from §7 were fixed and their affected checks passed. This snapshot preceded PR #72; it is not the current review state. Issue #62 is not Done: scenario coverage and human visual/accessibility/state evidence remain open, Project read access is unavailable, and approval, authorized merge, final-main and board evidence require later real events. The live PR status is recorded in §9; opening it did not authorize merge.
 
 ## 9. Authorized publication and candidate binding — 31 October 2026
 
-The student explicitly authorized commit, push and PR creation as osizk, without merge. [PR #72](https://github.com/osizk/TokTickIT/pull/72), `Issue #62: [Lab 4] Release evidence and integration`, is now open from `feature/28-Lab4ReleaseEvidence` into `lab4-staging`. GitHub confirms author osizk and base `5c51a0bb6bb9e5d26a25769f5a854f5e1f9ba266`. Reviewer feedback/Approve, authorized integration and Project/final-main facts remain pending; earlier no-PR statements in historical audit sections describe their observation time.
+The student explicitly authorized commit, push and PR creation as osizk, without merge. [PR #72](https://github.com/osizk/TokTickIT/pull/72), `Issue #62: [Lab 4] Release evidence and integration`, is open from `feature/28-Lab4ReleaseEvidence` into `lab4-staging`. GitHub confirms author osizk and base `5c51a0bb6bb9e5d26a25769f5a854f5e1f9ba266`. The partner left [a top-level comment asking whether the student wants to merge](https://github.com/osizk/TokTickIT/pull/72#issuecomment-6546220810); this is not a review submission or **Approve**. No student reply, formal review, authorized integration or Project/final-main evidence is recorded. Earlier no-PR statements in historical audit sections describe their observation time.
 
 The verified product/test/config content from §8 was committed unchanged as `4038abee06ec9ca8a8f3bc642c36d342e63478a1`. All 32 reviewed files were explicitly staged, including the recovery script; local submission files, environment files, protected bytes and transient artifacts were excluded. The recorded 131-file content checksum matched before publication; the product working-tree diff against that commit was empty. Server 165/client 115/E2E 60 and both build results were observed before this commit on identical content, not rerun after committing and not misrepresented as final-main runs.
 
-This publication follow-up changes only reviewer.md and tests.md to record the real PR and candidate binding. It does not alter the tested product, tests, configuration or screenshots. Distinguish the product candidate SHA above from any later documentation-only PR-head commit; no self-referencing final-head SHA or additional product test run is invented. The PR description retains the actual commands/results and outstanding release gates.
+At publication, the follow-up changed only reviewer.md and tests.md to record the real PR and candidate binding. The 1 November follow-up below additionally changes one E2E test timeout after a reproducible tablet timeout; it does not alter product code or screenshot files. Distinguish the product candidate SHA above from the current uncommitted test/documentation follow-up and from final main.
+
+## 10. Post-publication verification — 1 November 2026
+
+The checks below ran on branch `feature/28-Lab4ReleaseEvidence`, based on PR #72 head `002c2858153dbd11edfe5a2c331c3c4951571159`. The local working tree also contains this documentation update and one test-only change in `e2e/lab-04/requester-regression.spec.ts`: the long authenticated ownership/filter/pagination test now has a 90-second timeout. Product source is unchanged. These results describe this working tree, not the PR's immutable GitHub head or final `main`.
+
+The first full Playwright run on this tree reported 59 passed and one tablet test timed out at its original 60-second limit. The focused tablet rerun passed, and after setting the test-specific timeout to 90 seconds, the complete suite passed:
+
+```text
+server> npm.cmd test -- --run
+Test Files  38 passed (38)
+     Tests  165 passed (165)
+Duration 60.08s
+Exit 0
+
+server> npm.cmd run build
+> tsc
+Exit 0
+
+client> $env:VITE_API_URL='http://127.0.0.1:3000'
+client> npm.cmd test -- --run --maxWorkers=2 --minWorkers=1
+Test Files  18 passed (18)
+     Tests  115 passed (115)
+Duration 64.95s
+Exit 0
+
+client> npm.cmd run build
+> tsc && vite build
+38 modules transformed; production bundle built successfully
+Exit 0
+
+client> npx.cmd playwright test ../e2e/lab-04/requester-regression.spec.ts --project=tablet --grep "R02-02/05/06/11/12" --reporter=list
+1 passed (21.8s including setup)
+Exit 0
+
+client> $env:LAB4_CAPTURE_EVIDENCE='0'
+client> npx.cmd playwright test --reporter=list
+Running 60 tests using 1 worker
+desktop: 20 passed
+tablet: 20 passed
+mobile: 20 passed
+60 passed (3.8m)
+Exit 0
+```
+
+No tests were skipped. The E2E rerun exercised Action lifecycle, ownership, Ticket gate/advisory and role flows; API/component tests cover the inactive-actor/assignee and error-state rules. Screenshot capture was intentionally disabled to preserve existing artifacts, so no new evidence image is claimed. `git diff --check` passed and no file under `artifacts/` changed. Manual screen-reader/touch-target review, new sanitized denial captures, PR #72 review/approval and student merge authorization, Project Done state, and post-merge final-main SHA/tests remain unchecked because they were not verified or have not occurred.
+
+The read-only GitHub check confirmed PR #72 remains open and mergeable at head `002c2858153dbd11edfe5a2c331c3c4951571159`; it has no formal review submissions, inline review threads, or commit status checks. The partner's conversation comment asking whether the student wants to merge is not an **Approve**. The GitHub connection available here cannot read the Project board, and the CLI token still needs `read:project`; no Kanban status is inferred.
