@@ -123,7 +123,7 @@ describe("Lab 4 Actions API authorization", () => {
     expect((await requester.agent.get(`/api/tickets/${ticketNumber}/actions-taken`)).status).toBe(200);
     const deniedMutation = await requester.agent.post(`/api/tickets/${ticketNumber}/actions-taken`).set("X-CSRF-Token", requester.csrfToken).send({});
     expect(deniedMutation.status).toBe(403);
-    expect(deniedMutation.body.error.code).toBe("FORBIDDEN");
+    expect(deniedMutation.body.error).toEqual({ code: "FORBIDDEN", message: "You do not have permission to perform this action." });
 
     const other = await login(otherRequesterEmail);
     const crossOwner = await other.agent.get(`/api/tickets/${ticketNumber}/actions-taken`);

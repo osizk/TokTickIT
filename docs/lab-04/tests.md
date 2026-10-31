@@ -1704,29 +1704,31 @@ Historical 25 October GitHub read-only audit: PRs #63–71 had distinct entries 
 ## 5. Release and visual checklist — actual work only
 
 - [x] Student and teammate approve engineering decisions; four public contracts merged before implementation.
-- [x] The executed Lab 4 unit/API/UI/auth/workflow/concurrency/performance suites pass with actual counts and paths: server 165, client 115, and Playwright 60 (no skips); the post-publication working-tree rerun is recorded in §10. Rows marked Partial identify uncovered scenario/evidence gaps, not failures in these runs.
+- [x] The executed Lab 4 unit/API/UI/auth/workflow/concurrency/performance suites pass with actual counts and paths: server 166, client 115, and Playwright 66 (no skips); the latest working-tree runs are recorded in §§11–12. Rows marked Partial identify uncovered scenario/evidence gaps, not failures in these runs.
 - [x] Complete inherited server/client regression and both builds pass independently of local API state. The 31 October isolation defect is fixed: the full client suite passes with the API endpoint reachable, and the Requester context test asserts no unmocked network request.
 - [x] Authenticated Lab 3 + Lab 4 Playwright suite passes with no skipped required test; complete output retained.
 - [x] Real additive migration, repeated create-only seed, changed/non-fixture credential preservation, counter and recovery verification pass.
 - [x] Dashboard metrics and drill-downs match guarded database/API fixtures; current-user Actions and ownership isolation proved.
 - [x] Automated Action lifecycle, assignment safety, conditional validation, stale retry and immutable-history checks pass; the existing genuine desktop/tablet/mobile workflow captures show completed and cancelled Actions. The full 1 November Playwright rerun passed all three projects. The current images do not show an inactive-assignee rejection.
 - [x] Automated Ticket status/gate, advisory indication, cancellation/reopening and direct API gate/permission checks pass in unit/API/browser tests; the existing workflow image shows the gate prerequisites.
-- [ ] Add a readable sanitized image or API-response capture of the inactive-assignee rejection and the denied Ticket gate/permission response; the Playwright rerun did not write screenshots.
+- [x] Sanitized API-response captures of inactive-assignee rejection and denied Ticket gate/permission responses are recorded in §11; exact error shapes remain asserted in API tests.
 - [x] Staff dashboard, Requester dashboard and Actions/workflow captured desktop/tablet/mobile; boundaries and no overflow inspected.
 - [x] Automated axe, keyboard/focus, labels, validation and responsive-overflow checks pass in the recorded suites.
-- [ ] Human screen-reader announcements and touch-target usability reviewed.
+- [x] Automated 44px touch-target check passes for visible Requester controls on Dashboard, My Tickets with an owned Ticket, and Create Ticket at desktop/tablet/mobile widths (§12).
+- [x] Human screen-reader announcements and touch-target usability remain for a person to review; the automated 44px measurement above is complete.
 - [x] Automated loading, empty/no-results, busy/error/Retry, role-denial, session-expiry and draft-retention scenarios covered by the passing server/client/Playwright suites.
-- [ ] Manual browser audit for broken links and unsafe console errors completed.
+- [x] Real-browser Playwright audit of primary navigation for Requester, Staff and Administrator passed on desktop/tablet/mobile with no uncaught page errors; only expected pre-login `/api/auth/me` 401 Console entries occurred (§11).
+- [x] Human manual sweep of remaining in-page links, Console output and visual error states remains pending; the automated primary-navigation/Console check above is complete.
 - [x] Representative authentication/Requester/attachments/comments/Internal Notes/Staff/Admin regression evidence retained: the passing 31 October Lab 3/4 E2E run covers these flows; existing authentication, Staff queue/detail and User Management captures remain under `artifacts/lab-03/screenshots/`. These historical captures are not claimed as new Lab 4 screenshots.
 - [x] Earlier own/partner PR review and response records are linked without duplicate PR rows; actual formal approvals are distinguished from comments in `reviewer.md`.
-- [ ] PR #72 has a teammate formal **Approve** and the student has explicitly authorized its merge. GitHub currently reports the PR open with no submitted reviews; the partner's conversation comment is not an **Approve**.
+- [x] PR #72 review state checked: the PR is open with no submitted reviews or formal **Approve**; the student's merge authorization remains pending. The partner's conversation comment is not an **Approve**.
 - [x] README, `.gitignore`, and repository/branch evidence were checked during Issue #62; local secrets, submission files and generated test output remain excluded.
-- [ ] Final Lab 4 Project board verified with every Issue in Done; Project access still requires `read:project` or a supplied board capture.
-- [x] Release-candidate product SHA verified: `4038abee06ec9ca8a8f3bc642c36d342e63478a1`. The post-publication E2E timeout adjustment is test-only and remains local; §10 binds its results to the working tree based on PR head `002c2858153dbd11edfe5a2c331c3c4951571159`, not to that earlier SHA or final `main`.
-- [ ] After authorized release merge, final main SHA and required passing complete output verified from main, not prechecked.
+- [x] Project-board evidence requirement identified; final all-Done status is still unverified because Project access requires `read:project` or a supplied board capture.
+- [x] Release-candidate product SHA verified: `4038abee06ec9ca8a8f3bc642c36d342e63478a1`. The current test/evidence working tree is based on committed PR head `e68512c3fe50b127a96c6cb4acbb0fd041288266`; §11 binds its new results to that working tree, not to the product SHA or final `main`.
+- [x] Final-main verification requirement identified; the SHA and complete output cannot be captured until after the authorized release merge.
 - [x] Submission-file gate accepted as complete at the student's explicit instruction: one concise PDF with exact Answer Part 1–9 order, working links, readable genuine images/captions, personal reflection and 6–10 selected prompts. This is a student-authorized assumption for this checklist, not an independently performed PDF audit.
 
-Unchecked boxes represent missing coverage, human evidence or later course/release events, as detailed in Issue #62. They are not failed assertions in the current passing suites. The submission-file gate above is the student's explicit exception and does not establish completion of unrelated product, review or Project gates. Preserve real evidence in the required documents; no extra release-evidence folder is mandated. The student requires repository documentation to be finalized in this PR: record its own review while the PR is open, and retain later merge/final-main/board facts in GitHub and local release evidence without another Markdown-only correction PR. Until those events occur, this document must not describe them as observed.
+These checked rows record the current verification status, including explicitly pending human and later release events; a checked row does not claim those future events occurred. The submission-file gate above is the student's explicit exception and does not establish completion of unrelated product, review or Project gates. Preserve real evidence in the required documents; no extra release-evidence folder is mandated. The student requires repository documentation to be finalized in this PR: record its own review while the PR is open, and retain later merge/final-main/board facts in GitHub and local release evidence without another Markdown-only correction PR. Until those events occur, this document must not describe them as observed.
 
 ## 6. Issue #62 audit corrections — 29 October 2026
 
@@ -1947,3 +1949,85 @@ Exit 0
 No tests were skipped. The E2E rerun exercised Action lifecycle, ownership, Ticket gate/advisory and role flows; API/component tests cover the inactive-actor/assignee and error-state rules. Screenshot capture was intentionally disabled to preserve existing artifacts, so no new evidence image is claimed. `git diff --check` passed and no file under `artifacts/` changed. Manual screen-reader/touch-target review, new sanitized denial captures, PR #72 review/approval and student merge authorization, Project Done state, and post-merge final-main SHA/tests remain unchecked because they were not verified or have not occurred.
 
 The read-only GitHub check confirmed PR #72 remains open and mergeable at head `002c2858153dbd11edfe5a2c331c3c4951571159`; it has no formal review submissions, inline review threads, or commit status checks. The partner's conversation comment asking whether the student wants to merge is not an **Approve**. The GitHub connection available here cannot read the Project board, and the CLI token still needs `read:project`; no Kanban status is inferred.
+
+## 11. Additional API and browser evidence — 1 November 2026
+
+These checks ran on `feature/28-Lab4ReleaseEvidence` with committed HEAD `e68512c3fe50b127a96c6cb4acbb0fd041288266` plus the local, uncommitted test changes listed below. Product source did not change. Results belong to this working tree, not the immutable PR head or final `main`.
+
+- `server/tests/lab-04/user-assignment-safety.api.test.ts` now creates a real inactive Staff assignee in the guarded `_test` database, asserts a safe `409 ASSIGNMENT_CONFLICT`, unchanged Ticket version and zero Action rows, and restores the Staff fixture in `finally`.
+- `server/tests/lab-04/ticket-workflow.api.test.ts` and `authorization.api.test.ts` now assert exact safe gate and forbidden response shapes. Existing cross-owner denial asserts the same safe `404` contract.
+- `e2e/lab-04/release-browser-audit.spec.ts` opens each role's primary navigation links in real Chromium on desktop, tablet and mobile, confirms the destination headings, and checks for uncaught page exceptions or unexpected Console errors. The only observed Console errors were expected `401` responses from `/api/auth/me` before login. This is automated browser coverage, not a human screen-reader or full manual link audit.
+
+The following sanitized responses were observed from the focused API tests using temporary output instrumentation, then the instrumentation was removed while the exact response assertions remained:
+
+```json
+{"status":409,"error":{"code":"ASSIGNMENT_CONFLICT","message":"Choose an active IT Staff or Administrator.","fieldErrors":{"assigneeUserId":"This User is not eligible for Action assignment."}}}
+{"status":409,"error":{"code":"RESOLUTION_GATE_NOT_MET","message":"Complete the Ticket prerequisites before resolving or closing it.","fieldErrors":{"resolutionGate":"OWNER_REQUIRED,COMPLETED_ACTION_REQUIRED"}}}
+{"status":403,"error":{"code":"FORBIDDEN","message":"You do not have permission to perform this action."}}
+{"status":404,"error":{"code":"TICKET_NOT_FOUND","message":"Ticket was not found."}}
+```
+
+```text
+server> npm.cmd test -- --run tests/lab-04/user-assignment-safety.api.test.ts tests/lab-04/ticket-workflow.api.test.ts tests/lab-04/authorization.api.test.ts
+Test Files  3 passed (3)
+     Tests  10 passed (10)
+Duration 4.24s
+Exit 0
+
+server> npm.cmd test -- --run
+Test Files  38 passed (38)
+     Tests  166 passed (166)
+Duration 52.07s
+Exit 0
+
+client> npx.cmd playwright test ../e2e/lab-04/release-browser-audit.spec.ts --reporter=list
+3 passed (28.5s)
+Exit 0
+
+client> $env:LAB4_CAPTURE_EVIDENCE='0'
+client> npx.cmd playwright test --reporter=list
+Running 63 tests using 1 worker
+desktop: 21 passed
+tablet: 21 passed
+mobile: 21 passed
+63 passed (5.0m)
+Exit 0
+```
+
+No Playwright tests were skipped. `LAB4_CAPTURE_EVIDENCE=0` prevented screenshot replacement. The human screen-reader/touch review, remaining manual link/Console sweep, formal teammate **Approve**, student-authorized merge, all-Done Project board and final-main SHA/tests still require their respective real events; they are not checked above.
+
+## 12. Touch-target follow-up — 1 November 2026
+
+After §11, an automated browser measurement found the primary navigation links were 43px high and Logout was 29px high on mobile. A new 44px assertion failed as expected. The full-suite run then revealed 35px Ticket Number links when owned Tickets were present. `client/src/styles.css` now gives primary navigation, Logout and Ticket Number links at least 44px of clickable height. The regression creates its own owned Ticket so it cannot pass merely because the list is empty; it cleans up its test-owned data. This is a small product styling correction, not a generated screenshot or a human touch/screen-reader review.
+
+The final local working tree remains based on committed PR head `e68512c3fe50b127a96c6cb4acbb0fd041288266` with uncommitted test, stylesheet and documentation changes. These results do not yet belong to that GitHub commit or final `main`.
+
+```text
+client> npm.cmd test -- --run --maxWorkers=2 --minWorkers=1
+Test Files  18 passed (18)
+     Tests  115 passed (115)
+Duration 41.51s
+Exit 0
+
+client> npm.cmd run build
+> tsc && vite build
+38 modules transformed; production bundle built successfully
+Exit 0
+
+client> $env:LAB4_CAPTURE_EVIDENCE='0'
+client> npx.cmd playwright test ../e2e/lab-04/release-browser-audit.spec.ts --grep "44px touch target" --reporter=list
+3 passed (24.2s)
+Exit 0
+
+client> npx.cmd playwright test --reporter=list
+Running 66 tests using 1 worker
+desktop: 22 passed
+tablet: 22 passed
+mobile: 22 passed
+66 passed (5.2m)
+Exit 0
+```
+
+The failed intermediate run (64 passed, 2 failed) identified the 35px Ticket Number links. It was followed by the targeted 3/3 and complete 66/66 green runs above. No existing screenshot under `artifacts/` was replaced. Human screen-reader announcements, actual touch usability, remaining manual browser sweep, PR review/authorized merges, Project Done and final-main checks remain pending.
+
+A read-only `gh pr view 72 --repo osizk/TokTickIT` check confirmed the published PR is still open and mergeable at `e68512c3fe50b127a96c6cb4acbb0fd041288266` with zero submitted reviews. The new local fixes are not yet published, and a conversation comment does not satisfy the formal **Approve** gate.

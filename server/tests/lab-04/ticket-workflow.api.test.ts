@@ -121,6 +121,9 @@ describe("Lab 4 Ticket workflow API", () => {
     const blocked = await agent.patch(`/api/staff/tickets/${cancellationTicketNumber}/status`).set("X-CSRF-Token", csrfToken).send({ status: "RESOLVED", expectedVersion: 0, confirm: true });
     expect(blocked.status).toBe(409);
     expect(blocked.body.error.code).toBe("RESOLUTION_GATE_NOT_MET");
+    expect(blocked.body.error.message).toBe("Complete the Ticket prerequisites before resolving or closing it.");
+    expect(blocked.body.error.fieldErrors.resolutionGate).toContain("OWNER_REQUIRED");
+    expect(blocked.body.error.fieldErrors.resolutionGate).toContain("COMPLETED_ACTION_REQUIRED");
 
     const action = await agent.post(`/api/tickets/${cancellationTicketNumber}/actions-taken`).set("X-CSRF-Token", csrfToken).send({
       clientRequestId: "33af7629-d256-48f8-9f88-c6f4bff52740",

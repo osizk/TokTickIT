@@ -158,6 +158,33 @@ describe("Lab 4 assigned Action User safety", () => {
     }
   });
 
+  it("rejects assignment to an inactive Staff User without changing the Ticket", async () => {
+    const { agent: admin, csrfToken } = await login(adminEmail);
+    const prisma = getPrisma();
+    await prisma.user.update({ where: { id: raceStaffId }, data: { isActive: false } });
+    try {
+      const response = await admin.post(`/api/tickets/${raceTicketNumber}/actions-taken`)
+        .set("X-CSRF-Token", csrfToken)
+        .send({
+          clientRequestId: "45aef69f-b47e-46e7-b0d1-1bd7d70d7f8e",
+          expectedTicketVersion: 0,
+          description: "Assign an inactive Staff User to this Action.",
+          assigneeUserId: raceStaffId,
+          followUpRequired: false,
+        });
+      expect(response.status).toBe(409);
+      expect(response.body.error).toEqual({
+        code: "ASSIGNMENT_CONFLICT",
+        message: "Choose an active IT Staff or Administrator.",
+        fieldErrors: { assigneeUserId: "This User is not eligible for Action assignment." },
+      });
+      expect(await prisma.actionTaken.count({ where: { ticketId: raceTicketId } })).toBe(0);
+      expect((await prisma.ticket.findUniqueOrThrow({ where: { id: raceTicketId } })).workflowVersion).toBe(0);
+    } finally {
+      await prisma.user.update({ where: { id: raceStaffId }, data: { isActive: true } });
+    }
+  });
+
   it("serializes a new Action assignment against User deactivation so no inactive assignee has unfinished work", async () => {
     const { agent: admin, csrfToken } = await login(adminEmail);
     const raceStaffSession = await login(raceStaffEmail);
