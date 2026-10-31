@@ -1724,7 +1724,7 @@ Historical 25 October GitHub read-only audit: PRs #63–71 had distinct entries 
 - [x] PR #72 review state checked: the PR is open with no submitted reviews or formal **Approve**; the student's merge authorization remains pending. The partner's conversation comment is not an **Approve**.
 - [x] README, `.gitignore`, and repository/branch evidence were checked during Issue #62; local secrets, submission files and generated test output remain excluded.
 - [x] Project-board evidence requirement identified; final all-Done status is still unverified because Project access requires `read:project` or a supplied board capture.
-- [x] Release-candidate product SHA verified: `4038abee06ec9ca8a8f3bc642c36d342e63478a1`. The current test/evidence working tree is based on committed PR head `e68512c3fe50b127a96c6cb4acbb0fd041288266`; §11 binds its new results to that working tree, not to the product SHA or final `main`.
+- [x] Release-candidate product SHA verified: `4038abee06ec9ca8a8f3bc642c36d342e63478a1`. The §11–12 results were run on the working tree based on `e68512c3fe50b127a96c6cb4acbb0fd041288266`; they are not results from the product SHA or final `main`.
 - [x] Final-main verification requirement identified; the SHA and complete output cannot be captured until after the authorized release merge.
 - [x] Submission-file gate accepted as complete at the student's explicit instruction: one concise PDF with exact Answer Part 1–9 order, working links, readable genuine images/captions, personal reflection and 6–10 selected prompts. This is a student-authorized assumption for this checklist, not an independently performed PDF audit.
 
@@ -1901,7 +1901,7 @@ The student explicitly authorized commit, push and PR creation as osizk, without
 
 The verified product/test/config content from §8 was committed unchanged as `4038abee06ec9ca8a8f3bc642c36d342e63478a1`. All 32 reviewed files were explicitly staged, including the recovery script; local submission files, environment files, protected bytes and transient artifacts were excluded. The recorded 131-file content checksum matched before publication; the product working-tree diff against that commit was empty. Server 165/client 115/E2E 60 and both build results were observed before this commit on identical content, not rerun after committing and not misrepresented as final-main runs.
 
-At publication, the follow-up changed only reviewer.md and tests.md to record the real PR and candidate binding. The 1 November follow-up below additionally changes one E2E test timeout after a reproducible tablet timeout; it does not alter product code or screenshot files. Distinguish the product candidate SHA above from the current uncommitted test/documentation follow-up and from final main.
+At publication, the follow-up changed only reviewer.md and tests.md to record the real PR and candidate binding. The later 1 November follow-up below changed one E2E test timeout after a reproducible tablet timeout; it did not alter product code or screenshot files. Distinguish the product candidate SHA above from later test/documentation commits and from final main.
 
 ## 10. Post-publication verification — 1 November 2026
 
@@ -2000,7 +2000,7 @@ No Playwright tests were skipped. `LAB4_CAPTURE_EVIDENCE=0` prevented screenshot
 
 After §11, an automated browser measurement found the primary navigation links were 43px high and Logout was 29px high on mobile. A new 44px assertion failed as expected. The full-suite run then revealed 35px Ticket Number links when owned Tickets were present. `client/src/styles.css` now gives primary navigation, Logout and Ticket Number links at least 44px of clickable height. The regression creates its own owned Ticket so it cannot pass merely because the list is empty; it cleans up its test-owned data. This is a small product styling correction, not a generated screenshot or a human touch/screen-reader review.
 
-The final local working tree remains based on committed PR head `e68512c3fe50b127a96c6cb4acbb0fd041288266` with uncommitted test, stylesheet and documentation changes. These results do not yet belong to that GitHub commit or final `main`.
+At the time of these checks, the working tree was based on committed PR head `e68512c3fe50b127a96c6cb4acbb0fd041288266` with test, stylesheet and documentation changes not yet committed. The results belong to that tested content, not the earlier commit or final `main`.
 
 ```text
 client> npm.cmd test -- --run --maxWorkers=2 --minWorkers=1
@@ -2030,4 +2030,4 @@ Exit 0
 
 The failed intermediate run (64 passed, 2 failed) identified the 35px Ticket Number links. It was followed by the targeted 3/3 and complete 66/66 green runs above. No existing screenshot under `artifacts/` was replaced. Human screen-reader announcements, actual touch usability, remaining manual browser sweep, PR review/authorized merges, Project Done and final-main checks remain pending.
 
-A read-only `gh pr view 72 --repo osizk/TokTickIT` check confirmed the published PR is still open and mergeable at `e68512c3fe50b127a96c6cb4acbb0fd041288266` with zero submitted reviews. The new local fixes are not yet published, and a conversation comment does not satisfy the formal **Approve** gate.
+A read-only `gh pr view 72 --repo osizk/TokTickIT` check made before the follow-up commit confirmed the PR was open and mergeable at `e68512c3fe50b127a96c6cb4acbb0fd041288266` with zero submitted reviews. Those fixes were subsequently committed and pushed as `0befd489dbaef19982faf00e277e540a2faa848a`; a conversation comment does not satisfy the formal **Approve** gate.
