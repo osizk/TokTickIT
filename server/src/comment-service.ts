@@ -6,7 +6,7 @@ import { TicketApiError } from "./ticket-service.js";
 
 const TICKET_NUMBER_PATTERN = /^TKT-\d{4}-\d{6}$/;
 
-function apiError(statusCode: 400 | 404 | 500, code: string, message: string, fieldErrors?: Record<string, string>) {
+function apiError(statusCode: 400 | 403 | 404 | 409 | 500, code: string, message: string, fieldErrors?: Record<string, string>) {
   return new TicketApiError({ statusCode, code, message, ...(fieldErrors ? { fieldErrors } : {}) });
 }
 
@@ -90,32 +90,55 @@ export function canIndicateResolution(status: string): boolean {
 }
 
 export async function indicateResolution(context: AuthContext, ticketNumber: string) {
-  const { ticket } = await findOwnedTicket(context, ticketNumber);
-  if (!canIndicateResolution(ticket.status)) {
-    throw apiError(400, "RESOLUTION_INDICATION_NOT_ALLOWED", "This Ticket cannot receive a resolution indication.");
-  }
+  const requesterId = requesterIdForContext(context);
   try {
-    const updated = await getPrisma().$transaction(async (tx) => {
-      const current = await tx.ticket.findUniqueOrThrow({ where: { id: ticket.id }, select: { resolutionIndicatedAt: true, resolutionIndicatedBy: true } });
-      if (current.resolutionIndicatedAt && current.resolutionIndicatedBy) return current;
-      return tx.ticket.update({
-        where: { id: ticket.id },
-        data: { resolutionIndicatedAt: new Date(), resolutionIndicatedByUserId: context.user.id },
-        select: { resolutionIndicatedAt: true, resolutionIndicatedBy: true },
-      });
-    });
-    if (!updated.resolutionIndicatedAt || !updated.resolutionIndicatedBy) throw new Error("missing indication");
-    return {
-      resolutionIndication: {
-        indicatedAt: updated.resolutionIndicatedAt,
-        indicatedBy: {
-          id: updated.resolutionIndicatedBy.id,
-          name: updated.resolutionIndicatedBy.name,
-          email: updated.resolutionIndicatedBy.email,
-          role: updated.resolutionIndicatedBy.role,
-        },
-      },
-    };
+    const prisma = getPrisma();
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        const updated = await prisma.$transaction(async (tx) => {
+          const activeActor = await tx.$queryRaw<Array<{ id: number }>>`
+            SELECT "id" FROM "User" WHERE "id" = ${context.user.id} AND "legacyRequesterId" = ${requesterId} AND "role" = 'REQUESTER' AND "isActive" = true FOR SHARE
+          `;
+          if (!activeActor.length) throw apiError(403, "FORBIDDEN", "An active Requester account is required.");
+          const rows = await tx.$queryRaw<Array<{ id: number }>>`
+            SELECT "id" FROM "Ticket" WHERE "ticketNumber" = ${requireTicketNumber(ticketNumber)} AND "requesterId" = ${requesterId} FOR UPDATE
+          `;
+          if (!rows.length) throw apiError(404, "TICKET_NOT_FOUND", "Ticket was not found.");
+          const current = await tx.ticket.findUniqueOrThrow({
+            where: { id: rows[0].id },
+            select: { status: true, resolutionIndicatedAt: true, resolutionIndicatedBy: true },
+          });
+          if (!canIndicateResolution(current.status)) {
+            throw apiError(400, "RESOLUTION_INDICATION_NOT_ALLOWED", "This Ticket cannot receive a resolution indication.");
+          }
+          if (current.resolutionIndicatedAt && current.resolutionIndicatedBy) return current;
+          return tx.ticket.update({
+            where: { id: rows[0].id },
+            data: { resolutionIndicatedAt: new Date(), resolutionIndicatedByUserId: context.user.id, workflowVersion: { increment: 1 } },
+            select: { resolutionIndicatedAt: true, resolutionIndicatedBy: true },
+          });
+        }, { isolationLevel: "Serializable" });
+        if (!updated.resolutionIndicatedAt || !updated.resolutionIndicatedBy) throw new Error("missing indication");
+        return {
+          resolutionIndication: {
+            indicatedAt: updated.resolutionIndicatedAt,
+            indicatedBy: {
+              id: updated.resolutionIndicatedBy.id,
+              name: updated.resolutionIndicatedBy.name,
+              email: updated.resolutionIndicatedBy.email,
+              role: updated.resolutionIndicatedBy.role,
+            },
+          },
+        };
+      } catch (error) {
+        if (error instanceof TicketApiError) throw error;
+        const record = typeof error === "object" && error !== null ? error as { code?: unknown; meta?: { code?: unknown } } : {};
+        const retryable = [record.code, record.meta?.code].some((code) => code === "P2034" || code === "40001" || code === "40P01");
+        if (!retryable) throw error;
+        if (attempt === 2) throw apiError(409, "CONCURRENT_UPDATE", "The Ticket changed concurrently. Reload and try again.");
+      }
+    }
+    throw apiError(409, "CONCURRENT_UPDATE", "The Ticket changed concurrently. Reload and try again.");
   } catch (error) {
     if (error instanceof TicketApiError) throw error;
     throw apiError(500, "RESOLUTION_INDICATION_FAILED", "Resolution indication could not be recorded.");

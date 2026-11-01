@@ -114,6 +114,7 @@ function serializeTicketDetail(ticket: TicketDetailPayload) {
     status: ticket.status,
     summary: ticket.summary,
     description: ticket.description,
+    workflowVersion: ticket.workflowVersion,
     resolutionIndication: ticket.resolutionIndicatedAt && ticket.resolutionIndicatedBy
       ? {
           indicatedAt: ticket.resolutionIndicatedAt,

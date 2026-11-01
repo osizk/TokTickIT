@@ -33,10 +33,12 @@ import {
 import { validateEmail, validatePassword } from "./auth-validation.js";
 import { createPublicComment, indicateResolution, listPublicComments } from "./comment-service.js";
 import { createInternalNote, listInternalNotes } from "./note-service.js";
+import { createActionTaken, listActionRevisions, listActionsTaken, updateActionTaken, validateActionQueryKeys } from "./actions-taken-service.js";
 import {
   getStaffTicket,
   listStaffAssignees,
   listStaffTickets,
+  listTicketWorkflowEvents,
   updateStaffAssignment,
   updateStaffPriority,
   updateStaffStatus,
@@ -48,6 +50,7 @@ import {
   updateAdminUser,
   UserManagementError,
 } from "./user-management-service.js";
+import { getRequesterDashboard, getStaffDashboard } from "./dashboard-service.js";
 
 export const app = express();
 
@@ -280,6 +283,28 @@ app.get("/api/requesters", async (req: Request, res: Response) => {
   }
 });
 
+app.get("/api/dashboard/requester", async (req: Request, res: Response) => {
+  try {
+    const { requesterId } = await requireRequester(req);
+    const result = await getRequesterDashboard(requesterId, req.query);
+    markUncached(res);
+    res.status(200).json(result);
+  } catch (error) {
+    sendTicketError(res, error);
+  }
+});
+
+app.get("/api/dashboard/staff", async (req: Request, res: Response) => {
+  try {
+    const context = await requireStaff(req);
+    const result = await getStaffDashboard(context.user.id, req.query);
+    markUncached(res);
+    res.status(200).json(result);
+  } catch (error) {
+    sendTicketError(res, error);
+  }
+});
+
 app.get("/api/staff/tickets", async (req: Request, res: Response) => {
   try {
     const context = await requireStaff(req);
@@ -371,7 +396,7 @@ app.patch("/api/staff/tickets/:ticketNumber/assignment", async (req: Request, re
     assertAllowedOrigin(req);
     const context = await requireStaff(req);
     assertCsrf(context, req);
-    const result = await updateStaffAssignment(req.params.ticketNumber, req.body);
+    const result = await updateStaffAssignment(req.params.ticketNumber, req.body, context.user.id);
     markUncached(res);
     res.status(200).json(result);
   } catch (error) {
@@ -384,7 +409,7 @@ app.patch("/api/staff/tickets/:ticketNumber/priority", async (req: Request, res:
     assertAllowedOrigin(req);
     const context = await requireStaff(req);
     assertCsrf(context, req);
-    const result = await updateStaffPriority(req.params.ticketNumber, req.body);
+    const result = await updateStaffPriority(req.params.ticketNumber, req.body, context.user.id);
     markUncached(res);
     res.status(200).json(result);
   } catch (error) {
@@ -397,7 +422,68 @@ app.patch("/api/staff/tickets/:ticketNumber/status", async (req: Request, res: R
     assertAllowedOrigin(req);
     const context = await requireStaff(req);
     assertCsrf(context, req);
-    const result = await updateStaffStatus(req.params.ticketNumber, req.body);
+    const result = await updateStaffStatus(req.params.ticketNumber, req.body, context.user.id);
+    markUncached(res);
+    res.status(200).json(result);
+  } catch (error) {
+    sendTicketError(res, error);
+  }
+});
+
+app.get("/api/tickets/:ticketNumber/workflow-events", async (req: Request, res: Response) => {
+  try {
+    const reader = await requireTicketReader(req);
+    const result = await listTicketWorkflowEvents(req.params.ticketNumber, reader.staff ? undefined : reader.requesterId, req.query as Record<string, unknown>);
+    markUncached(res);
+    res.status(200).json(result);
+  } catch (error) {
+    sendTicketError(res, error);
+  }
+});
+
+app.get("/api/tickets/:ticketNumber/actions-taken", async (req: Request, res: Response) => {
+  try {
+    const reader = await requireTicketReader(req);
+    validateActionQueryKeys(req.query as Record<string, unknown>, true);
+    const result = await listActionsTaken(reader.context, req.params.ticketNumber, req.query);
+    markUncached(res);
+    res.status(200).json(result);
+  } catch (error) {
+    sendTicketError(res, error);
+  }
+});
+
+app.post("/api/tickets/:ticketNumber/actions-taken", async (req: Request, res: Response) => {
+  try {
+    assertAllowedOrigin(req);
+    const context = await requireStaff(req);
+    assertCsrf(context, req);
+    const result = await createActionTaken(context, req.params.ticketNumber, req.body);
+    markUncached(res);
+    res.status(result.replayed ? 200 : 201).json(result);
+  } catch (error) {
+    sendTicketError(res, error);
+  }
+});
+
+app.patch("/api/tickets/:ticketNumber/actions-taken/:actionId", async (req: Request, res: Response) => {
+  try {
+    assertAllowedOrigin(req);
+    const context = await requireStaff(req);
+    assertCsrf(context, req);
+    const result = await updateActionTaken(context, req.params.ticketNumber, req.params.actionId, req.body);
+    markUncached(res);
+    res.status(200).json(result);
+  } catch (error) {
+    sendTicketError(res, error);
+  }
+});
+
+app.get("/api/tickets/:ticketNumber/actions-taken/:actionId/revisions", async (req: Request, res: Response) => {
+  try {
+    const reader = await requireTicketReader(req);
+    validateActionQueryKeys(req.query as Record<string, unknown>);
+    const result = await listActionRevisions(reader.context, req.params.ticketNumber, req.params.actionId, req.query);
     markUncached(res);
     res.status(200).json(result);
   } catch (error) {

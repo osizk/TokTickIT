@@ -52,7 +52,7 @@ describe("Lab 3 Administrator User Management", () => {
     expect(await screen.findByRole("heading", { name: "User Management" })).toBeInTheDocument();
     expect(screen.getByRole("searchbox", { name: "Search users" })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Role" })).toBeInTheDocument();
-    expect(screen.getByRole("table", { name: "Users" })).toBeInTheDocument();
+    expect(await screen.findByRole("table", { name: "Users" })).toBeInTheDocument();
     expect(screen.getAllByText("Michael Staff").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Inactive").length).toBeGreaterThan(0);
 
@@ -150,5 +150,15 @@ describe("Lab 3 Administrator User Management", () => {
     await user.click(screen.getByRole("button", { name: "Save User" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("owns Tickets");
     expect(screen.getByRole("button", { name: "Reset initial password" })).toBeInTheDocument();
+  });
+
+  it("explains that unfinished assigned Actions must be reassigned or finished before User changes", async () => {
+    vi.mocked(api.updateAdminUser).mockRejectedValueOnce(new api.ApiClientError("This User has unfinished assigned Actions and cannot be made ineligible.", 409, "USER_HAS_ACTIVE_ACTIONS"));
+    const user = userEvent.setup();
+    render(<AdminUserManagement />);
+    await user.click((await screen.findAllByRole("button", { name: "Edit Michael Staff" }))[0]);
+    await user.selectOptions(screen.getByLabelText("User role"), "REQUESTER");
+    await user.click(screen.getByRole("button", { name: "Save User" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(/reassign or finish.*Actions/i);
   });
 });

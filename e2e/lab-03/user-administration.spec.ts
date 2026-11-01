@@ -16,6 +16,8 @@ test.describe("Lab 3 Administrator User Management", () => {
   test("lists users, opens an editor, and shows a safe no-results state", async ({ page }, testInfo) => {
     await signInWithInitialPassword(page, "admin");
     await completeFirstLogin(page, "admin");
+    await expect(page).toHaveURL(/\/staff\/dashboard$/);
+    await page.goto("/admin/users");
     await expect(page).toHaveURL(/\/admin\/users$/);
     await expect(page.getByRole("heading", { name: "User Management" })).toBeVisible();
     if (testInfo.project.name === "mobile") {

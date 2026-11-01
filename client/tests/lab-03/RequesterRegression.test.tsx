@@ -57,7 +57,9 @@ describe("Lab 3 authenticated Requester UI", () => {
     await user.type(screen.getByLabelText("Password"), "Initial-Lab3!Password");
     await user.click(screen.getByRole("button", { name: "Sign in" }));
 
-    expect(await screen.findByRole("link", { name: "My Tickets" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Requester Dashboard" })).toBeInTheDocument();
+    expect(window.location.pathname).toBe("/dashboard");
+    expect(screen.getByRole("link", { name: "My Tickets" })).toBeInTheDocument();
     expect(screen.getByText("REQUESTER")).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Select Development Requester" })).not.toBeInTheDocument();
     expect(sessionStorage.length).toBe(0);
@@ -91,18 +93,18 @@ describe("Lab 3 authenticated Requester UI", () => {
     await user.type(await screen.findByLabelText("Email"), "amina@example.test");
     await user.type(screen.getByLabelText("Password"), "Initial-Lab3!Password");
     await user.click(screen.getByRole("button", { name: "Sign in" }));
-    expect(await screen.findByRole("heading", { name: "My Tickets" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Requester Dashboard" })).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Logout" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("Unable to sign out");
-    expect(screen.getByRole("heading", { name: "My Tickets" })).toBeInTheDocument();
+    expect(await screen.findByText("Unable to sign out. Please try again.")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Requester Dashboard" })).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Retry logout" }));
     expect(await screen.findByRole("heading", { name: "Sign in" })).toBeInTheDocument();
     expect(logoutAttempts).toBe(2);
   });
 
-  it("redirects to Login when a protected Ticket request returns SESSION_REQUIRED after sign-in", async () => {
+  it("redirects to Login when a protected dashboard request returns SESSION_REQUIRED after sign-in", async () => {
     setPath("/login");
     const user = userEvent.setup();
     vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => {
@@ -110,7 +112,7 @@ describe("Lab 3 authenticated Requester UI", () => {
       if (url.endsWith("/api/auth/me")) return Promise.resolve(new Response(JSON.stringify({ error: { code: "SESSION_REQUIRED", message: "Authentication is required." } }), { status: 401, headers: { "Content-Type": "application/json" } }));
       if (url.endsWith("/api/auth/login")) return Promise.resolve(new Response(JSON.stringify({ user: { id: 101, name: "Amina Rahman", email: "amina@example.test", role: "REQUESTER", isActive: true, mustChangePassword: false }, csrfToken: "csrf-test-token" }), { status: 200, headers: { "Content-Type": "application/json" } }));
       if (url.endsWith("/api/categories") || url.endsWith("/api/related-systems")) return Promise.resolve(new Response("[]", { status: 200, headers: { "Content-Type": "application/json" } }));
-      if (url.includes("/api/tickets?")) return Promise.resolve(new Response(JSON.stringify({ error: { code: "SESSION_REQUIRED", message: "Authentication is required." } }), { status: 401, headers: { "Content-Type": "application/json" } }));
+      if (url.endsWith("/api/dashboard/requester")) return Promise.resolve(new Response(JSON.stringify({ error: { code: "SESSION_REQUIRED", message: "Authentication is required." } }), { status: 401, headers: { "Content-Type": "application/json" } }));
       return Promise.resolve(new Response(JSON.stringify({ error: { code: "NOT_EXPECTED", message: "Unexpected request" } }), { status: 500, headers: { "Content-Type": "application/json" } }));
     }));
 
@@ -136,6 +138,52 @@ describe("Lab 3 authenticated Requester UI", () => {
     expect(window.location.pathname).toBe("/login");
   });
 
+  it("returns a successfully authenticated Requester to a permitted deep link", async () => {
+    setPath("/tickets/new?source=bookmark");
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/api/auth/me")) return Promise.resolve(new Response(JSON.stringify({ error: { code: "SESSION_REQUIRED", message: "Authentication is required." } }), { status: 401, headers: { "Content-Type": "application/json" } }));
+      if (url.endsWith("/api/auth/login") && init?.method === "POST") return Promise.resolve(new Response(JSON.stringify({ user: { id: 101, name: "Amina Rahman", email: "amina@example.test", role: "REQUESTER", isActive: true, mustChangePassword: false }, csrfToken: "csrf-test-token" }), { status: 200, headers: { "Content-Type": "application/json" } }));
+      if (url.endsWith("/api/categories") || url.endsWith("/api/related-systems")) return Promise.resolve(new Response("[]", { status: 200, headers: { "Content-Type": "application/json" } }));
+      return Promise.resolve(new Response(JSON.stringify({ error: { code: "NOT_EXPECTED", message: "Unexpected request" } }), { status: 500, headers: { "Content-Type": "application/json" } }));
+    }));
+
+    render(<App />);
+    await user.type(await screen.findByLabelText("Email"), "amina@example.test");
+    await user.type(screen.getByLabelText("Password"), "Initial-Lab3!Password");
+    await user.click(screen.getByRole("button", { name: "Sign in" }));
+
+    expect(await screen.findByRole("heading", { name: "Create Ticket" })).toBeInTheDocument();
+    expect(window.location.pathname).toBe("/tickets/new");
+    expect(window.location.search).toBe("?source=bookmark");
+  });
+
+  it("returns a restored session through mandatory password change to its permitted deep link", async () => {
+    const deepLink = "/tickets/new?source=bookmark#attachments";
+    setPath(deepLink);
+    const initialUser = { id: 101, name: "Amina Rahman", email: "amina@example.test", role: "REQUESTER", isActive: true, mustChangePassword: true };
+    const updatedUser = { ...initialUser, mustChangePassword: false };
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/api/auth/me")) return Promise.resolve(new Response(JSON.stringify({ user: initialUser, csrfToken: "csrf-test-token" }), { status: 200, headers: { "Content-Type": "application/json" } }));
+      if (url.endsWith("/api/auth/change-password") && init?.method === "POST") return Promise.resolve(new Response(JSON.stringify({ user: updatedUser, csrfToken: "csrf-test-token" }), { status: 200, headers: { "Content-Type": "application/json" } }));
+      if (url.endsWith("/api/categories") || url.endsWith("/api/related-systems")) return Promise.resolve(new Response("[]", { status: 200, headers: { "Content-Type": "application/json" } }));
+      return Promise.resolve(new Response(JSON.stringify({ error: { code: "NOT_EXPECTED", message: "Unexpected request" } }), { status: 500, headers: { "Content-Type": "application/json" } }));
+    }));
+
+    render(<App />);
+    await screen.findByRole("heading", { name: "Change Password" });
+    await user.type(screen.getByLabelText("Current password"), "Initial-Lab3!Password");
+    await user.type(screen.getByLabelText("New password"), "Renewed-Lab4!Pass2026");
+    await user.type(screen.getByLabelText("Confirm new password"), "Renewed-Lab4!Pass2026");
+    await user.click(screen.getByRole("button", { name: "Save password" }));
+
+    expect(await screen.findByRole("heading", { name: "Create Ticket" })).toBeInTheDocument();
+    expect(`${window.location.pathname}${window.location.search}${window.location.hash}`).toBe(deepLink);
+  });
+
   it("ignores a stale initial session restore after a successful Login", async () => {
     setPath("/login");
     const user = userEvent.setup();
@@ -156,14 +204,14 @@ describe("Lab 3 authenticated Requester UI", () => {
     await user.type(screen.getByLabelText("Email"), "amina@example.test");
     await user.type(screen.getByLabelText("Password"), "Initial-Lab3!Password");
     await user.click(screen.getByRole("button", { name: "Sign in" }));
-    expect(await screen.findByRole("heading", { name: "My Tickets" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Requester Dashboard" })).toBeInTheDocument();
 
     resolveRestore(new Response(JSON.stringify({ error: { code: "SESSION_REQUIRED", message: "Authentication is required." } }), { status: 401, headers: { "Content-Type": "application/json" } }));
-    await waitFor(() => expect(screen.getByRole("heading", { name: "My Tickets" })).toBeInTheDocument());
-    expect(window.location.pathname).toBe("/tickets");
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Requester Dashboard" })).toBeInTheDocument());
+    expect(window.location.pathname).toBe("/dashboard");
   });
 
-  it.each(["/staff/tickets", "/staff/tickets/TKT-2026-000001", "/admin/users"])("redirects unauthenticated direct role route %s to Login", async (path) => {
+  it.each(["/dashboard", "/staff/dashboard", "/staff/tickets", "/staff/tickets/TKT-2026-000001", "/admin/users"])("redirects unauthenticated direct role route %s to Login", async (path) => {
     setPath(path);
     vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => {
       if (String(input).endsWith("/api/auth/me")) return Promise.resolve(new Response(JSON.stringify({ error: { code: "SESSION_REQUIRED", message: "Authentication is required." } }), { status: 401, headers: { "Content-Type": "application/json" } }));

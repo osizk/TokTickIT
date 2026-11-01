@@ -1,34 +1,34 @@
 import request from "supertest";
 import { app } from "../../src/app.js";
+import { createSession, sessionCookie } from "../../src/auth-service.js";
 import { getPrisma } from "../../src/prisma.js";
 
-/**
- * Adapt inherited Lab 2 integration tests to the Lab 3 authenticated session
- * contract. The password is supplied only by the disposable test environment;
- * it is never committed or written into a test file.
- */
+const fixtureSessionIds = new Map<number, number[]>();
+const originalPasswordGates = new Map<number, boolean>();
+
+/** Adapt inherited Lab 2 integration tests to the Lab 3 authenticated session contract. */
 export async function loginRequesterByLegacyId(legacyRequesterId: number) {
   const requester = await getPrisma().requester.findUnique({
     where: { id: legacyRequesterId },
     include: { legacyUser: true },
   });
-  const password = process.env.LAB3_REQUESTER_INITIAL_PASSWORD;
-  if (!requester?.legacyUser || !password) {
-    throw new Error("A migrated Requester and LAB3_REQUESTER_INITIAL_PASSWORD are required for authenticated regression tests.");
+  if (!requester?.legacyUser) {
+    throw new Error("A migrated Requester is required for authenticated regression tests.");
   }
   // These inherited Lab 2 suites exercise the already-usable Ticket and
-  // Attachment screens. The dedicated Lab 3 auth tests cover the first-login
-  // gate; mark this disposable fixture as having completed that gate so the
-  // continuity assertions reach the protected resource handlers.
+  // Attachment screens. Create their session directly so prior manual password
+  // changes in the disposable database cannot break unrelated continuity tests.
+  if (!originalPasswordGates.has(legacyRequesterId)) {
+    originalPasswordGates.set(legacyRequesterId, requester.legacyUser.mustChangePassword);
+  }
   if (requester.legacyUser.mustChangePassword) {
     await getPrisma().user.update({ where: { id: requester.legacyUser.id }, data: { mustChangePassword: false } });
   }
+  const { token, csrfToken, session } = await createSession(requester.legacyUser.id);
   const agent = request.agent(app);
-  const response = await agent.post("/api/auth/login").send({ email: requester.legacyUser.email, password });
-  if (response.status !== 200) {
-    throw new Error(`Unable to authenticate inherited Requester test fixture (HTTP ${response.status}).`);
-  }
-  return { agent, csrfToken: response.body.csrfToken as string, user: requester.legacyUser };
+  agent.jar.setCookie(sessionCookie(token), "127.0.0.1", "/");
+  fixtureSessionIds.set(legacyRequesterId, [...(fixtureSessionIds.get(legacyRequesterId) ?? []), session.id]);
+  return { agent, csrfToken, user: requester.legacyUser };
 }
 
 export async function loginSeedRequester() {
@@ -39,6 +39,17 @@ export async function loginSeedRequester() {
 export async function restoreRequesterFirstLogin(legacyRequesterId: number): Promise<void> {
   const requester = await getPrisma().requester.findUnique({ where: { id: legacyRequesterId }, include: { legacyUser: true } });
   if (requester?.legacyUser) {
-    await getPrisma().user.update({ where: { id: requester.legacyUser.id }, data: { mustChangePassword: true } });
+    const sessionIds = fixtureSessionIds.get(legacyRequesterId) ?? [];
+    if (sessionIds.length) {
+      await getPrisma().session.deleteMany({ where: { id: { in: sessionIds } } });
+      fixtureSessionIds.delete(legacyRequesterId);
+    }
+    if (originalPasswordGates.has(legacyRequesterId)) {
+      await getPrisma().user.update({
+        where: { id: requester.legacyUser.id },
+        data: { mustChangePassword: originalPasswordGates.get(legacyRequesterId) },
+      });
+      originalPasswordGates.delete(legacyRequesterId);
+    }
   }
 }

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import TicketDetail from "../../src/TicketDetail.js";
 import * as api from "../../src/api.js";
@@ -17,6 +17,7 @@ const ticket: api.TicketDetail = {
   description: "The VPN connection fails after entering valid credentials.",
   createdAt: "2026-08-27T08:30:00.000Z",
   updatedAt: "2026-08-27T09:30:00.000Z",
+  workflowVersion: 0,
 };
 const activeAttachment: api.TicketAttachment = {
   id: 11,
@@ -44,6 +45,11 @@ describe("Ticket Detail", () => {
     vi.spyOn(api, "fetchTicket").mockResolvedValue(ticket);
     vi.spyOn(api, "fetchTicketAttachments").mockResolvedValue([activeAttachment, removedAttachment]);
     vi.spyOn(api, "fetchTicketComments").mockResolvedValue([]);
+    vi.spyOn(api, "fetchActionsTaken").mockResolvedValue({
+      actions: [],
+      pagination: { page: 1, pageSize: 25, totalItems: 0, totalPages: 0, hasPreviousPage: false, hasNextPage: false },
+      ticketVersion: 0,
+    });
   });
 
   afterEach(() => {
@@ -51,10 +57,15 @@ describe("Ticket Detail", () => {
   });
 
   it("shows owned read-only fields and excludes staff workflow fields", async () => {
+    const localDate = Date.prototype.toLocaleString;
+    vi.spyOn(Date.prototype, "toLocaleString").mockImplementation(function (this: Date, locales, options) {
+      return localDate.call(this, locales, { timeZone: "UTC", ...options });
+    });
     render(<TicketDetail requester={requester} ticketNumber={ticket.ticketNumber} navigate={vi.fn()} />);
 
     expect(await screen.findByRole("heading", { name: "Ticket Detail" })).toBeInTheDocument();
-    expect(screen.getByLabelText("Ticket Number")).toHaveValue(ticket.ticketNumber);
+    expect(await screen.findByLabelText("Ticket Number")).toHaveValue(ticket.ticketNumber);
+    expect(screen.getByLabelText("Ticket Date")).toHaveValue(new Date(ticket.createdAt).toLocaleString(undefined, { timeZone: "Asia/Bangkok" }));
     expect(screen.getByLabelText("Requester")).toHaveValue("Amina Rahman (amina@example.test)");
     expect(screen.getByLabelText("Category")).toHaveValue("Hardware");
     expect(screen.getByLabelText("Related System")).toHaveValue("Network");
@@ -66,7 +77,10 @@ describe("Ticket Detail", () => {
       expect(screen.getByLabelText(field)).toHaveAttribute("readonly");
     }
     expect(screen.getByRole("heading", { name: "Public Comments" })).toBeInTheDocument();
-    expect(screen.queryByText(/Actions Taken|Internal Notes/)).not.toBeInTheDocument();
+    const actions = screen.getByRole("region", { name: "Actions Taken" });
+    expect(await screen.findByText("No Actions Taken have been recorded for this Ticket.")).toBeInTheDocument();
+    expect(within(actions).queryByRole("button", { name: /Create Action|Edit Action|Start Work|Complete Action|Cancel Action/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Internal Notes" })).not.toBeInTheDocument();
   });
 
   it("keeps Ticket and Attachment loading states independent and offers safe retry", async () => {

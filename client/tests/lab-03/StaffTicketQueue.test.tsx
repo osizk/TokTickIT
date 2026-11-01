@@ -41,6 +41,7 @@ const queueResponse: api.StaffTicketResponse = {
       resolutionIndication: null,
       createdAt: "2026-08-27T08:30:00.000Z",
       updatedAt: "2026-08-27T09:30:00.000Z",
+      workflowVersion: 0,
     },
     {
       id: 2,
@@ -57,12 +58,19 @@ const queueResponse: api.StaffTicketResponse = {
       resolutionIndication: null,
       createdAt: "2026-08-26T08:30:00.000Z",
       updatedAt: "2026-08-26T09:30:00.000Z",
+      workflowVersion: 0,
     },
   ],
   pagination: { page: 1, pageSize: 10, totalItems: 2, totalPages: 1, hasPreviousPage: false, hasNextPage: false },
 };
+const detailTicket: api.StaffTicketDetail = {
+  ...queueResponse.items[0],
+  allowedTransitions: ["IN_PROGRESS", "WAITING_FOR_REQUESTER", "RESOLVED", "CANCELLED"],
+  resolutionGate: { canResolve: true, canClose: false, unmetConditions: [] },
+};
 
-async function openQueue(user: ReturnType<typeof userEvent.setup>) {
+async function openQueue(user: ReturnType<typeof userEvent.setup>, path = "/staff/tickets") {
+  window.history.replaceState({}, "", path);
   render(<App />);
   await user.type(await screen.findByLabelText("Email"), staff.email);
   await user.type(screen.getByLabelText("Password"), "Initial-Lab3!Password");
@@ -79,10 +87,16 @@ describe("Lab 3 Staff Ticket Queue", () => {
     vi.spyOn(api, "fetchRelatedSystems").mockResolvedValue(systems);
     vi.spyOn(api, "fetchStaffAssignees").mockResolvedValue(assignees);
     vi.spyOn(api, "fetchStaffTickets").mockResolvedValue(queueResponse);
-    vi.spyOn(api, "fetchStaffTicket").mockResolvedValue(queueResponse.items[0]);
+    vi.spyOn(api, "fetchStaffTicket").mockResolvedValue(detailTicket);
+    vi.spyOn(api, "fetchTicketWorkflowEvents").mockResolvedValue({ events: [], pagination: { page: 1, pageSize: 25, totalItems: 0, totalPages: 0, hasPreviousPage: false, hasNextPage: false } });
     vi.spyOn(api, "fetchTicketAttachments").mockResolvedValue([]);
     vi.spyOn(api, "fetchTicketComments").mockResolvedValue([]);
     vi.spyOn(api, "fetchInternalNotes").mockResolvedValue([]);
+    vi.spyOn(api, "fetchActionsTaken").mockResolvedValue({
+      actions: [],
+      pagination: { page: 1, pageSize: 25, totalItems: 0, totalPages: 0, hasPreviousPage: false, hasNextPage: false },
+      ticketVersion: 1,
+    });
   });
 
   afterEach(() => {
@@ -91,6 +105,10 @@ describe("Lab 3 Staff Ticket Queue", () => {
   });
 
   it("renders queue controls, priorities, ownership, table, and mobile cards", async () => {
+    const Formatter = Intl.DateTimeFormat;
+    vi.spyOn(Intl, "DateTimeFormat").mockImplementation(function (locales, options) {
+      return new Formatter(locales, { timeZone: "UTC", ...options });
+    } as typeof Intl.DateTimeFormat);
     const user = userEvent.setup();
     await openQueue(user);
 
@@ -100,6 +118,8 @@ describe("Lab 3 Staff Ticket Queue", () => {
       expect(screen.getByRole("combobox", { name: label })).toBeInTheDocument();
     }
     expect(screen.getAllByText("Campus Wi-Fi disconnects")).toHaveLength(2);
+    const bangkokDate = new Formatter(undefined, { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Bangkok" }).format(new Date(queueResponse.items[0].updatedAt));
+    expect(screen.getAllByText(bangkokDate)).toHaveLength(2);
     expect(screen.getAllByText("URGENT").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Unassigned").length).toBeGreaterThan(0);
     expect(screen.getByRole("region", { name: "Mobile staff ticket cards" })).toBeInTheDocument();
@@ -133,6 +153,21 @@ describe("Lab 3 Staff Ticket Queue", () => {
     expect(fetchSpy).toHaveBeenLastCalledWith(expect.objectContaining({
       search: "Amina", categoryId: 10, requestedPriority: "HIGH", itPriority: "URGENT", status: "IN_PROGRESS", owner: "unassigned", sort: "itPriority", order: "asc", page: 1, pageSize: 25,
     }));
+  });
+
+  it("applies Staff dashboard ownership, Action and date filters from a deep link", async () => {
+    const user = userEvent.setup();
+    const fetchSpy = vi.mocked(api.fetchStaffTickets);
+    await openQueue(user, "/staff/tickets?statusGroup=active&owner=me&actionAssignee=me&updatedSince=2026-10-05T12%3A00%3A00.000Z&updatedBefore=2026-10-12T12%3A00%3A00.000Z");
+
+    expect(await screen.findByText(/Tickets with your active Actions.*Tickets in the selected dashboard time window/)).toBeInTheDocument();
+    await waitFor(() => expect(fetchSpy).toHaveBeenLastCalledWith(expect.objectContaining({
+      statusGroup: "active",
+      owner: "me",
+      actionAssignee: "me",
+      updatedSince: "2026-10-05T12:00:00.000Z",
+      updatedBefore: "2026-10-12T12:00:00.000Z",
+    })));
   });
 
   it("opens a queue Ticket in the staff detail route", async () => {

@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import request from "supertest";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { app } from "../../src/app.js";
@@ -90,32 +90,39 @@ describe("Lab 3 Staff Ticket operations API", () => {
     await getPrisma().$disconnect();
   });
 
+  beforeEach(async () => {
+    const prisma = getPrisma();
+    const ticket = await prisma.ticket.findUniqueOrThrow({ where: { ticketNumber }, select: { id: true } });
+    await prisma.ticketWorkflowEvent.deleteMany({ where: { ticketId: ticket.id } });
+    await prisma.ticket.update({ where: { id: ticket.id }, data: { ticketOwnerId: null, itPriority: "LOW", status: "NEW", resolutionIndicatedAt: null, resolutionIndicatedByUserId: null, workflowVersion: 0 } });
+  });
+
   it("assigns, reassigns, and unassigns only active eligible staff", async () => {
     const assigned = await staffA
       .patch(`/api/staff/tickets/${ticketNumber}/assignment`)
       .set("X-CSRF-Token", staffACsrf)
-      .send({ ownerUserId: staffBId });
+      .send({ ownerUserId: staffBId, expectedVersion: 0 });
     expect(assigned.status).toBe(200);
     expect(assigned.body.ticket.ticketOwner.id).toBe(staffBId);
 
     const missingConfirmation = await staffA
       .patch(`/api/staff/tickets/${ticketNumber}/assignment`)
       .set("X-CSRF-Token", staffACsrf)
-      .send({ ownerUserId: staffAId });
+      .send({ ownerUserId: staffAId, expectedVersion: 1 });
     expect(missingConfirmation.status).toBe(400);
     expect(missingConfirmation.body.error.code).toBe("VALIDATION_ERROR");
 
     const inactive = await staffA
       .patch(`/api/staff/tickets/${ticketNumber}/assignment`)
       .set("X-CSRF-Token", staffACsrf)
-      .send({ ownerUserId: inactiveStaffId, confirm: true });
+      .send({ ownerUserId: inactiveStaffId, confirm: true, expectedVersion: 1 });
     expect(inactive.status).toBe(409);
     expect(inactive.body.error.code).toBe("ASSIGNMENT_CONFLICT");
 
     const unassigned = await staffA
       .patch(`/api/staff/tickets/${ticketNumber}/assignment`)
       .set("X-CSRF-Token", staffACsrf)
-      .send({ ownerUserId: null, confirm: true });
+      .send({ ownerUserId: null, confirm: true, expectedVersion: 1 });
     expect(unassigned.status).toBe(200);
     expect(unassigned.body.ticket.ticketOwner).toBeNull();
   });
@@ -124,14 +131,14 @@ describe("Lab 3 Staff Ticket operations API", () => {
     const response = await staffA
       .patch(`/api/staff/tickets/${ticketNumber}/priority`)
       .set("X-CSRF-Token", staffACsrf)
-      .send({ itPriority: "URGENT" });
+      .send({ itPriority: "URGENT", expectedVersion: 0 });
     expect(response.status).toBe(200);
     expect(response.body.ticket).toMatchObject({ requestedPriority: "HIGH", itPriority: "URGENT" });
 
     const invalid = await staffA
       .patch(`/api/staff/tickets/${ticketNumber}/priority`)
       .set("X-CSRF-Token", staffACsrf)
-      .send({ itPriority: "CRITICAL" });
+      .send({ itPriority: "CRITICAL", expectedVersion: 1 });
     expect(invalid.status).toBe(400);
     expect(invalid.body.error.code).toBe("VALIDATION_ERROR");
   });
@@ -140,21 +147,22 @@ describe("Lab 3 Staff Ticket operations API", () => {
     const open = await staffA
       .patch(`/api/staff/tickets/${ticketNumber}/status`)
       .set("X-CSRF-Token", staffACsrf)
-      .send({ status: "OPEN" });
+      .send({ status: "OPEN", expectedVersion: 0 });
     expect(open.status).toBe(200);
 
     const needsConfirmation = await staffA
       .patch(`/api/staff/tickets/${ticketNumber}/status`)
       .set("X-CSRF-Token", staffACsrf)
-      .send({ status: "RESOLVED" });
+      .send({ status: "RESOLVED", expectedVersion: 1 });
     expect(needsConfirmation.status).toBe(400);
     expect(needsConfirmation.body.error.code).toBe("VALIDATION_ERROR");
 
     const resolved = await staffA
       .patch(`/api/staff/tickets/${ticketNumber}/status`)
       .set("X-CSRF-Token", staffACsrf)
-      .send({ status: "RESOLVED", confirm: true });
-    expect(resolved.status).toBe(200);
+      .send({ status: "RESOLVED", expectedVersion: 1, confirm: true });
+    expect(resolved.status).toBe(409);
+    expect(resolved.body.error.code).toBe("RESOLUTION_GATE_NOT_MET");
 
     const indication = await requester
       .post(`/api/tickets/${ticketNumber}/resolution-indication`)
@@ -162,20 +170,14 @@ describe("Lab 3 Staff Ticket operations API", () => {
       .send({});
     expect(indication.status).toBe(200);
     expect(indication.body.resolutionIndication).toBeTruthy();
+    expect((await staffA.get(`/api/staff/tickets/${ticketNumber}`)).body.ticket).toMatchObject({ status: "OPEN", workflowVersion: 2 });
 
     const invalid = await staffA
       .patch(`/api/staff/tickets/${ticketNumber}/status`)
       .set("X-CSRF-Token", staffACsrf)
-      .send({ status: "IN_PROGRESS" });
+      .send({ status: "NEW", expectedVersion: 2 });
     expect(invalid.status).toBe(409);
     expect(invalid.body.error.code).toBe("INVALID_STATUS_TRANSITION");
-
-    const reopened = await staffA
-      .patch(`/api/staff/tickets/${ticketNumber}/status`)
-      .set("X-CSRF-Token", staffACsrf)
-      .send({ status: "REOPENED", confirm: true });
-    expect(reopened.status).toBe(200);
-    expect(reopened.body.ticket.resolutionIndication).toBeNull();
   });
 
   it("preserves attachment read continuity for staff and protects mutations by role", async () => {

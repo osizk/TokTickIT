@@ -82,6 +82,25 @@ function isUniqueConstraint(error: unknown): boolean {
   return typeof error === "object" && error !== null && (error as { code?: unknown }).code === "P2002";
 }
 
+function isSerializableConflict(error: unknown): boolean {
+  if (typeof error !== "object" || error === null) return false;
+  const record = error as { code?: unknown; meta?: { code?: unknown } };
+  return [record.code, record.meta?.code].some((code) => code === "P2034" || code === "40001" || code === "40P01");
+}
+
+async function serializableUserUpdate<T>(operation: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
+  const prisma = getPrisma();
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      return await prisma.$transaction(operation, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    } catch (error) {
+      if (!isSerializableConflict(error)) throw error;
+      if (attempt === 2) throw new UserManagementError(409, "CONCURRENT_UPDATE", "The User changed concurrently. Reload and try again.");
+    }
+  }
+  throw new UserManagementError(409, "CONCURRENT_UPDATE", "The User changed concurrently. Reload and try again.");
+}
+
 function unavailable(code: string, message: string): UserManagementError {
   return new UserManagementError(500, code, message);
 }
@@ -205,7 +224,10 @@ export async function updateAdminUser(actorId: number, rawUserId: string, input:
   const userId = parseUserId(rawUserId);
   const changes = parseUpdateInput(input);
   try {
-    const result = await getPrisma().$transaction(async (tx) => {
+    const result = await serializableUserUpdate(async (tx) => {
+      // Serialize eligibility changes with Action assignment. Assignment holds
+      // a compatible FOR SHARE lock on this User until its Action commits.
+      await tx.$queryRaw<Array<{ id: number }>>`SELECT "id" FROM "User" WHERE "id" = ${userId} FOR UPDATE`;
       const target = await tx.user.findUnique({ where: { id: userId } });
       if (!target) throw new UserManagementError(404, "USER_NOT_FOUND", "User was not found.");
       const nextRole = changes.role ?? target.role;
@@ -222,6 +244,10 @@ export async function updateAdminUser(actorId: number, rawUserId: string, input:
       if (makesOwnerIneligible) {
         const ownedTickets = await tx.ticket.count({ where: { ticketOwnerId: userId } });
         if (ownedTickets > 0) throw new UserManagementError(409, "USER_OWNS_TICKETS", "This User owns Tickets and cannot be made ineligible.");
+        const unfinishedActions = await tx.actionTaken.count({
+          where: { assigneeUserId: userId, status: { in: ["OPEN", "IN_PROGRESS"] } },
+        });
+        if (unfinishedActions > 0) throw new UserManagementError(409, "USER_HAS_ACTIVE_ACTIONS", "This User has unfinished assigned Actions and cannot be made ineligible.");
       }
       const data: Prisma.UserUpdateInput = {
         ...(changes.name !== undefined ? { name: changes.name } : {}),
@@ -253,7 +279,7 @@ export async function updateAdminUser(actorId: number, rawUserId: string, input:
         await tx.session.updateMany({ where: { userId, revokedAt: null }, data: { revokedAt: new Date() } });
       }
       return updated;
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    });
     return { user: safeManagedUser(result) };
   } catch (error) {
     if (error instanceof UserManagementError) throw error;

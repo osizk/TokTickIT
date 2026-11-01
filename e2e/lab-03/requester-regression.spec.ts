@@ -22,7 +22,9 @@ test.describe("Lab 3 authenticated Requester regression", () => {
 
   test("creates an owned Ticket, preserves the attachment lifecycle, and keeps notes private", async ({ page, browser }, testInfo) => {
     await loginAs(page, "requesterA");
-    await expect(page).toHaveURL(/\/tickets$/);
+    await expect(page).toHaveURL(/\/dashboard$/);
+    await expect(page.getByRole("heading", { name: "Requester Dashboard" })).toBeVisible();
+    await page.goto("/tickets");
     await expect(page.getByRole("heading", { name: "My Tickets" })).toBeVisible();
     await new AxeBuilder({ page }).analyze().then((result) => expect(result.violations).toEqual([]));
     await assertNoHorizontalOverflow(page);
@@ -98,7 +100,7 @@ test.describe("Lab 3 authenticated Requester regression", () => {
 
     await loginAs(page, "requesterA");
     await page.goto("/select-requester");
-    await expect(page).toHaveURL(/\/tickets$/);
+    await expect(page).toHaveURL(/\/dashboard$/);
     await expect(page.getByRole("heading", { name: "Select Development Requester" })).toHaveCount(0);
     expect(await page.evaluate(() => window.sessionStorage.getItem("selectedRequesterId"))).toBeNull();
   });

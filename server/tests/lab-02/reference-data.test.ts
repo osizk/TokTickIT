@@ -2,7 +2,7 @@ import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import request from "supertest";
 import { app } from "../../src/app.js";
 import * as prismaModule from "../../src/prisma.js";
-import { loginSeedRequester, restoreRequesterFirstLogin } from "../lab-03/requester-test-auth.js";
+import { loginRequesterByLegacyId, loginSeedRequester, restoreRequesterFirstLogin } from "../lab-03/requester-test-auth.js";
 
 describe("Lab 2 reference-data APIs", () => {
   afterAll(async () => {
@@ -13,6 +13,27 @@ describe("Lab 2 reference-data APIs", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it("preserves an already-completed first-login gate after using a compatibility session", async () => {
+    const prisma = prismaModule.getPrisma();
+    const requester = await prisma.requester.findFirstOrThrow({ where: { isActive: true }, orderBy: { id: "asc" } });
+    const user = await prisma.user.findUniqueOrThrow({ where: { legacyRequesterId: requester.id } });
+    const originalGate = user.mustChangePassword;
+    await prisma.user.update({ where: { id: user.id }, data: { mustChangePassword: false } });
+    let restoredGate: boolean | undefined;
+
+    try {
+      const { agent } = await loginRequesterByLegacyId(requester.id);
+      expect((await agent.get("/api/categories")).status).toBe(200);
+      await restoreRequesterFirstLogin(requester.id);
+      restoredGate = (await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).mustChangePassword;
+    } finally {
+      await restoreRequesterFirstLogin(requester.id);
+      await prisma.user.update({ where: { id: user.id }, data: { mustChangePassword: originalGate } });
+    }
+
+    expect(restoredGate).toBe(false);
   });
 
   it("returns only active categories in stable id order", async () => {
@@ -46,32 +67,39 @@ describe("Lab 2 reference-data APIs", () => {
   });
 
   it("returns only active requesters with safe public fields", async () => {
+    const prisma = prismaModule.getPrisma();
+    const activeRequesters = await prisma.requester.findMany({
+      where: { isActive: true },
+      orderBy: [{ id: "asc" }],
+      select: { id: true, name: true, email: true },
+    });
     const { agent } = await loginSeedRequester();
     const res = await agent.get("/api/requesters");
 
     expect(res.status).toBe(200);
-    expect(res.body).toHaveLength(4);
-    expect(res.body).toEqual(
-      expect.arrayContaining([
-        { id: expect.any(Number), name: "Amina Rahman", email: "amina@example.test" },
-        { id: expect.any(Number), name: "Ben Carter", email: "ben@example.test" },
-        { id: expect.any(Number), name: "Chloe Nguyen", email: "chloe@example.test" },
-        { id: expect.any(Number), name: "Davi Santos", email: "davi@example.test" },
-      ]),
-    );
+    expect(res.body).toEqual(activeRequesters);
     expect(res.body.every((item: Record<string, unknown>) => Object.keys(item).sort().join(",") === "email,id,name")).toBe(true);
+    expect(res.body).toEqual(expect.arrayContaining([
+      { id: expect.any(Number), name: "Amina Rahman", email: "amina@example.test" },
+      { id: expect.any(Number), name: "Ben Carter", email: "ben@example.test" },
+      { id: expect.any(Number), name: "Chloe Nguyen", email: "chloe@example.test" },
+      { id: expect.any(Number), name: "Davi Santos", email: "davi@example.test" },
+    ]));
   });
 
   it("keeps the one inactive seed requester out of the public response", async () => {
     const prisma = prismaModule.getPrisma();
-    const total = await prisma.requester.count();
-    const inactive = await prisma.requester.count({ where: { isActive: false } });
+    const seedRows = await prisma.requester.findMany({
+      where: { email: { in: ["amina@example.test", "ben@example.test", "chloe@example.test", "davi@example.test", "erin@example.test"] } },
+      select: { email: true, isActive: true },
+    });
     const { agent } = await loginSeedRequester();
     const res = await agent.get("/api/requesters");
 
-    expect(total).toBe(5);
-    expect(inactive).toBe(1);
-    expect(res.body).toHaveLength(4);
+    expect(seedRows).toHaveLength(5);
+    expect(seedRows.filter((requester) => requester.isActive)).toHaveLength(4);
+    expect(seedRows.find((requester) => requester.email === "erin@example.test")?.isActive).toBe(false);
+    expect(res.body.some((requester: { email: string }) => requester.email === "erin@example.test")).toBe(false);
   });
 
   it("returns a structured safe error when a reference query fails", async () => {

@@ -15,6 +15,8 @@ import {
   indicateTicketResolution,
   removeTicketAttachment,
 } from "./api.js";
+import ActionsTaken from "./ActionsTaken.js";
+import TicketWorkflow from "./TicketWorkflow.js";
 
 const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
 const MIME_BY_EXTENSION: Record<string, string> = {
@@ -100,7 +102,7 @@ function readFileBytes(file: File): Promise<Uint8Array> {
 
 function formatDate(value: string): string {
   const date = new Date(value);
-  return Number.isNaN(date.valueOf()) ? value : date.toLocaleString();
+  return Number.isNaN(date.valueOf()) ? value : date.toLocaleString(undefined, { timeZone: "Asia/Bangkok" });
 }
 
 function formatBytes(value: number): string {
@@ -339,7 +341,7 @@ export default function TicketDetail({ requester, ticketNumber, navigate }: Tick
   async function handleResolutionIndication() {
     if (resolutionSubmitting) return;
     setResolutionSubmitting(true); setResolutionMessage(null);
-    try { await indicateTicketResolution(requester.id, ticketNumber); setResolutionMessage("Problem marked as appearing resolved. Ticket status is unchanged."); }
+    try { await indicateTicketResolution(requester.id, ticketNumber); setResolutionMessage("Problem marked as appearing resolved. Ticket status is unchanged."); setTicketRetry((value) => value + 1); }
     catch (error) { setResolutionMessage(actionErrorMessage(error, "Unable to record the resolution indication.")); }
     finally { setResolutionSubmitting(false); }
   }
@@ -350,7 +352,7 @@ export default function TicketDetail({ requester, ticketNumber, navigate }: Tick
         <div>
           <p className="zen-eyebrow">Requester workspace</p>
           <h1 id="ticket-detail-heading">Ticket Detail</h1>
-          <p className="zen-lead">Review your Ticket and manage its supporting Attachments.</p>
+          <p className="zen-lead">Review your Ticket, Actions Taken, and supporting Attachments.</p>
         </div>
         <button className="zen-button zen-button-secondary" type="button" onClick={() => navigate("/tickets")}>Back to My Tickets</button>
       </div>
@@ -376,6 +378,8 @@ export default function TicketDetail({ requester, ticketNumber, navigate }: Tick
         </div>
       )}
 
+      {ticketState === "success" && ticket && <TicketWorkflow ticketNumber={ticketNumber} status={ticket.status} workflowVersion={ticket.workflowVersion} resolutionIndication={ticket.resolutionIndication ?? null} />}
+
       <section className="zen-comment-section" aria-labelledby="public-comments-heading">
         <div className="zen-section-heading"><div><p className="zen-eyebrow">Requester communication</p><h2 id="public-comments-heading">Public Comments</h2></div></div>
         {commentState === "loading" && <p className="zen-state zen-state-info" role="status">Loading Public Comments...</p>}
@@ -388,6 +392,8 @@ export default function TicketDetail({ requester, ticketNumber, navigate }: Tick
         </form>
         <div className="zen-resolution-action"><button className="zen-button zen-button-secondary" type="button" onClick={() => void handleResolutionIndication()} disabled={resolutionSubmitting}>{resolutionSubmitting ? "Saving..." : "Problem appears resolved"}</button>{resolutionMessage && <p className="zen-state zen-state-success" role="status">{resolutionMessage}</p>}</div>
       </section>
+
+      <ActionsTaken ticketNumber={ticketNumber} readOnly />
 
       <section className="zen-attachment-section" aria-labelledby="ticket-attachments-heading">
         <div className="zen-section-heading">

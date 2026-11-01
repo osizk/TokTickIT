@@ -25,6 +25,8 @@ test.describe("Lab 3 IT Staff queue and Ticket detail", () => {
   test("shows the responsive staff queue and preserves searchable URL controls", async ({ page }, testInfo) => {
     await signInWithInitialPassword(page, "staff");
     await completeFirstLogin(page, "staff");
+    await expect(page).toHaveURL(/\/staff\/dashboard$/);
+    await page.goto("/staff/tickets");
     await expect(page).toHaveURL(/\/staff\/tickets$/);
     await expect(page.getByRole("heading", { name: "Ticket Queue" })).toBeVisible();
     await expect(page.getByLabel("Search Tickets")).toBeVisible();
@@ -50,7 +52,7 @@ test.describe("Lab 3 IT Staff queue and Ticket detail", () => {
     let ticketNumber = "";
     try {
       await loginAs(requesterPage, "requesterA");
-      await requesterPage.getByRole("link", { name: "Create Ticket from My Tickets" }).click();
+      await requesterPage.getByRole("link", { name: "Create Ticket", exact: true }).click();
       await requesterPage.getByLabel("Category").selectOption({ label: "Hardware" });
       await requesterPage.getByLabel("Related System").selectOption({ label: "Laptop Fleet" });
       await requesterPage.getByLabel("Requested Priority").selectOption("MEDIUM");

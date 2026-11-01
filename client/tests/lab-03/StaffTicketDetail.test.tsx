@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import StaffTicketDetail from "../../src/StaffTicketDetail.js";
 import * as api from "../../src/api.js";
 
-const ticket: api.StaffTicket = {
+const ticket: api.StaffTicketDetail = {
   id: 1,
   ticketNumber: "TKT-2026-000001",
   requester: { id: 1, name: "Amina Rahman", email: "amina@example.test" },
@@ -17,8 +17,11 @@ const ticket: api.StaffTicket = {
   description: "The connection drops repeatedly during class.",
   ticketOwner: { id: 8, name: "Michael Brown", email: "michael@example.com", role: "IT_STAFF" },
   resolutionIndication: null,
+  workflowVersion: 0,
   createdAt: "2026-09-13T10:00:00.000Z",
   updatedAt: "2026-09-13T10:05:00.000Z",
+  allowedTransitions: ["IN_PROGRESS", "WAITING_FOR_REQUESTER", "RESOLVED", "CANCELLED"],
+  resolutionGate: { canResolve: true, canClose: false, unmetConditions: [] },
 };
 const assignees: api.StaffAssignee[] = [
   { id: 8, name: "Michael Brown", email: "michael@example.test", role: "IT_STAFF" },
@@ -32,6 +35,8 @@ describe("Lab 3 Staff Ticket Detail operations", () => {
     vi.spyOn(api, "fetchTicketAttachments").mockResolvedValue([]);
     vi.spyOn(api, "fetchTicketComments").mockResolvedValue([]);
     vi.spyOn(api, "fetchInternalNotes").mockResolvedValue([]);
+    vi.spyOn(api, "fetchTicketWorkflowEvents").mockResolvedValue({ events: [], pagination: { page: 1, pageSize: 25, totalItems: 0, totalPages: 0, hasPreviousPage: false, hasNextPage: false } });
+    vi.spyOn(api, "fetchActionsTaken").mockResolvedValue({ actions: [], pagination: { page: 1, pageSize: 25, totalItems: 0, totalPages: 0, hasPreviousPage: false, hasNextPage: false }, ticketVersion: 0 });
     vi.spyOn(api, "updateStaffTicketAssignment").mockResolvedValue({ ...ticket, ticketOwner: assignees[0] });
     vi.spyOn(api, "updateStaffTicketPriority").mockResolvedValue({ ...ticket, itPriority: "URGENT" });
     vi.spyOn(api, "updateStaffTicketStatus").mockResolvedValue({ ...ticket, status: "RESOLVED" });
@@ -42,15 +47,46 @@ describe("Lab 3 Staff Ticket Detail operations", () => {
   afterEach(() => vi.restoreAllMocks());
 
   it("renders the staff operation controls and keeps comments and notes distinct", async () => {
+    const localDate = Date.prototype.toLocaleString;
+    vi.spyOn(Date.prototype, "toLocaleString").mockImplementation(function (this: Date, locales, options) {
+      return localDate.call(this, locales, { timeZone: "UTC", ...options });
+    });
     render(<StaffTicketDetail ticketNumber={ticket.ticketNumber} currentUserId={8} navigate={vi.fn()} />);
     expect(await screen.findByRole("heading", { name: "Staff Ticket Detail" })).toBeInTheDocument();
     expect(await screen.findByRole("heading", { name: "Ticket Operations" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Ticket Date")).toHaveValue(new Date(ticket.createdAt).toLocaleString(undefined, { timeZone: "Asia/Bangkok" }));
     expect(screen.getByRole("combobox", { name: "Assignee" })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "IT Priority" })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Status" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Public Comments" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Internal Notes" })).toBeInTheDocument();
     expect(screen.getByText("Never shown to Requesters.")).toBeInTheDocument();
+  });
+
+  it("does not mount Actions while the Ticket is loading", async () => {
+    vi.mocked(api.fetchStaffTicket).mockReturnValueOnce(new Promise(() => {}));
+    render(<StaffTicketDetail ticketNumber={ticket.ticketNumber} currentUserId={8} navigate={vi.fn()} />);
+    await act(async () => {});
+    expect(screen.getByText("Loading Staff Ticket Detail...")).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Actions Taken" })).not.toBeInTheDocument();
+    expect(api.fetchActionsTaken).not.toHaveBeenCalled();
+  });
+
+  it.each([403, 404, 500])("does not mount Actions when Ticket loading returns %s", async (status) => {
+    vi.mocked(api.fetchStaffTicket).mockRejectedValueOnce(new api.ApiClientError("Safe error", status));
+    render(<StaffTicketDetail ticketNumber={ticket.ticketNumber} currentUserId={8} navigate={vi.fn()} />);
+    await screen.findByRole("alert", { name: "Staff Ticket detail loading error" });
+    expect(screen.queryByRole("region", { name: "Actions Taken" })).not.toBeInTheDocument();
+    expect(api.fetchActionsTaken).not.toHaveBeenCalled();
+  });
+
+  it.each(["RESOLVED", "CLOSED", "CANCELLED"] as const)("keeps Actions Taken read-only on a %s Ticket", async (status) => {
+    vi.mocked(api.fetchStaffTicket).mockResolvedValueOnce({ ...ticket, status });
+    render(<StaffTicketDetail ticketNumber={ticket.ticketNumber} currentUserId={8} navigate={vi.fn()} />);
+
+    const actions = await screen.findByRole("region", { name: "Actions Taken" });
+    expect(await within(actions).findByText("No Actions Taken have been recorded for this Ticket.")).toBeInTheDocument();
+    expect(within(actions).queryByRole("button", { name: "Create Action" })).not.toBeInTheDocument();
   });
 
   it("requires confirmation for reassignment and terminal status changes", async () => {
@@ -62,13 +98,13 @@ describe("Lab 3 Staff Ticket Detail operations", () => {
     await user.click(screen.getByRole("button", { name: "Assign / Reassign" }));
     expect(await screen.findByRole("dialog", { name: "Confirm reassignment" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Confirm" }));
-    await waitFor(() => expect(api.updateStaffTicketAssignment).toHaveBeenCalledWith(ticket.ticketNumber, 9, true));
+    await waitFor(() => expect(api.updateStaffTicketAssignment).toHaveBeenCalledWith(ticket.ticketNumber, 9, 0, true));
 
     await user.selectOptions(screen.getByRole("combobox", { name: "Status" }), "RESOLVED");
     await user.click(screen.getByRole("button", { name: "Save Status" }));
     expect(await screen.findByRole("dialog", { name: "Change status to RESOLVED?" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Confirm" }));
-    await waitFor(() => expect(api.updateStaffTicketStatus).toHaveBeenCalledWith(ticket.ticketNumber, "RESOLVED", true));
+    await waitFor(() => expect(api.updateStaffTicketStatus).toHaveBeenCalledWith(ticket.ticketNumber, "RESOLVED", 0, true, undefined));
   });
 
   it("posts a public comment and a staff-only internal note", async () => {

@@ -236,7 +236,7 @@ export interface CreatedTicket {
   attachments: TicketAttachment[];
 }
 
-export type TicketDetail = Omit<CreatedTicket, "attachments"> & { resolutionIndication?: ResolutionIndication | null };
+export type TicketDetail = Omit<CreatedTicket, "attachments"> & { resolutionIndication?: ResolutionIndication | null; workflowVersion: number };
 
 export interface CreateTicketInput {
   categoryId: number;
@@ -270,10 +270,63 @@ export interface TicketListQuery {
   relatedSystemId?: number;
   priority?: TicketPriority;
   status?: TicketStatus;
+  statusGroup?: "active";
+  updatedSince?: string;
+  updatedBefore?: string;
   sort: TicketListSort;
   order: TicketListOrder;
   page: number;
   pageSize: TicketListPageSize;
+}
+
+export interface DashboardRecentWindow {
+  from: string;
+  through: string;
+}
+
+export interface DashboardTicketLink {
+  id: number;
+  ticketNumber: string;
+  summary: string;
+  status: TicketStatus;
+  requestedPriority: TicketPriority;
+  itPriority: TicketPriority;
+  updatedAt: string;
+}
+
+export interface StaffDashboardTicketLink extends DashboardTicketLink {
+  requester: Requester;
+  ticketOwner: StaffAssignee | null;
+}
+
+export interface AssignedActionLink {
+  id: number;
+  ticketNumber: string;
+  ticketSummary: string;
+  description: string;
+  status: Extract<ActionStatus, "OPEN" | "IN_PROGRESS">;
+  updatedAt: string;
+}
+
+export interface RequesterDashboard {
+  generatedAt: string;
+  timezone: "Asia/Bangkok";
+  recentWindow: DashboardRecentWindow;
+  metrics: { activeTicketCount: number; waitingForRequesterCount: number; resolvedCount: number; closedCount: number };
+  recentTickets: DashboardTicketLink[];
+  attentionTickets: DashboardTicketLink[];
+}
+
+export interface StaffDashboard {
+  generatedAt: string;
+  timezone: "Asia/Bangkok";
+  recentWindow: DashboardRecentWindow;
+  metrics: { unassignedActiveTicketCount: number; myOwnedActiveTicketCount: number; urgentActiveTicketCount: number; ticketsWithMyActiveActionsCount: number };
+  statusCounts: Record<TicketStatus, number>;
+  itPriorityCounts: Record<TicketPriority, number>;
+  myActions: AssignedActionLink[];
+  recentTickets: StaffDashboardTicketLink[];
+  urgentTickets: StaffDashboardTicketLink[];
 }
 
 export interface TicketListPagination {
@@ -308,6 +361,91 @@ export interface StaffAssignee {
   role: "IT_STAFF" | "ADMINISTRATOR";
 }
 
+export type ActionStatus = "OPEN" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+export type ActionIdentity = Pick<AuthUser, "id" | "name" | "email" | "role">;
+
+export interface ActionTaken {
+  id: number;
+  ticketNumber: string;
+  description: string;
+  result: string | null;
+  followUpRequired: boolean;
+  followUpNote: string | null;
+  attachmentNotes: string | null;
+  status: ActionStatus;
+  cancellationReason: string | null;
+  assignee: StaffAssignee;
+  createdBy: ActionIdentity;
+  performedBy: ActionIdentity | null;
+  createdAt: string;
+  updatedAt: string;
+  completedAt: string | null;
+  cancelledAt: string | null;
+  version: number;
+}
+
+export interface ActionSnapshot {
+  description: string;
+  result: string | null;
+  followUpRequired: boolean;
+  followUpNote: string | null;
+  attachmentNotes: string | null;
+  status: ActionStatus;
+  cancellationReason: string | null;
+  assigneeUserId: number;
+  createdByUserId: number;
+  performedByUserId: number | null;
+  createdAt: string;
+  updatedAt: string;
+  completedAt: string | null;
+  cancelledAt: string | null;
+  version: number;
+}
+
+export interface ActionRevision {
+  id: number;
+  actionId: number;
+  revisionNumber: number;
+  actor: ActionIdentity;
+  changedAt: string;
+  snapshot: ActionSnapshot;
+}
+
+export interface ActionListResponse {
+  actions: ActionTaken[];
+  pagination: TicketListPagination;
+  ticketVersion: number;
+}
+
+export interface ActionRevisionResponse {
+  revisions: ActionRevision[];
+  pagination: TicketListPagination;
+}
+
+export interface CreateActionTakenInput {
+  clientRequestId: string;
+  expectedTicketVersion: number;
+  description: string;
+  assigneeUserId?: number;
+  result?: string;
+  followUpRequired: boolean;
+  followUpNote?: string;
+  attachmentNotes?: string;
+}
+
+export interface UpdateActionTakenInput {
+  expectedTicketVersion: number;
+  expectedActionVersion: number;
+  description?: string;
+  assigneeUserId?: number;
+  result?: string;
+  followUpRequired?: boolean;
+  followUpNote?: string;
+  attachmentNotes?: string;
+  status?: ActionStatus;
+  cancellationReason?: string;
+}
+
 export interface StaffTicket {
   id: number;
   ticketNumber: string;
@@ -321,8 +459,36 @@ export interface StaffTicket {
   description: string;
   ticketOwner: StaffAssignee | null;
   resolutionIndication: ResolutionIndication | null;
+  workflowVersion: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export type ResolutionGateReason = "OWNER_REQUIRED" | "OWNER_INELIGIBLE" | "COMPLETED_ACTION_REQUIRED" | "UNFINISHED_ACTIONS" | "FOLLOW_UP_REQUIRED";
+export interface ResolutionGate {
+  canResolve: boolean;
+  canClose: boolean;
+  unmetConditions: ResolutionGateReason[];
+}
+export interface StaffTicketDetail extends StaffTicket {
+  allowedTransitions: TicketStatus[];
+  resolutionGate: ResolutionGate;
+}
+
+export interface TicketWorkflowEvent {
+  id: number;
+  ticketNumber: string;
+  actor: ActionIdentity;
+  fromStatus: TicketStatus;
+  toStatus: TicketStatus;
+  reason: string | null;
+  workflowVersion: number;
+  createdAt: string;
+}
+
+export interface TicketWorkflowHistory {
+  events: TicketWorkflowEvent[];
+  pagination: TicketListPagination;
 }
 
 export interface StaffTicketQuery {
@@ -332,6 +498,10 @@ export interface StaffTicketQuery {
   requestedPriority?: TicketPriority;
   itPriority?: TicketPriority;
   status?: TicketStatus;
+  statusGroup?: "active";
+  updatedSince?: string;
+  updatedBefore?: string;
+  actionAssignee?: "me";
   owner?: StaffTicketOwner;
   sort: StaffTicketSort;
   order: TicketListOrder;
@@ -533,7 +703,8 @@ function isTicketDetail(value: unknown): value is TicketDetail {
     typeof candidate.summary === "string" &&
     typeof candidate.description === "string" &&
     typeof candidate.createdAt === "string" &&
-    typeof candidate.updatedAt === "string"
+    typeof candidate.updatedAt === "string" &&
+    typeof candidate.workflowVersion === "number" && Number.isSafeInteger(candidate.workflowVersion) && candidate.workflowVersion >= 0
   );
 }
 
@@ -625,10 +796,76 @@ function isStaffAssignee(value: unknown): value is StaffAssignee {
   );
 }
 
+function isActionIdentity(value: unknown): value is ActionIdentity {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  return typeof candidate.id === "number" && Number.isSafeInteger(candidate.id) && candidate.id > 0 &&
+    typeof candidate.name === "string" && candidate.name.trim().length > 0 &&
+    typeof candidate.email === "string" && candidate.email.trim().length > 0 &&
+    ["REQUESTER", "IT_STAFF", "ADMINISTRATOR"].includes(candidate.role as string);
+}
+
+function isActionTaken(value: unknown): value is ActionTaken {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  return typeof candidate.id === "number" && Number.isSafeInteger(candidate.id) && candidate.id > 0 &&
+    typeof candidate.ticketNumber === "string" && /^TKT-\d{4}-\d{6}$/.test(candidate.ticketNumber) &&
+    typeof candidate.description === "string" && (candidate.result === null || typeof candidate.result === "string") &&
+    typeof candidate.followUpRequired === "boolean" && (candidate.followUpNote === null || typeof candidate.followUpNote === "string") &&
+    (candidate.attachmentNotes === null || typeof candidate.attachmentNotes === "string") &&
+    ["OPEN", "IN_PROGRESS", "COMPLETED", "CANCELLED"].includes(candidate.status as string) &&
+    (candidate.cancellationReason === null || typeof candidate.cancellationReason === "string") &&
+    isStaffAssignee(candidate.assignee) && isActionIdentity(candidate.createdBy) &&
+    (candidate.performedBy === null || isActionIdentity(candidate.performedBy)) &&
+    typeof candidate.createdAt === "string" && typeof candidate.updatedAt === "string" &&
+    (candidate.completedAt === null || typeof candidate.completedAt === "string") &&
+    (candidate.cancelledAt === null || typeof candidate.cancelledAt === "string") &&
+    typeof candidate.version === "number" && Number.isSafeInteger(candidate.version) && candidate.version >= 0;
+}
+
+function isActionSnapshot(value: unknown): value is ActionSnapshot {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  return typeof candidate.description === "string" && (candidate.result === null || typeof candidate.result === "string") &&
+    typeof candidate.followUpRequired === "boolean" && (candidate.followUpNote === null || typeof candidate.followUpNote === "string") &&
+    (candidate.attachmentNotes === null || typeof candidate.attachmentNotes === "string") &&
+    ["OPEN", "IN_PROGRESS", "COMPLETED", "CANCELLED"].includes(candidate.status as string) &&
+    (candidate.cancellationReason === null || typeof candidate.cancellationReason === "string") &&
+    typeof candidate.assigneeUserId === "number" && Number.isSafeInteger(candidate.assigneeUserId) && candidate.assigneeUserId > 0 &&
+    typeof candidate.createdByUserId === "number" && Number.isSafeInteger(candidate.createdByUserId) && candidate.createdByUserId > 0 &&
+    (candidate.performedByUserId === null || (typeof candidate.performedByUserId === "number" && Number.isSafeInteger(candidate.performedByUserId) && candidate.performedByUserId > 0)) &&
+    typeof candidate.createdAt === "string" && typeof candidate.updatedAt === "string" &&
+    (candidate.completedAt === null || typeof candidate.completedAt === "string") &&
+    (candidate.cancelledAt === null || typeof candidate.cancelledAt === "string") &&
+    typeof candidate.version === "number" && Number.isSafeInteger(candidate.version) && candidate.version >= 0;
+}
+
+function isActionRevision(value: unknown): value is ActionRevision {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  return typeof candidate.id === "number" && Number.isSafeInteger(candidate.id) && candidate.id > 0 &&
+    typeof candidate.actionId === "number" && Number.isSafeInteger(candidate.actionId) && candidate.actionId > 0 &&
+    typeof candidate.revisionNumber === "number" && Number.isSafeInteger(candidate.revisionNumber) && candidate.revisionNumber > 0 &&
+    isActionIdentity(candidate.actor) && typeof candidate.changedAt === "string" && isActionSnapshot(candidate.snapshot);
+}
+
 function isResolutionIndication(value: unknown): value is ResolutionIndication {
   if (typeof value !== "object" || value === null) return false;
   const candidate = value as Record<string, unknown>;
   return typeof candidate.indicatedAt === "string" && isRequester(candidate.indicatedBy);
+}
+
+function isResolutionGate(value: unknown): value is ResolutionGate {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  const allowed = ["OWNER_REQUIRED", "OWNER_INELIGIBLE", "COMPLETED_ACTION_REQUIRED", "UNFINISHED_ACTIONS", "FOLLOW_UP_REQUIRED"];
+  return typeof candidate.canResolve === "boolean" && typeof candidate.canClose === "boolean" && Array.isArray(candidate.unmetConditions) && candidate.unmetConditions.every((reason) => allowed.includes(reason as string));
+}
+
+function isStaffTicketDetail(value: unknown): value is StaffTicketDetail {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  return isStaffTicket(value) && Array.isArray(candidate.allowedTransitions) && candidate.allowedTransitions.every(isTicketStatus) && isResolutionGate(candidate.resolutionGate);
 }
 
 function isStaffTicket(value: unknown): value is StaffTicket {
@@ -643,7 +880,8 @@ function isStaffTicket(value: unknown): value is StaffTicket {
     isTicketStatus(candidate.status) && typeof candidate.summary === "string" && typeof candidate.description === "string" &&
     (candidate.ticketOwner === null || isStaffAssignee(candidate.ticketOwner)) &&
     (candidate.resolutionIndication === null || isResolutionIndication(candidate.resolutionIndication)) &&
-    typeof candidate.createdAt === "string" && typeof candidate.updatedAt === "string"
+    typeof candidate.createdAt === "string" && typeof candidate.updatedAt === "string" &&
+    typeof candidate.workflowVersion === "number" && Number.isSafeInteger(candidate.workflowVersion) && candidate.workflowVersion >= 0
   );
 }
 
@@ -651,6 +889,80 @@ function isStaffTicketResponse(value: unknown): value is StaffTicketResponse {
   if (typeof value !== "object" || value === null) return false;
   const candidate = value as Record<string, unknown>;
   return Array.isArray(candidate.items) && candidate.items.every(isStaffTicket) && isTicketListPagination(candidate.pagination);
+}
+
+function isDashboardTicketLink(value: unknown): value is DashboardTicketLink {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  return typeof candidate.id === "number" && Number.isSafeInteger(candidate.id) && candidate.id > 0 &&
+    typeof candidate.ticketNumber === "string" && /^TKT-\d{4}-\d{6}$/.test(candidate.ticketNumber) &&
+    typeof candidate.summary === "string" && isTicketStatus(candidate.status) &&
+    ["LOW", "MEDIUM", "HIGH", "URGENT"].includes(candidate.requestedPriority as string) &&
+    ["LOW", "MEDIUM", "HIGH", "URGENT"].includes(candidate.itPriority as string) && typeof candidate.updatedAt === "string";
+}
+
+function isStaffDashboardTicketLink(value: unknown): value is StaffDashboardTicketLink {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  return isDashboardTicketLink(value) && isRequester(candidate.requester) &&
+    (candidate.ticketOwner === null || isStaffAssignee(candidate.ticketOwner));
+}
+
+function isDashboardWindow(value: unknown): value is DashboardRecentWindow {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  return typeof candidate.from === "string" && Number.isFinite(Date.parse(candidate.from)) &&
+    typeof candidate.through === "string" && Number.isFinite(Date.parse(candidate.through));
+}
+
+function isCount(value: unknown): value is number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
+}
+
+function isDashboardEnvelope(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  return typeof candidate.generatedAt === "string" && Number.isFinite(Date.parse(candidate.generatedAt)) &&
+    candidate.timezone === "Asia/Bangkok" && isDashboardWindow(candidate.recentWindow);
+}
+
+function isRequesterDashboard(value: unknown): value is RequesterDashboard {
+  if (!isDashboardEnvelope(value)) return false;
+  const raw = value as Record<string, unknown>;
+  if (typeof raw.metrics !== "object" || raw.metrics === null) return false;
+  const candidate = value as unknown as RequesterDashboard;
+  return [candidate.metrics.activeTicketCount, candidate.metrics.waitingForRequesterCount, candidate.metrics.resolvedCount, candidate.metrics.closedCount].every(isCount) &&
+    Array.isArray(candidate.recentTickets) && candidate.recentTickets.length <= 5 && candidate.recentTickets.every(isDashboardTicketLink) &&
+    Array.isArray(candidate.attentionTickets) && candidate.attentionTickets.length <= 5 && candidate.attentionTickets.every(isDashboardTicketLink);
+}
+
+function isStaffDashboard(value: unknown): value is StaffDashboard {
+  if (!isDashboardEnvelope(value)) return false;
+  const raw = value as Record<string, unknown>;
+  if (typeof raw.metrics !== "object" || raw.metrics === null || typeof raw.statusCounts !== "object" || raw.statusCounts === null || typeof raw.itPriorityCounts !== "object" || raw.itPriorityCounts === null) return false;
+  const candidate = value as unknown as StaffDashboard;
+  const metricCounts = [candidate.metrics.unassignedActiveTicketCount, candidate.metrics.myOwnedActiveTicketCount, candidate.metrics.urgentActiveTicketCount, candidate.metrics.ticketsWithMyActiveActionsCount];
+  const statuses: TicketStatus[] = ["NEW", "OPEN", "IN_PROGRESS", "WAITING_FOR_REQUESTER", "RESOLVED", "CLOSED", "REOPENED", "CANCELLED"];
+  const priorities: TicketPriority[] = ["LOW", "MEDIUM", "HIGH", "URGENT"];
+  return metricCounts.every(isCount) && statuses.every((status) => isCount(candidate.statusCounts?.[status])) &&
+    priorities.every((priority) => isCount(candidate.itPriorityCounts?.[priority])) &&
+    Array.isArray(candidate.myActions) && candidate.myActions.length <= 5 && candidate.myActions.every((action) =>
+      typeof action.id === "number" && Number.isSafeInteger(action.id) && action.id > 0 && /^TKT-\d{4}-\d{6}$/.test(action.ticketNumber) &&
+      typeof action.ticketSummary === "string" && typeof action.description === "string" && (action.status === "OPEN" || action.status === "IN_PROGRESS") && Number.isFinite(Date.parse(action.updatedAt))) &&
+    Array.isArray(candidate.recentTickets) && candidate.recentTickets.length <= 5 && candidate.recentTickets.every(isStaffDashboardTicketLink) &&
+    Array.isArray(candidate.urgentTickets) && candidate.urgentTickets.length <= 5 && candidate.urgentTickets.every(isStaffDashboardTicketLink);
+}
+
+export async function fetchRequesterDashboard(): Promise<RequesterDashboard> {
+  const body = await actionRequest("/api/dashboard/requester", { headers: authenticatedHeaders() }, "Unable to load your dashboard.");
+  if (!isRequesterDashboard(body)) throw new ApiClientError("Unable to load your dashboard.", 200);
+  return body;
+}
+
+export async function fetchStaffDashboard(): Promise<StaffDashboard> {
+  const body = await actionRequest("/api/dashboard/staff", { headers: authenticatedHeaders() }, "Unable to load the Staff dashboard.");
+  if (!isStaffDashboard(body)) throw new ApiClientError("Unable to load the Staff dashboard.", 200);
+  return body;
 }
 
 export async function fetchStaffTickets(query: StaffTicketQuery): Promise<StaffTicketResponse> {
@@ -661,6 +973,10 @@ export async function fetchStaffTickets(query: StaffTicketQuery): Promise<StaffT
   if (query.requestedPriority) params.set("requestedPriority", query.requestedPriority);
   if (query.itPriority) params.set("itPriority", query.itPriority);
   if (query.status) params.set("status", query.status);
+  if (query.statusGroup) params.set("statusGroup", query.statusGroup);
+  if (query.updatedSince) params.set("updatedSince", query.updatedSince);
+  if (query.updatedBefore) params.set("updatedBefore", query.updatedBefore);
+  if (query.actionAssignee) params.set("actionAssignee", query.actionAssignee);
   if (query.owner !== undefined) params.set("owner", String(query.owner));
   params.set("sort", query.sort);
   params.set("order", query.order);
@@ -685,7 +1001,7 @@ export async function fetchStaffTickets(query: StaffTicketQuery): Promise<StaffT
   return body;
 }
 
-export async function fetchStaffTicket(ticketNumber: string): Promise<StaffTicket> {
+export async function fetchStaffTicket(ticketNumber: string): Promise<StaffTicketDetail> {
   if (!ticketNumber) throw new ApiClientError("Unable to load Staff Ticket.", 400);
   let response: Response;
   try {
@@ -702,10 +1018,32 @@ export async function fetchStaffTicket(ticketNumber: string): Promise<StaffTicke
     throw new ApiClientError("Unable to load Staff Ticket.", response.status, details.code, details.fieldErrors);
   }
   const result = body as { ticket?: unknown } | null;
-  if (!result || !isStaffTicket(result.ticket)) {
+  if (!result || !isStaffTicketDetail(result.ticket)) {
     throw new ApiClientError("Unable to load Staff Ticket.", response.status);
   }
   return result.ticket;
+}
+
+function isTicketWorkflowEvent(value: unknown): value is TicketWorkflowEvent {
+  if (typeof value !== "object" || value === null) return false;
+  const event = value as Record<string, unknown>;
+  return typeof event.id === "number" && Number.isSafeInteger(event.id) && event.id > 0 &&
+    typeof event.ticketNumber === "string" && /^TKT-\d{4}-\d{6}$/.test(event.ticketNumber) &&
+    isActionIdentity(event.actor) && isTicketStatus(event.fromStatus) && isTicketStatus(event.toStatus) &&
+    (event.reason === null || typeof event.reason === "string") &&
+    typeof event.workflowVersion === "number" && Number.isSafeInteger(event.workflowVersion) && event.workflowVersion > 0 &&
+    typeof event.createdAt === "string";
+}
+
+export async function fetchTicketWorkflowEvents(ticketNumber: string, page = 1, pageSize: TicketListPageSize = 25): Promise<TicketWorkflowHistory> {
+  if (!ticketNumber) throw new ApiClientError("Unable to load Ticket workflow history.", 400);
+  const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
+  const body = await actionRequest(`/api/tickets/${encodeURIComponent(ticketNumber)}/workflow-events?${params}`, { headers: authenticatedHeaders() }, "Unable to load Ticket workflow history.");
+  const result = body as { events?: unknown; pagination?: unknown } | null;
+  if (!result || !Array.isArray(result.events) || !result.events.every(isTicketWorkflowEvent) || !isTicketListPagination(result.pagination)) {
+    throw new ApiClientError("Unable to load Ticket workflow history.", 200);
+  }
+  return result as TicketWorkflowHistory;
 }
 
 export async function fetchStaffAssignees(): Promise<StaffAssignee[]> {
@@ -722,6 +1060,84 @@ export async function fetchStaffAssignees(): Promise<StaffAssignee[]> {
   }
   if (!Array.isArray(body) || !body.every(isStaffAssignee)) throw new ApiClientError("Unable to load assignees.", response.status);
   return body;
+}
+
+async function actionRequest(path: string, init: RequestInit, fallback: string): Promise<unknown> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}${path}`, { credentials: "include", ...init });
+  } catch {
+    throw new ApiClientError(fallback, 0);
+  }
+  const body = await parseResponseBody(response);
+  if (!response.ok) {
+    const details = readApiError(body);
+    throw new ApiClientError(details.message ?? fallback, response.status, details.code, details.fieldErrors);
+  }
+  return body;
+}
+
+export async function fetchActionsTaken(
+  ticketNumber: string,
+  page = 1,
+  pageSize: TicketListPageSize = 25,
+  focusActionId?: number,
+): Promise<ActionListResponse> {
+  if (!ticketNumber) throw new ApiClientError("Unable to load Actions Taken.", 400);
+  const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
+  if (focusActionId !== undefined) params.set("focusActionId", String(focusActionId));
+  const body = await actionRequest(`/api/tickets/${encodeURIComponent(ticketNumber)}/actions-taken?${params}`, { headers: authenticatedHeaders() }, "Unable to load Actions Taken.");
+  const result = body as { actions?: unknown; pagination?: unknown; ticketVersion?: unknown } | null;
+  if (!result || !Array.isArray(result.actions) || !result.actions.every(isActionTaken) ||
+    !isTicketListPagination(result.pagination) || typeof result.ticketVersion !== "number" ||
+    !Number.isSafeInteger(result.ticketVersion) || result.ticketVersion < 0) {
+    throw new ApiClientError("Unable to load Actions Taken.", 200);
+  }
+  return result as ActionListResponse;
+}
+
+export async function createActionTaken(ticketNumber: string, input: CreateActionTakenInput): Promise<{ action: ActionTaken; ticketVersion: number; replayed: boolean }> {
+  if (!ticketNumber) throw new ApiClientError("Unable to save Action.", 400);
+  const body = await actionRequest(`/api/tickets/${encodeURIComponent(ticketNumber)}/actions-taken`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authenticatedHeaders(true) },
+    body: JSON.stringify(input),
+  }, "Unable to save Action.");
+  const result = body as { action?: unknown; ticketVersion?: unknown; replayed?: unknown } | null;
+  if (!result || !isActionTaken(result.action) || typeof result.ticketVersion !== "number" || !Number.isSafeInteger(result.ticketVersion) || typeof result.replayed !== "boolean") {
+    throw new ApiClientError("Unable to save Action.", 200);
+  }
+  return result as { action: ActionTaken; ticketVersion: number; replayed: boolean };
+}
+
+export async function updateActionTaken(ticketNumber: string, actionId: number, input: UpdateActionTakenInput): Promise<{ action: ActionTaken; ticketVersion: number }> {
+  if (!ticketNumber || !Number.isSafeInteger(actionId) || actionId < 1) throw new ApiClientError("Unable to update Action.", 400);
+  const body = await actionRequest(`/api/tickets/${encodeURIComponent(ticketNumber)}/actions-taken/${actionId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...authenticatedHeaders(true) },
+    body: JSON.stringify(input),
+  }, "Unable to update Action.");
+  const result = body as { action?: unknown; ticketVersion?: unknown } | null;
+  if (!result || !isActionTaken(result.action) || typeof result.ticketVersion !== "number" || !Number.isSafeInteger(result.ticketVersion)) {
+    throw new ApiClientError("Unable to update Action.", 200);
+  }
+  return result as { action: ActionTaken; ticketVersion: number };
+}
+
+export async function fetchActionRevisions(
+  ticketNumber: string,
+  actionId: number,
+  page = 1,
+  pageSize: TicketListPageSize = 25,
+): Promise<ActionRevisionResponse> {
+  if (!ticketNumber || !Number.isSafeInteger(actionId) || actionId < 1) throw new ApiClientError("Unable to load Action history.", 400);
+  const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
+  const body = await actionRequest(`/api/tickets/${encodeURIComponent(ticketNumber)}/actions-taken/${actionId}/revisions?${params}`, { headers: authenticatedHeaders() }, "Unable to load Action history.");
+  const result = body as { revisions?: unknown; pagination?: unknown } | null;
+  if (!result || !Array.isArray(result.revisions) || !result.revisions.every(isActionRevision) || !isTicketListPagination(result.pagination)) {
+    throw new ApiClientError("Unable to load Action history.", 200);
+  }
+  return result as ActionRevisionResponse;
 }
 
 function isAdminUser(value: unknown): value is AdminUser {
@@ -827,16 +1243,16 @@ async function patchStaffTicket(
   return result.ticket;
 }
 
-export function updateStaffTicketAssignment(ticketNumber: string, ownerUserId: number | null, confirm = false): Promise<StaffTicket> {
-  return patchStaffTicket(ticketNumber, "assignment", { ownerUserId, ...(confirm ? { confirm: true } : {}) });
+export function updateStaffTicketAssignment(ticketNumber: string, ownerUserId: number | null, expectedVersion: number, confirm = false): Promise<StaffTicket> {
+  return patchStaffTicket(ticketNumber, "assignment", { ownerUserId, expectedVersion, ...(confirm ? { confirm: true } : {}) });
 }
 
-export function updateStaffTicketPriority(ticketNumber: string, itPriority: TicketPriority): Promise<StaffTicket> {
-  return patchStaffTicket(ticketNumber, "priority", { itPriority });
+export function updateStaffTicketPriority(ticketNumber: string, itPriority: TicketPriority, expectedVersion: number): Promise<StaffTicket> {
+  return patchStaffTicket(ticketNumber, "priority", { itPriority, expectedVersion });
 }
 
-export function updateStaffTicketStatus(ticketNumber: string, status: TicketStatus, confirm = false): Promise<StaffTicket> {
-  return patchStaffTicket(ticketNumber, "status", { status, ...(confirm ? { confirm: true } : {}) });
+export function updateStaffTicketStatus(ticketNumber: string, status: TicketStatus, expectedVersion: number, confirm = false, cancellationReason?: string): Promise<StaffTicket> {
+  return patchStaffTicket(ticketNumber, "status", { status, expectedVersion, ...(confirm ? { confirm: true } : {}), ...(cancellationReason !== undefined ? { cancellationReason } : {}) });
 }
 
 export async function createTicket(
@@ -921,6 +1337,9 @@ export async function fetchTickets(
   if (query.relatedSystemId !== undefined) params.set("relatedSystemId", String(query.relatedSystemId));
   if (query.priority) params.set("priority", query.priority);
   if (query.status) params.set("status", query.status);
+  if (query.statusGroup) params.set("statusGroup", query.statusGroup);
+  if (query.updatedSince) params.set("updatedSince", query.updatedSince);
+  if (query.updatedBefore) params.set("updatedBefore", query.updatedBefore);
   params.set("sort", query.sort);
   params.set("order", query.order);
   params.set("page", String(query.page));

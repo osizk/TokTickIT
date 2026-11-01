@@ -52,14 +52,14 @@ const serverEnv: Record<string, string> = {
 // Make the same resolved values available to global setup/teardown and tests.
 Object.assign(process.env, serverEnv, {
   PLAYWRIGHT_API_URL: process.env.PLAYWRIGHT_API_URL ?? `http://127.0.0.1:${serverEnv.PORT}`,
-  PLAYWRIGHT_RUN_TAG: process.env.PLAYWRIGHT_RUN_TAG ?? `E2E-39-${Date.now()}`,
+  PLAYWRIGHT_RUN_TAG: process.env.PLAYWRIGHT_RUN_TAG ?? `E2E-61-${Date.now()}`,
 });
 
 const externalBaseUrl = process.env.PLAYWRIGHT_BASE_URL;
 
 export default defineConfig({
   testDir: "../e2e",
-  testMatch: "lab-03/**/*.spec.ts",
+  testMatch: ["lab-03/**/*.spec.ts", "lab-04/**/*.spec.ts"],
   timeout: 60_000,
   expect: { timeout: 10_000 },
   fullyParallel: false,
@@ -69,7 +69,7 @@ export default defineConfig({
   reporter: [
     ["list"],
     ["html", {
-      outputFolder: path.resolve(repositoryDir, "artifacts/lab-03/playwright-report"),
+      outputFolder: path.resolve(repositoryDir, "artifacts/lab-04/playwright-report"),
       open: "never",
     }],
   ],
