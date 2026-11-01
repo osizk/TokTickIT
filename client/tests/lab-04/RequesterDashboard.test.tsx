@@ -50,7 +50,7 @@ describe("Lab 4 Requester dashboard", () => {
     expect(navigate).toHaveBeenCalledWith("/tickets/TKT-2026-000001");
   });
 
-  it("shows a real empty state for zero Tickets and supports refresh", async () => {
+  it("shows an accurate empty summary even for older cancelled work and supports refresh", async () => {
     vi.mocked(api.fetchRequesterDashboard)
       .mockResolvedValueOnce({
         ...dashboard,
@@ -63,7 +63,8 @@ describe("Lab 4 Requester dashboard", () => {
     const user = userEvent.setup();
     render(<RequesterDashboard navigate={navigate} />);
 
-    expect(await screen.findByText("You have no Tickets yet.")).toBeInTheDocument();
+    expect(await screen.findByText("No active or recent Tickets to show.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "My Tickets" })).toHaveAttribute("href", "/tickets");
     expect(screen.getByText("No recent Ticket activity in the last 7 days.")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Refresh dashboard" }));
     await waitFor(() => expect(api.fetchRequesterDashboard).toHaveBeenCalledTimes(2));

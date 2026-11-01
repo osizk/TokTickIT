@@ -91,7 +91,7 @@ export function RequesterDashboard({ navigate }: DashboardProps) {
     {data && <div className="dashboard-content">
       <div className="dashboard-window"><span>Recent activity window: previous 7 days</span><span>Updated {formatDate(data.generatedAt)} (Asia/Bangkok)</span></div>
       <div className="dashboard-metric-grid" aria-label="Requester Ticket metrics">{metrics.map((metric) => <DashboardMetric key={metric.label} {...metric} navigate={navigate} />)}</div>
-      {empty && <div className="zen-state zen-state-info dashboard-empty" role="status"><p>You have no Tickets yet.</p><DashboardLink className="zen-button zen-button-primary" href="/tickets/new" navigate={navigate}>Create Ticket</DashboardLink></div>}
+      {empty && <div className="zen-state zen-state-info dashboard-empty" role="status"><p>No active or recent Tickets to show.</p><DashboardLink className="zen-button zen-button-primary" href="/tickets" navigate={navigate}>My Tickets</DashboardLink></div>}
       <div className="dashboard-panel-grid">
         <section className="dashboard-panel" aria-labelledby="requester-attention-heading"><div className="dashboard-panel-heading"><h2 id="requester-attention-heading">Tickets needing your response</h2><DashboardLink href="/tickets?status=WAITING_FOR_REQUESTER" navigate={navigate}>View all</DashboardLink></div>
           {data.attentionTickets.length ? <RequesterTicketRows tickets={data.attentionTickets} navigate={navigate} /> : <p className="zen-state zen-state-info" role="status">No Tickets are waiting for your response.</p>}

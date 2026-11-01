@@ -11,6 +11,7 @@
     "prisma:seed": "prisma db seed",
     "prisma:test:migrate": "node scripts/run-test-prisma.mjs migrate",
     "prisma:test:seed": "node scripts/run-test-prisma.mjs seed",
+    "prisma:test:recovery": "node scripts/verify-test-recovery.mjs",
     "test": "vitest run"
   },
   "prisma": {

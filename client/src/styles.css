@@ -117,6 +117,10 @@ textarea:focus-visible {
 }
 
 .zen-nav a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
   padding: 0.65rem 0.8rem;
   border-radius: 0.45rem;
   color: #e6f5eb;
@@ -356,6 +360,7 @@ textarea:focus-visible {
 
 .zen-identity .zen-button-link {
   color: #d9f1e3;
+  min-height: 44px;
 }
 
 .zen-public-header .zen-button-link {
@@ -908,6 +913,13 @@ textarea:focus-visible {
   font-weight: 750;
   text-decoration: underline;
   text-underline-offset: 0.18em;
+}
+
+.zen-ticket-table a:not(.zen-button),
+.zen-ticket-card-item a:not(.zen-button) {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
 }
 
 .zen-priority-badge,
@@ -1771,6 +1783,11 @@ textarea:focus-visible {
   overflow-wrap: anywhere;
 }
 
+.dashboard-ticket-link .zen-status-badge,
+.dashboard-ticket-link .zen-priority-badge {
+  white-space: normal;
+}
+
 .dashboard-ticket-link time,
 .dashboard-action-link time {
   color: var(--zen-muted);
@@ -1799,7 +1816,13 @@ textarea:focus-visible {
 .dashboard-summary-list .zen-status-badge,
 .dashboard-summary-list .zen-priority-badge {
   max-width: 100%;
+  min-width: 0;
+  white-space: normal;
   overflow-wrap: anywhere;
+}
+
+.dashboard-summary-list strong {
+  flex-shrink: 0;
 }
 
 .dashboard-empty {

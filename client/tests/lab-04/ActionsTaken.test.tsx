@@ -44,6 +44,36 @@ describe("Lab 4 Actions Taken UI", () => {
     window.history.replaceState({}, "", "/");
   });
 
+  it("renders Action timestamps in Asia/Bangkok regardless of the viewer timezone", async () => {
+    const localDate = Date.prototype.toLocaleString;
+    const dateSpy = vi.spyOn(Date.prototype, "toLocaleString").mockImplementation(function (this: Date, locales, options) {
+      return localDate.call(this, locales, { timeZone: "UTC", ...options });
+    });
+    render(<ActionsTaken ticketNumber={ticketNumber} readOnly />);
+    await screen.findByRole("heading", { name: action.description });
+    const expected = new Date(action.createdAt).toLocaleString(undefined, { timeZone: "Asia/Bangkok" });
+    expect(screen.getByText(expected)).toBeInTheDocument();
+    expect(dateSpy.mock.calls.every(([, options]) => options?.timeZone === "Asia/Bangkok")).toBe(true);
+  });
+
+  it("resets pagination when a different Ticket reuses the Actions view", async () => {
+    const otherTicket = "TKT-2026-000002";
+    vi.mocked(api.fetchActionsTaken).mockImplementation(async (number, page = 1) => ({
+      actions: number === otherTicket && page > 1 ? [] : [{ ...action, description: number === otherTicket ? "Inspect the second Ticket." : action.description }],
+      pagination: { ...pagination, page, totalItems: number === otherTicket ? 1 : 26, totalPages: number === otherTicket ? 1 : 2 },
+      ticketVersion: 3,
+    } as never));
+    const user = userEvent.setup();
+    const view = render(<ActionsTaken ticketNumber={ticketNumber} readOnly />);
+    await user.click(await screen.findByRole("button", { name: "Next Actions" }));
+    expect(await screen.findByText("Page 2 of 2")).toBeInTheDocument();
+
+    view.rerender(<ActionsTaken ticketNumber={otherTicket} readOnly />);
+    expect(await screen.findByRole("heading", { name: "Inspect the second Ticket." })).toBeInTheDocument();
+    expect(screen.getByText("Page 1 of 1")).toBeInTheDocument();
+    expect(api.fetchActionsTaken).toHaveBeenLastCalledWith(otherTicket, 1, 25, undefined);
+  });
+
   it("focuses the linked Action heading after its list loads", async () => {
     window.history.replaceState({}, "", `/staff/tickets/${ticketNumber}#action-heading-${action.id}`);
     render(<ActionsTaken ticketNumber={ticketNumber} readOnly />);
@@ -262,7 +292,9 @@ describe("Lab 4 Actions Taken UI", () => {
   });
 
   it("retains an edited draft after a stale-version response and offers an explicit reload", async () => {
-    vi.mocked(api.updateActionTaken).mockRejectedValueOnce(new api.ApiClientError("A newer version exists.", 409, "STALE_VERSION"));
+    vi.mocked(api.updateActionTaken).mockRejectedValueOnce(new api.ApiClientError("A newer version exists.", 409, "STALE_VERSION", {
+      expectedTicketVersion: "Reload the Ticket and retry.", expectedActionVersion: "Reload the Action and retry.",
+    }));
     const user = userEvent.setup();
     render(<ActionsTaken ticketNumber={ticketNumber} currentUserId={8} />);
     await user.click(await screen.findByRole("button", { name: "Edit Action" }));
@@ -274,6 +306,36 @@ describe("Lab 4 Actions Taken UI", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(/someone else changed this Action/i);
     expect(screen.getByLabelText("Description")).toHaveValue("Updated network cable inspection.");
     expect(screen.getByRole("button", { name: "Reload current Action" })).toBeInTheDocument();
+  });
+
+  it("retains a new Action draft and explicitly reloads a stale Ticket version before retrying", async () => {
+    vi.mocked(api.createActionTaken).mockRejectedValueOnce(new api.ApiClientError("Ticket changed.", 409, "STALE_VERSION", {
+      expectedTicketVersion: "Reload the Ticket and retry.",
+    }));
+    const user = userEvent.setup();
+    render(<ActionsTaken ticketNumber={ticketNumber} currentUserId={8} />);
+    await user.click(await screen.findByRole("button", { name: "Create Action" }));
+    await user.type(screen.getByLabelText("Description"), "Inspect the laptop docking station.");
+    await user.click(screen.getByRole("button", { name: "Save Action" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/Ticket changed.*draft is preserved/i);
+    expect(screen.getByLabelText("Description")).toHaveValue("Inspect the laptop docking station.");
+    expect(screen.getByRole("button", { name: "Save Action" })).toBeDisabled();
+    const originalKey = vi.mocked(api.createActionTaken).mock.calls[0][1].clientRequestId;
+    vi.mocked(api.fetchActionsTaken).mockRejectedValueOnce(new api.ApiClientError("Offline", 0));
+    await user.click(screen.getByRole("button", { name: "Reload Ticket version" }));
+    expect(await screen.findByText(/Unable to reach the server/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save Action" })).toBeDisabled();
+    expect(screen.getByLabelText("Description")).toHaveValue("Inspect the laptop docking station.");
+
+    vi.mocked(api.fetchActionsTaken).mockResolvedValue({ actions: [action], pagination, ticketVersion: 7 } as never);
+    await user.click(screen.getByRole("button", { name: "Reload Ticket version" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Save Action" })).toBeEnabled());
+    await user.click(screen.getByRole("button", { name: "Save Action" }));
+    await waitFor(() => expect(api.createActionTaken).toHaveBeenLastCalledWith(ticketNumber, expect.objectContaining({
+      description: "Inspect the laptop docking station.", expectedTicketVersion: 7, clientRequestId: originalKey,
+    })));
+    expect(await screen.findByText("Action saved.")).toBeInTheDocument();
   });
 
   it("retains the same creation key and payload when retrying an uncertain request", async () => {

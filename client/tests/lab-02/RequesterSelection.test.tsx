@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "../../src/App.js";
 import * as api from "../../src/api.js";
@@ -24,6 +24,12 @@ describe("Lab 3 authenticated Requester context", () => {
     setPath("/login");
     vi.spyOn(api, "currentUser").mockRejectedValue(new api.ApiClientError("Authentication is required.", 401));
     vi.spyOn(api, "login").mockResolvedValue({ user: authUser, csrfToken: "csrf-test-token" });
+    vi.spyOn(api, "fetchRequesterDashboard").mockResolvedValue({
+      generatedAt: "2026-10-31T12:00:00.000Z", timezone: "Asia/Bangkok",
+      recentWindow: { from: "2026-10-24T12:00:00.000Z", through: "2026-10-31T12:00:00.000Z" },
+      metrics: { activeTicketCount: 0, waitingForRequesterCount: 0, resolvedCount: 0, closedCount: 0 },
+      recentTickets: [], attentionTickets: [],
+    });
     vi.spyOn(api, "fetchTickets").mockResolvedValue({
       items: [],
       pagination: { page: 1, pageSize: 10, totalItems: 0, totalPages: 0, hasPreviousPage: false, hasNextPage: false },
@@ -43,6 +49,9 @@ describe("Lab 3 authenticated Requester context", () => {
   });
 
   it("uses the authenticated shell identity and clears legacy storage", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({
+      error: { code: "SESSION_REQUIRED", message: "Authentication is required." },
+    }), { status: 401 }));
     const user = userEvent.setup();
     sessionStorage.setItem("toktickit.requesterId", "999");
     render(<App />);
@@ -51,9 +60,10 @@ describe("Lab 3 authenticated Requester context", () => {
     await user.type(screen.getByLabelText("Password"), "Initial-Lab3!Password");
     await user.click(screen.getByRole("button", { name: "Sign in" }));
 
-    expect(await screen.findByRole("link", { name: "My Tickets" })).toBeInTheDocument();
+    expect(await within(await screen.findByRole("navigation")).findByRole("link", { name: "My Tickets" })).toBeInTheDocument();
     expect(screen.getByText("Amina Rahman")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Change Requester" })).not.toBeInTheDocument();
     expect(sessionStorage.length).toBe(0);
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 });

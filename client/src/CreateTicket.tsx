@@ -88,7 +88,7 @@ async function signatureError(file: File): Promise<string | null> {
 
 function formatTicketDate(value: string): string {
   const date = new Date(value);
-  return Number.isNaN(date.valueOf()) ? value : date.toLocaleString();
+  return Number.isNaN(date.valueOf()) ? value : date.toLocaleString(undefined, { timeZone: "Asia/Bangkok" });
 }
 
 export default function CreateTicketPage({ requester, navigate }: CreateTicketPageProps) {

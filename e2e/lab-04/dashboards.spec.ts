@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 import { assertNoHorizontalOverflow } from "../lab-03/lab3-fixtures.js";
-import { apiBaseUrl, captureLab4Screenshot, cleanupE2eData, createEmptyRequester, deleteEmptyRequester, loginAs, loginTemporaryRequester, resetLab3Users } from "./lab4-fixtures.js";
+import { apiBaseUrl, captureLab4Screenshot, cleanupE2eData, createEmptyRequester, createTicket, deleteEmptyRequester, loginAs, loginTemporaryRequester, prepareDashboardAttentionTicket, resetLab3Users } from "./lab4-fixtures.js";
 
 test.describe("Lab 4 role dashboard browser regression", () => {
   test.beforeEach(async () => {
@@ -13,10 +13,16 @@ test.describe("Lab 4 role dashboard browser regression", () => {
 
   test("E2E-03 compares live dashboard metrics, drills into owned work, and preserves role boundaries", async ({ page, browser }, testInfo) => {
     await loginAs(page, "requesterA");
+    const attentionTicket = await createTicket(page, testInfo, "dashboard-attention");
+    await prepareDashboardAttentionTicket(attentionTicket);
+    await page.goto("/dashboard");
     await expect(page.getByRole("heading", { name: "Requester Dashboard" })).toBeVisible();
     const requesterResponse = await page.request.get(`${apiBaseUrl}/api/dashboard/requester`);
     expect(requesterResponse.status()).toBe(200);
-    const requesterData = await requesterResponse.json() as { metrics: { activeTicketCount: number }; recentTickets: Array<{ summary: string }> };
+    const requesterData = await requesterResponse.json() as { metrics: { activeTicketCount: number }; recentTickets: Array<{ ticketNumber: string; summary: string }>; attentionTickets: Array<{ ticketNumber: string }> };
+    expect(requesterData.recentTickets.some((ticket) => ticket.ticketNumber === attentionTicket)).toBe(true);
+    expect(requesterData.attentionTickets.some((ticket) => ticket.ticketNumber === attentionTicket)).toBe(true);
+    await expect(page.locator(".dashboard-ticket-list").getByText(attentionTicket, { exact: false })).toHaveCount(2);
     const activeMetric = page.getByRole("link", { name: /Active Tickets/ });
     await expect(activeMetric.locator("strong")).toHaveText(String(requesterData.metrics.activeTicketCount));
     await expect(page.getByText("Laptop battery drains during meetings", { exact: true })).toHaveCount(0);
@@ -51,6 +57,34 @@ test.describe("Lab 4 role dashboard browser regression", () => {
       await expect(staffPage.getByRole("link", { name: /Tickets with my active Actions/ })).toHaveAttribute("href", /actionAssignee=me/);
       await new AxeBuilder({ page: staffPage }).analyze().then((result) => expect(result.violations).toEqual([]));
       await assertNoHorizontalOverflow(staffPage);
+      const summaryLinks = staffPage.locator(".dashboard-summary-list a");
+      for (const width of [390, 767, 768, 900, 991, 992, 1440]) {
+        await staffPage.setViewportSize({ width, height: 1000 });
+        for (const link of await summaryLinks.all()) {
+          const badge = await link.locator("span").evaluate((element) => {
+            const range = document.createRange();
+            range.selectNodeContents(element);
+            return range.getBoundingClientRect().toJSON() as { x: number; width: number };
+          });
+          const count = await link.locator("strong").boundingBox();
+          expect(badge).not.toBeNull();
+          expect(count).not.toBeNull();
+          expect(badge!.x + badge!.width).toBeLessThanOrEqual(count!.x);
+        }
+        for (const badge of await staffPage.locator(".dashboard-ticket-link .zen-status-badge, .dashboard-ticket-link .zen-priority-badge").all()) {
+          const bounds = await badge.evaluate((element) => {
+            const range = document.createRange();
+            range.selectNodeContents(element);
+            const text = range.getBoundingClientRect();
+            const card = element.closest("li")!.getBoundingClientRect();
+            return { textLeft: text.left, textRight: text.right, cardLeft: card.left, cardRight: card.right };
+          });
+          expect(bounds.textLeft).toBeGreaterThanOrEqual(bounds.cardLeft);
+          expect(bounds.textRight).toBeLessThanOrEqual(bounds.cardRight);
+        }
+      }
+      const staffViewport = testInfo.project.use.viewport;
+      if (staffViewport) await staffPage.setViewportSize(staffViewport);
       await captureLab4Screenshot(staffPage, testInfo, "staff-dashboard", "staff-populated");
 
       const actionLink = staffPage.locator(".dashboard-action-link").first();
@@ -92,7 +126,7 @@ test.describe("Lab 4 role dashboard browser regression", () => {
     try {
       await loginTemporaryRequester(page, identity);
       await expect(page.getByRole("heading", { name: "Requester Dashboard" })).toBeVisible();
-      await expect(page.getByText("You have no Tickets yet.", { exact: true })).toBeVisible();
+      await expect(page.getByText("No active or recent Tickets to show.", { exact: true })).toBeVisible();
       const response = await page.request.get(`${apiBaseUrl}/api/dashboard/requester`);
       expect(response.status()).toBe(200);
       const data = await response.json() as { metrics: Record<string, number>; recentTickets: unknown[]; attentionTickets: unknown[] };

@@ -29,10 +29,13 @@ test.describe("Lab 4 Actions Taken browser flow", () => {
 
       const firstDescription = `Inspect submitted evidence ${testInfo.project.name}`;
       const editedDescription = `Verify submitted evidence ${testInfo.project.name}`;
+      const createRequest = page.waitForRequest((request) => request.method() === "POST" && request.url().endsWith(`/api/tickets/${ticketNumber}/actions-taken`));
       await page.getByRole("button", { name: "Create Action", exact: true }).click();
       const createForm = page.locator('form[aria-label="Create Action form"]');
       await createForm.getByLabel("Description", { exact: true }).fill(firstDescription);
       await createForm.getByRole("button", { name: "Save Action", exact: true }).click();
+      const csrfToken = (await createRequest).headers()["x-csrf-token"];
+      expect(csrfToken).toBeTruthy();
       let firstAction = page.locator(".action-taken-card").filter({ hasText: firstDescription });
       await expect(firstAction).toBeVisible();
       await expect(firstAction.locator(".action-taken-meta div").filter({ hasText: /^Result/ })).toContainText("Not recorded");
@@ -41,12 +44,36 @@ test.describe("Lab 4 Actions Taken browser flow", () => {
       const editForm = page.locator("form.action-taken-editor").filter({ has: page.getByRole("heading", { name: "Edit Action" }) });
       await editForm.getByLabel("Description", { exact: true }).fill(editedDescription);
       await editForm.getByLabel("Result (optional)", { exact: true }).fill("The supplied evidence was checked and matches this request.");
+      const assigneeSelect = editForm.getByLabel("Assignee", { exact: true });
+      const currentAssignee = await assigneeSelect.inputValue();
+      const alternative = await assigneeSelect.locator("option").evaluateAll((options, current) => options.map((option) => (option as HTMLOptionElement).value).find((value) => value && value !== current), currentAssignee);
+      expect(alternative).toBeTruthy();
+      await assigneeSelect.selectOption(alternative!);
+      const beforeConflict = await page.request.get(`${apiBaseUrl}/api/tickets/${ticketNumber}/actions-taken`);
+      const conflictData = await beforeConflict.json() as { ticketVersion: number; actions: Array<{ id: number; version: number }> };
+      const concurrentAction = conflictData.actions[0];
+      const concurrentEdit = await page.request.patch(`${apiBaseUrl}/api/tickets/${ticketNumber}/actions-taken/${concurrentAction.id}`, {
+        headers: { origin: new URL(page.url()).origin, "x-csrf-token": csrfToken },
+        data: { expectedTicketVersion: conflictData.ticketVersion, expectedActionVersion: concurrentAction.version, result: "Another staff member verified this service." },
+      });
+      expect(concurrentEdit.status()).toBe(200);
+      await editForm.getByRole("button", { name: "Save Action", exact: true }).click();
+      await expect(editForm.getByRole("alert")).toContainText("Your draft is preserved");
+      await expect(editForm.getByLabel("Description", { exact: true })).toHaveValue(editedDescription);
+      await editForm.getByRole("button", { name: "Reload current Action", exact: true }).click();
+      await expect(page.getByRole("status").filter({ hasText: "Current Action loaded." })).toBeVisible();
+      await editForm.getByLabel("Description", { exact: true }).fill(editedDescription);
+      await editForm.getByLabel("Result (optional)", { exact: true }).fill("The supplied evidence was checked and matches this request.");
+      await editForm.getByLabel("Assignee", { exact: true }).selectOption(alternative!);
       await editForm.getByRole("button", { name: "Save Action", exact: true }).click();
       await expect(page.getByRole("status").filter({ hasText: "Action updated." })).toBeVisible();
       firstAction = page.locator(".action-taken-card").filter({ hasText: editedDescription });
       await expect(firstAction).toBeVisible();
+      const reassigned = await page.request.get(`${apiBaseUrl}/api/tickets/${ticketNumber}/actions-taken`);
+      const reassignedBody = await reassigned.json() as { actions: Array<{ id: number; assignee: { id: number } }> };
+      expect(reassignedBody.actions.find((item) => item.id === concurrentAction.id)?.assignee.id).toBe(Number(alternative));
       await firstAction.getByRole("button", { name: "Show revision history", exact: true }).click();
-      await expect(firstAction.getByText(firstDescription, { exact: true })).toBeVisible();
+      await expect(firstAction.getByRole("listitem").filter({ has: page.getByRole("heading", { name: "Revision 1", exact: true }) }).getByText(firstDescription, { exact: true })).toBeVisible();
       await expect(firstAction.getByLabel(/Revision history for Action/).getByText(editedDescription, { exact: true })).toBeVisible();
 
       await firstAction.getByRole("button", { name: "Start Work", exact: true }).click();

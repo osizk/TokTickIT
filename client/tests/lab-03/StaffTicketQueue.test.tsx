@@ -105,6 +105,10 @@ describe("Lab 3 Staff Ticket Queue", () => {
   });
 
   it("renders queue controls, priorities, ownership, table, and mobile cards", async () => {
+    const Formatter = Intl.DateTimeFormat;
+    vi.spyOn(Intl, "DateTimeFormat").mockImplementation(function (locales, options) {
+      return new Formatter(locales, { timeZone: "UTC", ...options });
+    } as typeof Intl.DateTimeFormat);
     const user = userEvent.setup();
     await openQueue(user);
 
@@ -114,6 +118,8 @@ describe("Lab 3 Staff Ticket Queue", () => {
       expect(screen.getByRole("combobox", { name: label })).toBeInTheDocument();
     }
     expect(screen.getAllByText("Campus Wi-Fi disconnects")).toHaveLength(2);
+    const bangkokDate = new Formatter(undefined, { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Bangkok" }).format(new Date(queueResponse.items[0].updatedAt));
+    expect(screen.getAllByText(bangkokDate)).toHaveLength(2);
     expect(screen.getAllByText("URGENT").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Unassigned").length).toBeGreaterThan(0);
     expect(screen.getByRole("region", { name: "Mobile staff ticket cards" })).toBeInTheDocument();

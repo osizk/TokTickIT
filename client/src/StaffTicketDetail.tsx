@@ -37,7 +37,7 @@ const CONFIRM_STATUSES = new Set<TicketStatus>(["RESOLVED", "CLOSED", "REOPENED"
 
 function formatDate(value: string): string {
   const date = new Date(value);
-  return Number.isNaN(date.valueOf()) ? value : date.toLocaleString();
+  return Number.isNaN(date.valueOf()) ? value : date.toLocaleString(undefined, { timeZone: "Asia/Bangkok" });
 }
 
 function formatBytes(value: number): string {
